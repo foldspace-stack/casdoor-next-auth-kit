@@ -1,38 +1,38 @@
-# Casdoor RESTful API Reference
+# Casdoor 个人操作 API 参考
 
-> Personal / User / Product / Payment / Subscription related APIs only.
-> All paths have `/auth/` prefix in deployment.
-> Based on Casdoor v1.503.0
+> 仅包含个人/用户/商品/支付/订阅相关的 API 端点。
+> 所有路径均已添加 `/auth/` 部署前缀。
+> 基于 Casdoor v1.503.0
 
-## Overview
+## 概览
 
-| Category | Endpoints |
+| 分类 | 端点数 |
 |---|---|
-| Account API | 5 |
-| Invitation API | 5 |
-| Login API | 11 |
-| MFA API | 5 |
-| Order API | 4 |
-| Payment API | 5 |
-| Plan API | 2 |
-| Pricing API | 2 |
-| Product API | 3 |
-| Resource API | 3 |
-| Session API | 2 |
-| Subscription API | 2 |
-| Token API | 4 |
-| Transaction API | 2 |
-| User API | 7 |
-| Verification API | 3 |
-| **Total** | **65** |
+| 账户 API | 5 |
+| 邺请 API | 5 |
+| 登录 API | 11 |
+| 多因素认证 API | 5 |
+| 订单 API | 4 |
+| 支付 API | 5 |
+| 计划 API | 2 |
+| 定价 API | 2 |
+| 商品 API | 3 |
+| 资源 API | 3 |
+| 会话 API | 2 |
+| 订阅 API | 2 |
+| 令牌 API | 4 |
+| 交易 API | 2 |
+| 用户 API | 7 |
+| 验证 API | 3 |
+| **合计** | **65** |
 
-## Account API
+## 账户 API
 
 ### GET `/auth/api/get-account`
-**Operation**: `ApiController.GetAccount`
-**Description**: get the details of the current account
+**操作**: `ApiController.GetAccount`
+**描述**: 获取当前账户详情
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -47,9 +47,9 @@
 ---
 
 ### POST `/auth/api/reset-email-or-phone`
-**Operation**: `ApiController.ResetEmailOrPhone`
+**操作**: `ApiController.ResetEmailOrPhone`
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -70,17 +70,17 @@
 ---
 
 ### POST `/auth/api/set-password`
-**Operation**: `ApiController.SetPassword`
-**Description**: set password
+**操作**: `ApiController.SetPassword`
+**描述**: 设置密码
 
-**Parameters**:
+**参数**:
 
-- `userOwner` (formData, string *(required)*) — The owner of the user
-- `userName` (formData, string *(required)*) — The name of the user
-- `oldPassword` (formData, string *(required)*) — The old password of the user
-- `newPassword` (formData, string *(required)*) — The new password of the user
+- `userOwner` (表单参数, string *(必填)*) — The owner of the user
+- `userName` (表单参数, string *(必填)*) — The name of the user
+- `oldPassword` (表单参数, string *(必填)*) — The old password of the user
+- `newPassword` (表单参数, string *(必填)*) — The new password of the user
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -95,10 +95,10 @@
 ---
 
 ### GET `/auth/api/user`
-**Operation**: `ApiController.UserInfo2`
-**Description**: return Laravel compatible user information according to OAuth 2.0
+**操作**: `ApiController.UserInfo2`
+**描述**: 返回 Laravel 兼容的用户信息（OAuth 2.0）
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -112,10 +112,10 @@
 ---
 
 ### GET `/auth/api/userinfo`
-**Operation**: `ApiController.UserInfo`
-**Description**: return user information according to OIDC standards
+**操作**: `ApiController.UserInfo`
+**描述**: 返回用户信息（OIDC 标准）
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -135,17 +135,17 @@
 
 ---
 
-## Invitation API
+## 邺请 API
 
 ### GET `/auth/api/get-invitation`
-**Operation**: `ApiController.GetInvitation`
-**Description**: get invitation
+**操作**: `ApiController.GetInvitation`
+**描述**: 获取邺请信息
 
-**Parameters**:
+**参数**:
 
-- `id` (query, string *(required)*) — The id ( owner/name ) of the invitation
+- `id` (查询参数, string *(必填)*) — The id ( owner/name ) of the invitation
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -169,14 +169,14 @@
 ---
 
 ### GET `/auth/api/get-invitation-info`
-**Operation**: `ApiController.GetInvitationCodeInfo`
-**Description**: get invitation code information
+**操作**: `ApiController.GetInvitationCodeInfo`
+**描述**: 获取邺请码详情
 
-**Parameters**:
+**参数**:
 
-- `code` (query, string *(required)*) — Invitation code
+- `code` (查询参数, string *(必填)*) — Invitation code
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -200,14 +200,14 @@
 ---
 
 ### GET `/auth/api/get-invitations`
-**Operation**: `ApiController.GetInvitations`
-**Description**: get invitations
+**操作**: `ApiController.GetInvitations`
+**描述**: 获取邺请列表
 
-**Parameters**:
+**参数**:
 
-- `owner` (query, string *(required)*) — The owner of invitations
+- `owner` (查询参数, string *(必填)*) — The owner of invitations
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 Array&lt;object.Invitation&gt;
@@ -215,15 +215,15 @@ Array&lt;object.Invitation&gt;
 ---
 
 ### POST `/auth/api/send-invitation`
-**Operation**: `ApiController.VerifyInvitation`
-**Description**: verify invitation
+**操作**: `ApiController.VerifyInvitation`
+**描述**: 验证邺请码
 
-**Parameters**:
+**参数**:
 
-- `id` (query, string *(required)*) — The id ( owner/name ) of the invitation
-- `body` (body, array *(required)*) — The details of the invitation
+- `id` (查询参数, string *(必填)*) — The id ( owner/name ) of the invitation
+- `body` (请求体, array *(必填)*) — The details of the invitation
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -238,14 +238,14 @@ Array&lt;object.Invitation&gt;
 ---
 
 ### GET `/auth/api/verify-invitation`
-**Operation**: `ApiController.VerifyInvitation`
-**Description**: verify invitation
+**操作**: `ApiController.VerifyInvitation`
+**描述**: 验证邺请码
 
-**Parameters**:
+**参数**:
 
-- `id` (query, string *(required)*) — The id ( owner/name ) of the invitation
+- `id` (查询参数, string *(必填)*) — The id ( owner/name ) of the invitation
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -259,18 +259,18 @@ Array&lt;object.Invitation&gt;
 
 ---
 
-## Login API
+## 登录 API
 
 ### GET `/auth/api/faceid-signin-begin`
-**Operation**: `ApiController.FaceIDSigninBegin`
-**Description**: FaceId Login Flow 1st stage
+**操作**: `ApiController.FaceIDSigninBegin`
+**描述**: FaceID 登录流程第一阶段
 
-**Parameters**:
+**参数**:
 
-- `owner` (query, string *(required)*) — owner
-- `name` (query, string *(required)*) — name
+- `owner` (查询参数, string *(必填)*) — owner
+- `name` (查询参数, string *(必填)*) — name
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -285,18 +285,18 @@ Array&lt;object.Invitation&gt;
 ---
 
 ### GET `/auth/api/get-app-login`
-**Operation**: `ApiController.GetApplicationLogin`
-**Description**: get application login
+**操作**: `ApiController.GetApplicationLogin`
+**描述**: 获取应用登录信息
 
-**Parameters**:
+**参数**:
 
-- `clientId` (query, string *(required)*) — client id
-- `responseType` (query, string *(required)*) — response type
-- `redirectUri` (query, string *(required)*) — redirect uri
-- `scope` (query, string *(required)*) — scope
-- `state` (query, string *(required)*) — state
+- `clientId` (查询参数, string *(必填)*) — client id
+- `responseType` (查询参数, string *(必填)*) — response type
+- `redirectUri` (查询参数, string *(必填)*) — redirect uri
+- `scope` (查询参数, string *(必填)*) — scope
+- `state` (查询参数, string *(必填)*) — state
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -311,9 +311,9 @@ Array&lt;object.Invitation&gt;
 ---
 
 ### GET `/auth/api/get-captcha`
-**Operation**: `ApiController.GetCaptcha`
+**操作**: `ApiController.GetCaptcha`
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -334,22 +334,22 @@ Array&lt;object.Invitation&gt;
 ---
 
 ### POST `/auth/api/login`
-**Operation**: `ApiController.Login`
-**Description**: login
+**操作**: `ApiController.Login`
+**描述**: 登录
 
-**Parameters**:
+**参数**:
 
-- `clientId` (query, string *(required)*) — clientId
-- `responseType` (query, string *(required)*) — responseType
-- `redirectUri` (query, string *(required)*) — redirectUri
-- `scope` (query, string) — scope
-- `state` (query, string) — state
-- `nonce` (query, string) — nonce
-- `code_challenge_method` (query, string) — code_challenge_method
-- `code_challenge` (query, string) — code_challenge
-- `form` (body, object *(required)*) — Login information
+- `clientId` (查询参数, string *(必填)*) — clientId
+- `responseType` (查询参数, string *(必填)*) — responseType
+- `redirectUri` (查询参数, string *(必填)*) — redirectUri
+- `scope` (查询参数, string) — scope
+- `state` (查询参数, string) — state
+- `nonce` (查询参数, string) — nonce
+- `code_challenge_method` (查询参数, string) — code_challenge_method
+- `code_challenge` (查询参数, string) — code_challenge
+- `form` (请求体, object *(必填)*) — Login information
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -364,16 +364,16 @@ Array&lt;object.Invitation&gt;
 ---
 
 ### POST `/auth/api/logout`
-**Operation**: `ApiController.Logout`
-**Description**: logout the current user
+**操作**: `ApiController.Logout`
+**描述**: 注销当前用户
 
-**Parameters**:
+**参数**:
 
-- `id_token_hint` (query, string) — id_token_hint
-- `post_logout_redirect_uri` (query, string) — post_logout_redirect_uri
-- `state` (query, string) — state
+- `id_token_hint` (查询参数, string) — id_token_hint
+- `post_logout_redirect_uri` (查询参数, string) — post_logout_redirect_uri
+- `state` (查询参数, string) — state
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -388,15 +388,15 @@ Array&lt;object.Invitation&gt;
 ---
 
 ### POST `/auth/api/signup`
-**Operation**: `ApiController.Signup`
-**Description**: sign up a new user
+**操作**: `ApiController.Signup`
+**描述**: 注册新用户
 
-**Parameters**:
+**参数**:
 
-- `username` (formData, string *(required)*) — The username to sign up
-- `password` (formData, string *(required)*) — The password
+- `username` (表单参数, string *(必填)*) — The username to sign up
+- `password` (表单参数, string *(必填)*) — The password
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -411,10 +411,10 @@ Array&lt;object.Invitation&gt;
 ---
 
 ### GET `/auth/api/sso-logout`
-**Operation**: `ApiController.SsoLogout`
-**Description**: logout the current user from all applications
+**操作**: `ApiController.SsoLogout`
+**描述**: 从所有应用注销当前用户
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -429,10 +429,10 @@ Array&lt;object.Invitation&gt;
 ---
 
 ### POST `/auth/api/sso-logout`
-**Operation**: `ApiController.SsoLogout`
-**Description**: logout the current user from all applications
+**操作**: `ApiController.SsoLogout`
+**描述**: 从所有应用注销当前用户
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -447,9 +447,9 @@ Array&lt;object.Invitation&gt;
 ---
 
 ### POST `/auth/api/unlink`
-**Operation**: `ApiController.Unlink`
+**操作**: `ApiController.Unlink`
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -470,15 +470,15 @@ Array&lt;object.Invitation&gt;
 ---
 
 ### GET `/auth/api/webauthn/signin/begin`
-**Operation**: `ApiController.WebAuthnSigninBegin`
-**Description**: WebAuthn Login Flow 1st stage
+**操作**: `ApiController.WebAuthnSigninBegin`
+**描述**: WebAuthn 登录流程第一阶段
 
-**Parameters**:
+**参数**:
 
-- `owner` (query, string *(required)*) — owner
-- `name` (query, string *(required)*) — name
+- `owner` (查询参数, string *(必填)*) — owner
+- `name` (查询参数, string *(必填)*) — name
 
-**Responses**:
+**响应**:
 
 - **200**: The CredentialAssertion object
 object
@@ -486,14 +486,14 @@ object
 ---
 
 ### POST `/auth/api/webauthn/signin/finish`
-**Operation**: `ApiController.WebAuthnSigninFinish`
-**Description**: WebAuthn Login Flow 2nd stage
+**操作**: `ApiController.WebAuthnSigninFinish`
+**描述**: WebAuthn 登录流程第二阶段
 
-**Parameters**:
+**参数**:
 
-- `body` (body, object *(required)*) — authenticator assertion Response
+- `body` (请求体, object *(必填)*) — authenticator assertion Response
 
-**Responses**:
+**响应**:
 
 - **200**: "The Response object"
 
@@ -507,13 +507,13 @@ object
 
 ---
 
-## MFA API
+## 多因素认证 API
 
 ### POST `/auth/api/delete-mfa/`
-**Operation**: `ApiController.DeleteMfa`
-**Description**: : Delete MFA
+**操作**: `ApiController.DeleteMfa`
+**描述**: 删除多因素认证
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -528,10 +528,10 @@ object
 ---
 
 ### POST `/auth/api/mfa/setup/enable`
-**Operation**: `ApiController.MfaSetupEnable`
-**Description**: enable totp
+**操作**: `ApiController.MfaSetupEnable`
+**描述**: 启用 TOTP
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -546,10 +546,10 @@ object
 ---
 
 ### POST `/auth/api/mfa/setup/initiate`
-**Operation**: `ApiController.MfaSetupInitiate`
-**Description**: setup MFA
+**操作**: `ApiController.MfaSetupInitiate`
+**描述**: 设置多因素认证
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -564,10 +564,10 @@ object
 ---
 
 ### POST `/auth/api/mfa/setup/verify`
-**Operation**: `ApiController.MfaSetupVerify`
-**Description**: setup verify totp
+**操作**: `ApiController.MfaSetupVerify`
+**描述**: 验证 TOTP 设置
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -582,10 +582,10 @@ object
 ---
 
 ### POST `/auth/api/set-preferred-mfa`
-**Operation**: `ApiController.SetPreferredMfa`
-**Description**: : Set specific Mfa Preferred
+**操作**: `ApiController.SetPreferredMfa`
+**描述**: 设置首选多因素认证方式
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -599,17 +599,17 @@ object
 
 ---
 
-## Order API
+## 订单 API
 
 ### POST `/auth/api/add-order`
-**Operation**: `ApiController.AddOrder`
-**Description**: add order
+**操作**: `ApiController.AddOrder`
+**描述**: 新增订单
 
-**Parameters**:
+**参数**:
 
-- `body` (body, object *(required)*) — The details of the order
+- `body` (请求体, object *(必填)*) — The details of the order
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -624,14 +624,14 @@ object
 ---
 
 ### GET `/auth/api/get-order`
-**Operation**: `ApiController.GetOrder`
-**Description**: get order
+**操作**: `ApiController.GetOrder`
+**描述**: 获取订单
 
-**Parameters**:
+**参数**:
 
-- `id` (query, string *(required)*) — The id ( owner/name ) of the order
+- `id` (查询参数, string *(必填)*) — The id ( owner/name ) of the order
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -650,14 +650,14 @@ object
 ---
 
 ### GET `/auth/api/get-orders`
-**Operation**: `ApiController.GetOrders`
-**Description**: get orders
+**操作**: `ApiController.GetOrders`
+**描述**: 获取订单列表
 
-**Parameters**:
+**参数**:
 
-- `owner` (query, string *(required)*) — The owner of orders
+- `owner` (查询参数, string *(必填)*) — The owner of orders
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 Array&lt;object.Order&gt;
@@ -665,32 +665,32 @@ Array&lt;object.Order&gt;
 ---
 
 ### GET `/auth/api/get-user-orders`
-**Operation**: `ApiController.GetUserOrders`
-**Description**: get orders for a user
+**操作**: `ApiController.GetUserOrders`
+**描述**: 获取用户订单
 
-**Parameters**:
+**参数**:
 
-- `owner` (query, string *(required)*) — The owner of orders
-- `user` (query, string *(required)*) — The username of the user
+- `owner` (查询参数, string *(必填)*) — The owner of orders
+- `user` (查询参数, string *(必填)*) — The username of the user
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 Array&lt;object.Order&gt;
 
 ---
 
-## Payment API
+## 支付 API
 
 ### GET `/auth/api/get-payment`
-**Operation**: `ApiController.GetPayment`
-**Description**: get payment
+**操作**: `ApiController.GetPayment`
+**描述**: 获取支付信息
 
-**Parameters**:
+**参数**:
 
-- `id` (query, string *(required)*) — The id ( owner/name ) of the payment
+- `id` (查询参数, string *(必填)*) — The id ( owner/name ) of the payment
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -727,14 +727,14 @@ Array&lt;object.Order&gt;
 ---
 
 ### GET `/auth/api/get-payments`
-**Operation**: `ApiController.GetPayments`
-**Description**: get payments
+**操作**: `ApiController.GetPayments`
+**描述**: 获取支付列表
 
-**Parameters**:
+**参数**:
 
-- `owner` (query, string *(required)*) — The owner of payments
+- `owner` (查询参数, string *(必填)*) — The owner of payments
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 Array&lt;object.Payment&gt;
@@ -742,16 +742,16 @@ Array&lt;object.Payment&gt;
 ---
 
 ### GET `/auth/api/get-user-payments`
-**Operation**: `ApiController.GetUserPayments`
-**Description**: get payments for a user
+**操作**: `ApiController.GetUserPayments`
+**描述**: 获取用户支付记录
 
-**Parameters**:
+**参数**:
 
-- `owner` (query, string *(required)*) — The owner of payments
-- `organization` (query, string *(required)*) — The organization of the user
-- `user` (query, string *(required)*) — The username of the user
+- `owner` (查询参数, string *(必填)*) — The owner of payments
+- `organization` (查询参数, string *(必填)*) — The organization of the user
+- `user` (查询参数, string *(必填)*) — The username of the user
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 Array&lt;object.Payment&gt;
@@ -759,14 +759,14 @@ Array&lt;object.Payment&gt;
 ---
 
 ### POST `/auth/api/invoice-payment`
-**Operation**: `ApiController.InvoicePayment`
-**Description**: invoice payment
+**操作**: `ApiController.InvoicePayment`
+**描述**: 开具发票
 
-**Parameters**:
+**参数**:
 
-- `id` (query, string *(required)*) — The id ( owner/name ) of the payment
+- `id` (查询参数, string *(必填)*) — The id ( owner/name ) of the payment
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -781,14 +781,14 @@ Array&lt;object.Payment&gt;
 ---
 
 ### POST `/auth/api/notify-payment`
-**Operation**: `ApiController.NotifyPayment`
-**Description**: notify payment
+**操作**: `ApiController.NotifyPayment`
+**描述**: 支付通知
 
-**Parameters**:
+**参数**:
 
-- `body` (body, object *(required)*) — The details of the payment
+- `body` (请求体, object *(必填)*) — The details of the payment
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -802,18 +802,18 @@ Array&lt;object.Payment&gt;
 
 ---
 
-## Plan API
+## 计划 API
 
 ### GET `/auth/api/get-plan`
-**Operation**: `ApiController.GetPlan`
-**Description**: get plan
+**操作**: `ApiController.GetPlan`
+**描述**: 获取计划
 
-**Parameters**:
+**参数**:
 
-- `id` (query, string *(required)*) — The id ( owner/name ) of the plan
-- `includeOption` (query, boolean) — Should include plan's option
+- `id` (查询参数, string *(必填)*) — The id ( owner/name ) of the plan
+- `includeOption` (查询参数, boolean) — Should include plan's option
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -834,31 +834,31 @@ Array&lt;object.Payment&gt;
 ---
 
 ### GET `/auth/api/get-plans`
-**Operation**: `ApiController.GetPlans`
-**Description**: get plans
+**操作**: `ApiController.GetPlans`
+**描述**: 获取计划列表
 
-**Parameters**:
+**参数**:
 
-- `owner` (query, string *(required)*) — The owner of plans
+- `owner` (查询参数, string *(必填)*) — The owner of plans
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 Array&lt;object.Plan&gt;
 
 ---
 
-## Pricing API
+## 定价 API
 
 ### GET `/auth/api/get-pricing`
-**Operation**: `ApiController.GetPricing`
-**Description**: get pricing
+**操作**: `ApiController.GetPricing`
+**描述**: 获取定价
 
-**Parameters**:
+**参数**:
 
-- `id` (query, string *(required)*) — The id ( owner/name ) of the pricing
+- `id` (查询参数, string *(必填)*) — The id ( owner/name ) of the pricing
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -875,32 +875,32 @@ Array&lt;object.Plan&gt;
 ---
 
 ### GET `/auth/api/get-pricings`
-**Operation**: `ApiController.GetPricings`
-**Description**: get pricings
+**操作**: `ApiController.GetPricings`
+**描述**: 获取定价列表
 
-**Parameters**:
+**参数**:
 
-- `owner` (query, string *(required)*) — The owner of pricings
+- `owner` (查询参数, string *(必填)*) — The owner of pricings
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 Array&lt;object.Pricing&gt;
 
 ---
 
-## Product API
+## 商品 API
 
 ### POST `/auth/api/buy-product`
-**Operation**: `ApiController.BuyProduct`
-**Description**: buy product
+**操作**: `ApiController.BuyProduct`
+**描述**: 购买商品
 
-**Parameters**:
+**参数**:
 
-- `id` (query, string *(required)*) — The id ( owner/name ) of the product
-- `providerName` (query, string *(required)*) — The name of the provider
+- `id` (查询参数, string *(必填)*) — The id ( owner/name ) of the product
+- `providerName` (查询参数, string *(必填)*) — The name of the provider
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -915,14 +915,14 @@ Array&lt;object.Pricing&gt;
 ---
 
 ### GET `/auth/api/get-product`
-**Operation**: `ApiController.GetProduct`
-**Description**: get product
+**操作**: `ApiController.GetProduct`
+**描述**: 获取商品
 
-**Parameters**:
+**参数**:
 
-- `id` (query, string *(required)*) — The id ( owner/name ) of the product
+- `id` (查询参数, string *(必填)*) — The id ( owner/name ) of the product
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -948,31 +948,31 @@ Array&lt;object.Pricing&gt;
 ---
 
 ### GET `/auth/api/get-products`
-**Operation**: `ApiController.GetProducts`
-**Description**: get products
+**操作**: `ApiController.GetProducts`
+**描述**: 获取商品列表
 
-**Parameters**:
+**参数**:
 
-- `owner` (query, string *(required)*) — The owner of products
+- `owner` (查询参数, string *(必填)*) — The owner of products
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 Array&lt;object.Product&gt;
 
 ---
 
-## Resource API
+## 资源 API
 
 ### GET `/auth/api/get-resource`
-**Operation**: `ApiController.GetResource`
-**Description**: get resource
+**操作**: `ApiController.GetResource`
+**描述**: 获取资源
 
-**Parameters**:
+**参数**:
 
-- `id` (query, string *(required)*) — The id ( owner/name ) of resource
+- `id` (查询参数, string *(必填)*) — The id ( owner/name ) of resource
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -994,21 +994,21 @@ Array&lt;object.Product&gt;
 ---
 
 ### GET `/auth/api/get-resources`
-**Operation**: `ApiController.GetResources`
-**Description**: get resources
+**操作**: `ApiController.GetResources`
+**描述**: 获取资源列表
 
-**Parameters**:
+**参数**:
 
-- `owner` (query, string *(required)*) — Owner
-- `user` (query, string *(required)*) — User
-- `pageSize` (query, integer) — Page Size
-- `p` (query, integer) — Page Number
-- `field` (query, string) — Field
-- `value` (query, string) — Value
-- `sortField` (query, string) — Sort Field
-- `sortOrder` (query, string) — Sort Order
+- `owner` (查询参数, string *(必填)*) — Owner
+- `user` (查询参数, string *(必填)*) — User
+- `pageSize` (查询参数, integer) — Page Size
+- `p` (查询参数, integer) — Page Number
+- `field` (查询参数, string) — Field
+- `value` (查询参数, string) — Value
+- `sortField` (查询参数, string) — Sort Field
+- `sortOrder` (查询参数, string) — Sort Order
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 Array&lt;object.Resource&gt;
@@ -1016,21 +1016,21 @@ Array&lt;object.Resource&gt;
 ---
 
 ### POST `/auth/api/upload-resource`
-**Operation**: `ApiController.UploadResource`
+**操作**: `ApiController.UploadResource`
 
-**Parameters**:
+**参数**:
 
-- `owner` (query, string *(required)*) — Owner
-- `user` (query, string *(required)*) — User
-- `application` (query, string *(required)*) — Application
-- `tag` (query, string) — Tag
-- `parent` (query, string) — Parent
-- `fullFilePath` (query, string *(required)*) — Full File Path
-- `createdTime` (query, string) — Created Time
-- `description` (query, string) — Description
-- `file` (formData, file *(required)*) — Resource file
+- `owner` (查询参数, string *(必填)*) — Owner
+- `user` (查询参数, string *(必填)*) — User
+- `application` (查询参数, string *(必填)*) — Application
+- `tag` (查询参数, string) — Tag
+- `parent` (查询参数, string) — Parent
+- `fullFilePath` (查询参数, string *(必填)*) — Full File Path
+- `createdTime` (查询参数, string) — Created Time
+- `description` (查询参数, string) — Description
+- `file` (表单参数, file *(必填)*) — Resource file
 
-**Responses**:
+**响应**:
 
 - **200**: FileUrl, objectKey
 
@@ -1051,17 +1051,17 @@ Array&lt;object.Resource&gt;
 
 ---
 
-## Session API
+## 会话 API
 
 ### GET `/auth/api/get-session`
-**Operation**: `ApiController.GetSingleSession`
-**Description**: Get session for one user in one application.
+**操作**: `ApiController.GetSingleSession`
+**描述**: 获取用户在某个应用中的会话
 
-**Parameters**:
+**参数**:
 
-- `sessionPkId` (query, string *(required)*) — The id(organization/user/application) of session
+- `sessionPkId` (查询参数, string *(必填)*) — The id(organization/user/application) of session
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 Array&lt;string&gt;
@@ -1069,32 +1069,32 @@ Array&lt;string&gt;
 ---
 
 ### GET `/auth/api/is-session-duplicated`
-**Operation**: `ApiController.IsSessionDuplicated`
-**Description**: Check if there are other different sessions for one user in one application.
+**操作**: `ApiController.IsSessionDuplicated`
+**描述**: 检查用户在某个应用中是否存在重复会话
 
-**Parameters**:
+**参数**:
 
-- `sessionPkId` (query, string *(required)*) — The id(organization/user/application) of session
-- `sessionId` (query, string *(required)*) — sessionId to be checked
+- `sessionPkId` (查询参数, string *(必填)*) — The id(organization/user/application) of session
+- `sessionId` (查询参数, string *(必填)*) — sessionId to be checked
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 Array&lt;string&gt;
 
 ---
 
-## Subscription API
+## 订阅 API
 
 ### GET `/auth/api/get-subscription`
-**Operation**: `ApiController.GetSubscription`
-**Description**: get subscription
+**操作**: `ApiController.GetSubscription`
+**描述**: 获取订阅
 
-**Parameters**:
+**参数**:
 
-- `id` (query, string *(required)*) — The id ( owner/name ) of the subscription
+- `id` (查询参数, string *(必填)*) — The id ( owner/name ) of the subscription
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -1115,31 +1115,31 @@ Array&lt;string&gt;
 ---
 
 ### GET `/auth/api/get-subscriptions`
-**Operation**: `ApiController.GetSubscriptions`
-**Description**: get subscriptions
+**操作**: `ApiController.GetSubscriptions`
+**描述**: 获取订阅列表
 
-**Parameters**:
+**参数**:
 
-- `owner` (query, string *(required)*) — The owner of subscriptions
+- `owner` (查询参数, string *(必填)*) — The owner of subscriptions
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 Array&lt;object.Subscription&gt;
 
 ---
 
-## Token API
+## 令牌 API
 
 ### GET `/auth/api/get-captcha-status`
-**Operation**: `ApiController.GetCaptchaStatus`
-**Description**: Get Login Error Counts
+**操作**: `ApiController.GetCaptchaStatus`
+**描述**: 获取登录错误次数
 
-**Parameters**:
+**参数**:
 
-- `id` (query, string *(required)*) — The id ( owner/name ) of user
+- `id` (查询参数, string *(必填)*) — The id ( owner/name ) of user
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -1154,14 +1154,14 @@ Array&lt;object.Subscription&gt;
 ---
 
 ### GET `/auth/api/get-token`
-**Operation**: `ApiController.GetToken`
-**Description**: get token
+**操作**: `ApiController.GetToken`
+**描述**: 获取令牌
 
-**Parameters**:
+**参数**:
 
-- `id` (query, string *(required)*) — The id ( owner/name ) of token
+- `id` (查询参数, string *(必填)*) — The id ( owner/name ) of token
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -1186,17 +1186,17 @@ Array&lt;object.Subscription&gt;
 ---
 
 ### POST `/auth/api/login/oauth/access_token`
-**Operation**: `ApiController.GetOAuthToken`
-**Description**: get OAuth access token
+**操作**: `ApiController.GetOAuthToken`
+**描述**: 获取 OAuth 访问令牌
 
-**Parameters**:
+**参数**:
 
-- `grant_type` (query, string *(required)*) — OAuth grant type
-- `client_id` (query, string *(required)*) — OAuth client id
-- `client_secret` (query, string *(required)*) — OAuth client secret
-- `code` (query, string *(required)*) — OAuth code
+- `grant_type` (查询参数, string *(必填)*) — OAuth grant type
+- `client_id` (查询参数, string *(必填)*) — OAuth client id
+- `client_secret` (查询参数, string *(必填)*) — OAuth client secret
+- `code` (查询参数, string *(必填)*) — OAuth code
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -1218,18 +1218,18 @@ Array&lt;object.Subscription&gt;
 ---
 
 ### POST `/auth/api/login/oauth/refresh_token`
-**Operation**: `ApiController.RefreshToken`
-**Description**: refresh OAuth access token
+**操作**: `ApiController.RefreshToken`
+**描述**: 刷新 OAuth 访问令牌
 
-**Parameters**:
+**参数**:
 
-- `grant_type` (query, string *(required)*) — OAuth grant type
-- `refresh_token` (query, string *(required)*) — OAuth refresh token
-- `scope` (query, string *(required)*) — OAuth scope
-- `client_id` (query, string *(required)*) — OAuth client id
-- `client_secret` (query, string) — OAuth client secret
+- `grant_type` (查询参数, string *(必填)*) — OAuth grant type
+- `refresh_token` (查询参数, string *(必填)*) — OAuth refresh token
+- `scope` (查询参数, string *(必填)*) — OAuth scope
+- `client_id` (查询参数, string *(必填)*) — OAuth client id
+- `client_secret` (查询参数, string) — OAuth client secret
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -1250,17 +1250,17 @@ Array&lt;object.Subscription&gt;
 
 ---
 
-## Transaction API
+## 交易 API
 
 ### GET `/auth/api/get-transaction`
-**Operation**: `ApiController.GetTransaction`
-**Description**: get transaction
+**操作**: `ApiController.GetTransaction`
+**描述**: 获取交易
 
-**Parameters**:
+**参数**:
 
-- `id` (query, string *(required)*) — The id ( owner/name ) of the transaction
+- `id` (查询参数, string *(必填)*) — The id ( owner/name ) of the transaction
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -1284,26 +1284,26 @@ Array&lt;object.Subscription&gt;
 ---
 
 ### GET `/auth/api/get-transactions`
-**Operation**: `ApiController.GetTransactions`
-**Description**: get transactions
+**操作**: `ApiController.GetTransactions`
+**描述**: 获取交易列表
 
-**Parameters**:
+**参数**:
 
-- `owner` (query, string *(required)*) — The owner of transactions
+- `owner` (查询参数, string *(必填)*) — The owner of transactions
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 Array&lt;object.Transaction&gt;
 
 ---
 
-## User API
+## 用户 API
 
 ### POST `/auth/api/add-user-keys`
-**Operation**: `ApiController.AddUserKeys`
+**操作**: `ApiController.AddUserKeys`
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -1324,9 +1324,9 @@ Array&lt;object.Transaction&gt;
 ---
 
 ### POST `/auth/api/check-user-password`
-**Operation**: `ApiController.CheckUserPassword`
+**操作**: `ApiController.CheckUserPassword`
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -1347,15 +1347,15 @@ Array&lt;object.Transaction&gt;
 ---
 
 ### GET `/auth/api/get-email-and-phone`
-**Operation**: `ApiController.GetEmailAndPhone`
-**Description**: get email and phone by username
+**操作**: `ApiController.GetEmailAndPhone`
+**描述**: 通过用户名获取邮箱和手机号
 
-**Parameters**:
+**参数**:
 
-- `username` (formData, string *(required)*) — The username of the user
-- `organization` (formData, string *(required)*) — The organization of the user
+- `username` (表单参数, string *(必填)*) — The username of the user
+- `organization` (表单参数, string *(必填)*) — The organization of the user
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -1370,18 +1370,18 @@ Array&lt;object.Transaction&gt;
 ---
 
 ### GET `/auth/api/get-user`
-**Operation**: `ApiController.GetUser`
-**Description**: get user
+**操作**: `ApiController.GetUser`
+**描述**: 获取用户
 
-**Parameters**:
+**参数**:
 
-- `id` (query, string) — The id ( owner/name ) of the user
-- `owner` (query, string) — The owner of the user
-- `email` (query, string) — The email of the user
-- `phone` (query, string) — The phone of the user
-- `userId` (query, string) — The userId of the user
+- `id` (查询参数, string) — The id ( owner/name ) of the user
+- `owner` (查询参数, string) — The owner of the user
+- `email` (查询参数, string) — The email of the user
+- `phone` (查询参数, string) — The phone of the user
+- `userId` (查询参数, string) — The userId of the user
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -1565,17 +1565,17 @@ Array&lt;object.Transaction&gt;
 ---
 
 ### POST `/auth/api/update-user`
-**Operation**: `ApiController.UpdateUser`
-**Description**: update user
+**操作**: `ApiController.UpdateUser`
+**描述**: 更新用户
 
-**Parameters**:
+**参数**:
 
-- `id` (query, string) — The id ( owner/name ) of the user
-- `userId` (query, string) — The userId (UUID) of the user
-- `owner` (query, string) — The owner of the user (required when using userId)
-- `body` (body, object *(required)*) — The details of the user
+- `id` (查询参数, string) — The id ( owner/name ) of the user
+- `userId` (查询参数, string) — The userId (UUID) of the user
+- `owner` (查询参数, string) — The owner of the user (required when using userId)
+- `body` (请求体, object *(必填)*) — The details of the user
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -1590,10 +1590,10 @@ Array&lt;object.Transaction&gt;
 ---
 
 ### GET `/auth/api/webauthn/signup/begin`
-**Operation**: `ApiController.WebAuthnSignupBegin`
-**Description**: WebAuthn Registration Flow 1st stage
+**操作**: `ApiController.WebAuthnSignupBegin`
+**描述**: WebAuthn 注册流程第一阶段
 
-**Responses**:
+**响应**:
 
 - **200**: The CredentialCreationOptions object
 object
@@ -1601,14 +1601,14 @@ object
 ---
 
 ### POST `/auth/api/webauthn/signup/finish`
-**Operation**: `ApiController.WebAuthnSignupFinish`
-**Description**: WebAuthn Registration Flow 2nd stage
+**操作**: `ApiController.WebAuthnSignupFinish`
+**描述**: WebAuthn 注册流程第二阶段
 
-**Parameters**:
+**参数**:
 
-- `body` (body, object *(required)*) — authenticator attestation Response
+- `body` (请求体, object *(必填)*) — authenticator attestation Response
 
-**Responses**:
+**响应**:
 
 - **200**: "The Response object"
 
@@ -1622,12 +1622,12 @@ object
 
 ---
 
-## Verification API
+## 验证 API
 
 ### POST `/auth/api/send-verification-code`
-**Operation**: `ApiController.SendVerificationCode`
+**操作**: `ApiController.SendVerificationCode`
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -1648,9 +1648,9 @@ object
 ---
 
 ### POST `/auth/api/verify-captcha`
-**Operation**: `ApiController.VerifyCaptcha`
+**操作**: `ApiController.VerifyCaptcha`
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -1671,9 +1671,9 @@ object
 ---
 
 ### POST `/auth/api/verify-code`
-**Operation**: `ApiController.VerifyCode`
+**操作**: `ApiController.VerifyCode`
 
-**Responses**:
+**响应**:
 
 - **200**: The Response object
 
@@ -1693,17 +1693,17 @@ object
 
 ---
 
-## Data Models
+## 数据模型
 
 ### `controllers.AuthForm`
-Type: object
+类型: object
 
 ---
 
 ### `controllers.LaravelResponse`
-Type: object
+类型: object
 
-| Field | Type | Description |
+| 字段 | 类型 | 说明 |
 |---|---|---|
 | `created_at` | string |  |
 | `email` | string |  |
@@ -1715,9 +1715,9 @@ Type: object
 ---
 
 ### `controllers.Response`
-Type: object
+类型: object
 
-| Field | Type | Description |
+| 字段 | 类型 | 说明 |
 |---|---|---|
 | `data` | object |  |
 | `data2` | object |  |
@@ -1730,9 +1730,9 @@ Type: object
 ---
 
 ### `object.FaceId`
-Type: object
+类型: object
 
-| Field | Type | Description |
+| 字段 | 类型 | 说明 |
 |---|---|---|
 | `ImageUrl` | string |  |
 | `faceIdData` | array |  |
@@ -1741,9 +1741,9 @@ Type: object
 ---
 
 ### `object.Invitation`
-Type: object
+类型: object
 
-| Field | Type | Description |
+| 字段 | 类型 | 说明 |
 |---|---|---|
 | `application` | string |  |
 | `code` | string |  |
@@ -1765,9 +1765,9 @@ Type: object
 ---
 
 ### `object.ManagedAccount`
-Type: object
+类型: object
 
-| Field | Type | Description |
+| 字段 | 类型 | 说明 |
 |---|---|---|
 | `application` | string |  |
 | `password` | string |  |
@@ -1777,9 +1777,9 @@ Type: object
 ---
 
 ### `object.MfaAccount`
-Type: object
+类型: object
 
-| Field | Type | Description |
+| 字段 | 类型 | 说明 |
 |---|---|---|
 | `accountName` | string |  |
 | `issuer` | string |  |
@@ -1789,9 +1789,9 @@ Type: object
 ---
 
 ### `object.MfaItem`
-Type: object
+类型: object
 
-| Field | Type | Description |
+| 字段 | 类型 | 说明 |
 |---|---|---|
 | `name` | string |  |
 | `rule` | string |  |
@@ -1799,9 +1799,9 @@ Type: object
 ---
 
 ### `object.MfaProps`
-Type: object
+类型: object
 
-| Field | Type | Description |
+| 字段 | 类型 | 说明 |
 |---|---|---|
 | `countryCode` | string |  |
 | `enabled` | boolean |  |
@@ -1815,9 +1815,9 @@ Type: object
 ---
 
 ### `object.Order`
-Type: object
+类型: object
 
-| Field | Type | Description |
+| 字段 | 类型 | 说明 |
 |---|---|---|
 | `createdTime` | string |  |
 | `displayName` | string |  |
@@ -1834,9 +1834,9 @@ Type: object
 ---
 
 ### `object.Payment`
-Type: object
+类型: object
 
-| Field | Type | Description |
+| 字段 | 类型 | 说明 |
 |---|---|---|
 | `createdTime` | string |  |
 | `currency` | string |  |
@@ -1871,9 +1871,9 @@ Type: object
 ---
 
 ### `object.Permission`
-Type: object
+类型: object
 
-| Field | Type | Description |
+| 字段 | 类型 | 说明 |
 |---|---|---|
 | `actions` | array |  |
 | `adapter` | string |  |
@@ -1899,9 +1899,9 @@ Type: object
 ---
 
 ### `object.Plan`
-Type: object
+类型: object
 
-| Field | Type | Description |
+| 字段 | 类型 | 说明 |
 |---|---|---|
 | `createdTime` | string |  |
 | `currency` | string |  |
@@ -1920,9 +1920,9 @@ Type: object
 ---
 
 ### `object.Pricing`
-Type: object
+类型: object
 
-| Field | Type | Description |
+| 字段 | 类型 | 说明 |
 |---|---|---|
 | `application` | string |  |
 | `createdTime` | string |  |
@@ -1937,9 +1937,9 @@ Type: object
 ---
 
 ### `object.Product`
-Type: object
+类型: object
 
-| Field | Type | Description |
+| 字段 | 类型 | 说明 |
 |---|---|---|
 | `createdTime` | string |  |
 | `currency` | string |  |
@@ -1963,9 +1963,9 @@ Type: object
 ---
 
 ### `object.Provider`
-Type: object
+类型: object
 
-| Field | Type | Description |
+| 字段 | 类型 | 说明 |
 |---|---|---|
 | `appId` | string |  |
 | `bucket` | string |  |
@@ -2013,9 +2013,9 @@ Type: object
 ---
 
 ### `object.Resource`
-Type: object
+类型: object
 
-| Field | Type | Description |
+| 字段 | 类型 | 说明 |
 |---|---|---|
 | `application` | string |  |
 | `createdTime` | string |  |
@@ -2035,9 +2035,9 @@ Type: object
 ---
 
 ### `object.Role`
-Type: object
+类型: object
 
-| Field | Type | Description |
+| 字段 | 类型 | 说明 |
 |---|---|---|
 | `createdTime` | string |  |
 | `description` | string |  |
@@ -2053,9 +2053,9 @@ Type: object
 ---
 
 ### `object.Subscription`
-Type: object
+类型: object
 
-| Field | Type | Description |
+| 字段 | 类型 | 说明 |
 |---|---|---|
 | `createdTime` | string |  |
 | `description` | string |  |
@@ -2074,14 +2074,14 @@ Type: object
 ---
 
 ### `object.SubscriptionState`
-Type: string
+类型: string
 
 ---
 
 ### `object.Token`
-Type: object
+类型: object
 
-| Field | Type | Description |
+| 字段 | 类型 | 说明 |
 |---|---|---|
 | `accessToken` | string |  |
 | `accessTokenHash` | string |  |
@@ -2104,9 +2104,9 @@ Type: object
 ---
 
 ### `object.TokenError`
-Type: object
+类型: object
 
-| Field | Type | Description |
+| 字段 | 类型 | 说明 |
 |---|---|---|
 | `error` | string |  |
 | `error_description` | string |  |
@@ -2114,9 +2114,9 @@ Type: object
 ---
 
 ### `object.TokenWrapper`
-Type: object
+类型: object
 
-| Field | Type | Description |
+| 字段 | 类型 | 说明 |
 |---|---|---|
 | `access_token` | string |  |
 | `expires_in` | integer |  |
@@ -2128,9 +2128,9 @@ Type: object
 ---
 
 ### `object.Transaction`
-Type: object
+类型: object
 
-| Field | Type | Description |
+| 字段 | 类型 | 说明 |
 |---|---|---|
 | `amount` | number |  |
 | `application` | string |  |
@@ -2152,9 +2152,9 @@ Type: object
 ---
 
 ### `object.User`
-Type: object
+类型: object
 
-| Field | Type | Description |
+| 字段 | 类型 | 说明 |
 |---|---|---|
 | `accessKey` | string |  |
 | `accessSecret` | string |  |
@@ -2336,9 +2336,9 @@ Type: object
 ---
 
 ### `object.Userinfo`
-Type: object
+类型: object
 
-| Field | Type | Description |
+| 字段 | 类型 | 说明 |
 |---|---|---|
 | `address` | string |  |
 | `aud` | string |  |
@@ -2357,31 +2357,31 @@ Type: object
 ---
 
 ### `pp.PaymentState`
-Type: string
+类型: string
 
 ---
 
 ### `protocol.CredentialAssertion`
-Type: object
+类型: object
 
 ---
 
 ### `protocol.CredentialAssertionResponse`
-Type: object
+类型: object
 
 ---
 
 ### `protocol.CredentialCreation`
-Type: object
+类型: object
 
 ---
 
 ### `protocol.CredentialCreationResponse`
-Type: object
+类型: object
 
 ---
 
 ### `webauthn.Credential`
-Type: object
+类型: object
 
 ---
