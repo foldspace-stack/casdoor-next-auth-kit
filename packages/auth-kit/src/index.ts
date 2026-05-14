@@ -20,5 +20,5 @@ export * from './next/authorize';
 export * from './next/callback';
 export * from './next/logout';
 export * from './next/nextauth';
-export * from './react';
+export * from './billing';
 export * from './prisma/schema-template';
