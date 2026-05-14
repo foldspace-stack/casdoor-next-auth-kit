@@ -5,24 +5,29 @@
     export const customBegin = '// @foldspace/casdoor-next-auth-kit:begin custom';
     export const customEnd = '// @foldspace/casdoor-next-auth-kit:end custom';
 
-    export function ensureDir(filePath: string) {
-      fs.mkdirSync(path.dirname(filePath), { recursive: true });
-    }
+export function ensureDir(filePath: string) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+}
 
-    export function writeGeneratedFile(filePath: string, content: string) {
-      ensureDir(filePath);
-      fs.writeFileSync(filePath, generatedHeader + content, 'utf8');
-    }
+export function writeGeneratedFile(filePath: string, content: string) {
+  ensureDir(filePath);
+  fs.writeFileSync(filePath, generatedHeader + content, 'utf8');
+}
 
-    export function exists(filePath: string) {
-      return fs.existsSync(filePath);
-    }
+export function writeTextFile(filePath: string, content: string) {
+  ensureDir(filePath);
+  fs.writeFileSync(filePath, content, 'utf8');
+}
+
+export function exists(filePath: string) {
+  return fs.existsSync(filePath);
+}
 
     export function read(filePath: string) {
       return fs.readFileSync(filePath, 'utf8');
     }
 
-    export function preserveCustomBlock(existing: string, next: string) {
+export function preserveCustomBlock(existing: string, next: string) {
       const begin = existing.indexOf(customBegin);
       const end = existing.indexOf(customEnd);
       if (begin === -1 || end === -1 || end <= begin) return next;
@@ -30,5 +35,9 @@
       const targetBegin = next.indexOf(customBegin);
       const targetEnd = next.indexOf(customEnd);
       if (targetBegin === -1 || targetEnd === -1 || targetEnd <= targetBegin) return next;
-      return next.slice(0, targetBegin) + custom + next.slice(targetEnd + customEnd.length);
-    }
+  return next.slice(0, targetBegin) + custom + next.slice(targetEnd + customEnd.length);
+}
+
+export function removePath(filePath: string) {
+  fs.rmSync(filePath, { force: true, recursive: true });
+}

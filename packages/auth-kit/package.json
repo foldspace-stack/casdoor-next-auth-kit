@@ -28,7 +28,7 @@
   },
   "files": ["dist"],
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && node ./scripts/copy-skill.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "dev": "tsup --watch"
   },
