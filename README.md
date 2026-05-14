@@ -9,6 +9,14 @@
 - 提供 React 钩子和 Provider 包装，宿主应用无需直接导入 `next-auth/react`
 - 将 Casdoor 特有的 UI 和导航隐藏在宿主壳之后
 
+## 文档导航
+
+- [Docs Index](./docs/README.md)
+- [Auth 文档](./docs/auth/README.md)
+- [Billing 文档](./docs/billing/README.md)
+- [CLI 文档](./docs/cli/README.md)
+- [Skills 文档](./docs/skills/README.md)
+
 ## 仓库结构
 
 - `packages/auth-kit`：可复用的认证、电商、React 钩子和宿主模板辅助工具

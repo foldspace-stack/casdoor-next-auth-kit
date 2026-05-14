@@ -1,0 +1,168 @@
+import type {
+  BillingApiClient,
+  BillingActionPayload,
+  BillingCreditsState,
+  BillingEntitlementState,
+  BillingPurchaseStatus,
+  BillingRuntimeConfig,
+  BillingSubscriptionHistoryItem,
+  BillingSubscriptionState,
+  BillingProductState,
+  BillingOrderHistoryItem,
+  BillingPaymentHistoryItem,
+} from '@foldspace/casdoor-next-auth-kit/billing';
+
+import { billingCatalogExample } from './billing-catalog.example';
+
+const delay = async (ms: number) => {
+  await new Promise((resolve) => setTimeout(resolve, ms));
+};
+
+export const mockBillingApiClient: BillingApiClient = {
+  async fetchRuntimeConfig() {
+    await delay(100);
+    return billingCatalogExample satisfies BillingRuntimeConfig;
+  },
+  async fetchSubscription() {
+    await delay(80);
+    return {
+      subscriptionId: 'sub_001',
+      planKey: 'pro-year',
+      planName: 'Pro',
+      status: 'active',
+      interval: 'year',
+      renewAt: '2026-06-01T00:00:00.000Z',
+      autoRenew: true,
+    } satisfies BillingSubscriptionState;
+  },
+  async fetchSubscriptionHistory() {
+    await delay(80);
+    return [
+      {
+        subscriptionId: 'sub_001',
+        planKey: 'starter-month',
+        planName: 'Starter',
+        status: 'canceled',
+        interval: 'month',
+        startedAt: '2025-01-01T00:00:00.000Z',
+        endedAt: '2025-02-01T00:00:00.000Z',
+      },
+      {
+        subscriptionId: 'sub_002',
+        planKey: 'pro-year',
+        planName: 'Pro',
+        status: 'active',
+        interval: 'year',
+        startedAt: '2025-06-01T00:00:00.000Z',
+      },
+    ] satisfies BillingSubscriptionHistoryItem[];
+  },
+  async fetchProducts() {
+    await delay(80);
+    return [
+      {
+        productKey: 'credits-1000',
+        productId: 'prod_credits_1000',
+        title: '1000 Credits',
+        kind: 'credits',
+        quantity: 1,
+        owned: true,
+        creditsBalance: 1000,
+      },
+      {
+        productKey: 'avatar-pack',
+        productId: 'prod_avatar_pack',
+        title: 'Avatar Pack',
+        kind: 'product',
+        quantity: 1,
+        owned: true,
+      },
+    ] satisfies BillingProductState[];
+  },
+  async fetchOrderHistory() {
+    await delay(80);
+    return [
+      {
+        orderId: 'ord_001',
+        productKey: 'credits-1000',
+        productId: 'prod_credits_1000',
+        productTitle: '1000 Credits',
+        kind: 'credits',
+        quantity: 1,
+        amount: 1999,
+        currency: 'USD',
+        status: 'paid',
+        createdAt: '2025-06-01T00:00:00.000Z',
+      },
+      {
+        orderId: 'ord_002',
+        productKey: 'avatar-pack',
+        productId: 'prod_avatar_pack',
+        productTitle: 'Avatar Pack',
+        kind: 'product',
+        quantity: 1,
+        amount: 4999,
+        currency: 'USD',
+        status: 'paid',
+        createdAt: '2025-06-10T00:00:00.000Z',
+      },
+    ] satisfies BillingOrderHistoryItem[];
+  },
+  async fetchPaymentHistory() {
+    await delay(80);
+    return [
+      {
+        paymentId: 'pay_001',
+        orderId: 'ord_001',
+        productKey: 'credits-1000',
+        amount: 1999,
+        currency: 'USD',
+        status: 'paid',
+        transactionId: 'txn_001',
+        createdAt: '2025-06-01T00:00:00.000Z',
+      },
+    ] satisfies BillingPaymentHistoryItem[];
+  },
+  async fetchPurchaseStatus() {
+    await delay(40);
+    return {
+      actionKey: 'credits-1000',
+      orderId: 'ord_001',
+      paymentId: 'pay_001',
+      transactionId: 'txn_001',
+      status: 'paid',
+      orderStatus: 'paid',
+      paymentStatus: 'paid',
+      transactionStatus: 'linked',
+      updatedAt: '2025-06-01T00:00:00.000Z',
+    } satisfies BillingPurchaseStatus;
+  },
+  async fetchCredits() {
+    await delay(40);
+    return {
+      balance: 1000,
+      used: 120,
+      reserved: 0,
+      unit: 'credits',
+      updatedAt: '2025-06-01T00:00:00.000Z',
+    } satisfies BillingCreditsState;
+  },
+  async fetchEntitlements() {
+    await delay(40);
+    return {
+      features: ['pro-features', 'avatar-pack'],
+      limits: { credits: 1000 },
+      flags: { subscribed: true, hasCredits: true },
+    } satisfies BillingEntitlementState;
+  },
+  async createAction(payload: BillingActionPayload) {
+    await delay(120);
+    return {
+      status: 'succeeded',
+      redirectTo: payload.returnTo ?? '/billing/success',
+    };
+  },
+  async refresh() {
+    await delay(10);
+  },
+};

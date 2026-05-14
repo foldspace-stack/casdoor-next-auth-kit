@@ -1,0 +1,158 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="980" viewBox="0 0 1440 980" role="img" aria-labelledby="title desc">
+  <title id="title">Billing Headless Runtime Design</title>
+  <desc id="desc">Headless billing architecture for subscriptions, products, credits, injected configuration, providers, hooks, pipeline, and Casdoor personal billing API subset.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#344054"/>
+    </marker>
+    <marker id="softArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#667085"/>
+    </marker>
+    <style>
+      .bg { fill: #f8fafc; }
+      .title { font: 700 30px sans-serif; fill: #101828; }
+      .subtitle { font: 400 15px sans-serif; fill: #475467; }
+      .section-title { font: 700 18px sans-serif; fill: #101828; }
+      .label { font: 600 15px sans-serif; fill: #101828; }
+      .small { font: 400 13px sans-serif; fill: #475467; }
+      .tiny { font: 400 12px sans-serif; fill: #667085; }
+      .box { fill: #ffffff; stroke: #d0d5dd; stroke-width: 1.4; rx: 12; }
+      .box-strong { fill: #ffffff; stroke: #344054; stroke-width: 1.8; rx: 12; }
+      .box-blue { fill: #eff8ff; stroke: #84caff; stroke-width: 1.4; rx: 12; }
+      .box-green { fill: #ecfdf3; stroke: #75e0a7; stroke-width: 1.4; rx: 12; }
+      .box-amber { fill: #fffaeb; stroke: #fdb022; stroke-width: 1.4; rx: 12; }
+      .box-red { fill: #fff1f3; stroke: #fda29b; stroke-width: 1.4; rx: 12; }
+      .box-gray { fill: #f2f4f7; stroke: #d0d5dd; stroke-width: 1.2; rx: 10; }
+      .lane { fill: #ffffff; stroke: #eaecf0; stroke-width: 1.4; rx: 18; }
+      .line { stroke: #344054; stroke-width: 1.7; fill: none; marker-end: url(#arrow); }
+      .soft-line { stroke: #667085; stroke-width: 1.4; fill: none; stroke-dasharray: 5 5; marker-end: url(#softArrow); }
+      .plain-line { stroke: #98a2b3; stroke-width: 1.3; fill: none; }
+      .badge { fill: #f9fafb; stroke: #d0d5dd; stroke-width: 1; rx: 8; }
+    </style>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1440" height="980"/>
+  <text class="title" x="54" y="58">Billing Headless Runtime</text>
+  <text class="subtitle" x="54" y="84">Only product purchase, subscription, credits, entitlement, order, payment, and transaction flows. No UI. No management API at runtime.</text>
+
+  <rect class="lane" x="38" y="118" width="360" height="790"/>
+  <text class="section-title" x="62" y="154">Injected Configuration</text>
+  <text class="small" x="62" y="178">Prepared by admin/backend, then passed into runtime.</text>
+
+  <rect class="box-blue" x="62" y="210" width="312" height="140"/>
+  <text class="label" x="86" y="240">BillingRuntimeConfig</text>
+  <text class="small" x="86" y="268">catalogKey</text>
+  <text class="small" x="86" y="292">items: BillingItem[]</text>
+  <text class="small" x="86" y="316">conversionRules</text>
+  <text class="small" x="86" y="340">defaults</text>
+
+  <rect class="box" x="62" y="380" width="312" height="154"/>
+  <text class="label" x="86" y="410">BillingItem</text>
+  <text class="small" x="86" y="438">kind: subscription | product | credits</text>
+  <text class="small" x="86" y="462">backendRef: productId / planId / priceId</text>
+  <text class="small" x="86" y="486">creditGrant / creditRedeem</text>
+  <text class="tiny" x="86" y="512">credits is a product extension</text>
+
+  <rect class="box-amber" x="62" y="564" width="312" height="142"/>
+  <text class="label" x="86" y="594">Conversion Rules</text>
+  <text class="small" x="86" y="622">productKey</text>
+  <text class="small" x="86" y="646">grant-credits | redeem-credits</text>
+  <text class="small" x="86" y="670">creditsPerUnit</text>
+  <text class="small" x="86" y="694">quantity limits</text>
+
+  <rect class="box-red" x="62" y="738" width="312" height="110"/>
+  <text class="label" x="86" y="768">Boundary</text>
+  <text class="small" x="86" y="796">No add/update/delete product API</text>
+  <text class="small" x="86" y="820">No management API at runtime</text>
+
+  <rect class="lane" x="432" y="118" width="520" height="790"/>
+  <text class="section-title" x="456" y="154">Headless Runtime</text>
+  <text class="small" x="456" y="178">Providers expose state, actions, and refresh. Host renders any UI it wants.</text>
+
+  <rect class="box-strong" x="486" y="210" width="410" height="112"/>
+  <text class="label" x="514" y="242">BillingCoreProvider</text>
+  <text class="small" x="514" y="270">apiClient, runtimeConfigLoader</text>
+  <text class="small" x="514" y="294">actionExecutor, defaults</text>
+
+  <rect class="box-green" x="466" y="366" width="236" height="126"/>
+  <text class="label" x="492" y="398">SubscriptionProvider</text>
+  <text class="small" x="492" y="426">subscription state</text>
+  <text class="small" x="492" y="450">entitlements</text>
+  <text class="small" x="492" y="474">status</text>
+
+  <rect class="box-green" x="718" y="366" width="206" height="126"/>
+  <text class="label" x="744" y="398">ProductProvider</text>
+  <text class="small" x="744" y="426">products</text>
+  <text class="small" x="744" y="450">owned state</text>
+  <text class="small" x="744" y="474">status</text>
+
+  <rect class="box-amber" x="718" y="528" width="206" height="112"/>
+  <text class="label" x="744" y="560">CreditsProvider</text>
+  <text class="small" x="744" y="588">credits balance</text>
+  <text class="small" x="744" y="612">specialized product view</text>
+
+  <rect class="box" x="466" y="682" width="458" height="166"/>
+  <text class="label" x="492" y="714">Hooks</text>
+  <text class="small" x="492" y="742">useBillingCatalog, useBillingItem, useBillingProducts</text>
+  <text class="small" x="492" y="766">useBillingSubscription, useBillingSubscriptionHistory</text>
+  <text class="small" x="492" y="790">useSubscribePlan, useManageSubscription</text>
+  <text class="small" x="492" y="814">useBillingProduct, usePurchaseProduct, useBillingOrderHistory</text>
+  <text class="small" x="492" y="838">useBillingCredits, usePurchaseCredits, useBillingRefresh</text>
+
+  <rect class="lane" x="986" y="118" width="416" height="790"/>
+  <text class="section-title" x="1010" y="154">Personal API Subset</text>
+  <text class="small" x="1010" y="178">From skills/casdoor-next-auth-kit/references/swagger.json</text>
+
+  <rect class="box-blue" x="1010" y="210" width="350" height="118"/>
+  <text class="label" x="1036" y="242">Catalog Reads</text>
+  <text class="small" x="1036" y="270">Product API</text>
+  <text class="small" x="1036" y="294">Plan API</text>
+  <text class="small" x="1036" y="318">Pricing API</text>
+
+  <rect class="box-green" x="1010" y="360" width="350" height="142"/>
+  <text class="label" x="1036" y="392">Purchase and Subscription</text>
+  <text class="small" x="1036" y="420">Subscription API + subscription history</text>
+  <text class="small" x="1036" y="444">Order API + order history</text>
+  <text class="small" x="1036" y="468">Payment API</text>
+  <text class="small" x="1036" y="492">Transaction API</text>
+
+  <rect class="box-amber" x="1010" y="534" width="350" height="118"/>
+  <text class="label" x="1036" y="566">State and Entitlements</text>
+  <text class="small" x="1036" y="594">Order / Payment / Transaction state</text>
+  <text class="small" x="1036" y="618">Account / User / Session / Token context</text>
+  <text class="tiny" x="1036" y="642">Requires existing authenticated user</text>
+
+  <rect class="box-gray" x="1010" y="684" width="350" height="128"/>
+  <text class="label" x="1036" y="716">Excluded From Runtime</text>
+  <text class="small" x="1036" y="744">Login, callback, MFA flows</text>
+  <text class="small" x="1036" y="768">Organization, role, permission APIs</text>
+  <text class="small" x="1036" y="792">Product management APIs</text>
+
+  <rect class="box-strong" x="542" y="530" width="146" height="112"/>
+  <text class="label" x="568" y="562">Pipeline</text>
+  <text class="tiny" x="568" y="588">normalize payload</text>
+  <text class="tiny" x="568" y="610">execute action</text>
+  <text class="tiny" x="568" y="632">refresh state</text>
+
+  <path class="line" d="M 374 280 C 428 280, 432 266, 486 266"/>
+  <path class="line" d="M 374 452 C 440 452, 438 266, 486 266"/>
+  <path class="line" d="M 374 634 C 446 634, 452 266, 486 266"/>
+
+  <path class="line" d="M 692 322 L 584 366"/>
+  <path class="line" d="M 692 322 L 822 366"/>
+  <path class="line" d="M 822 492 L 822 528"/>
+  <path class="soft-line" d="M 744 584 C 690 584, 696 584, 688 584"/>
+  <text class="tiny" x="650" y="572">credits extends product</text>
+
+  <path class="line" d="M 702 744 C 758 744, 778 658, 688 606"/>
+  <path class="line" d="M 688 586 C 824 586, 890 431, 1010 431"/>
+  <path class="soft-line" d="M 688 586 C 828 586, 888 594, 1010 594"/>
+  <path class="line" d="M 1010 270 C 958 270, 946 266, 896 266"/>
+
+  <path class="soft-line" d="M 615 642 C 615 670, 615 682, 615 682"/>
+  <path class="soft-line" d="M 1185 652 C 1185 846, 930 876, 690 848"/>
+  <text class="tiny" x="1008" y="862">refresh reads state after payment/subscription changes</text>
+
+  <rect class="badge" x="54" y="928" width="1330" height="34"/>
+  <text class="tiny" x="78" y="950">Runtime depends on injected management configuration plus Casdoor personal billing APIs. Product, subscription, and credits share one billing runtime; credits are modeled as a product extension.</text>
+</svg>
