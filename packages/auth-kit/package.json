@@ -1,0 +1,39 @@
+{
+  "name": "@foldspace/casdoor-next-auth-kit",
+  "version": "0.0.0",
+  "private": false,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./casdoor": "./dist/casdoor/index.js",
+    "./next": "./dist/next/index.js",
+    "./react": "./dist/react/index.js"
+  },
+  "bin": {
+    "casdoor-next-auth-kit": "./dist/cli.js"
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "dev": "tsup --watch"
+  },
+  "peerDependencies": {
+    "next": ">=16",
+    "next-auth": "^4.24.0",
+    "react": ">=19",
+    "react-dom": ">=19"
+  },
+  "dependencies": {
+    "jose": "^6.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.6.3"
+  }
+}
