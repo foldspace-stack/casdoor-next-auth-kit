@@ -1,108 +1,106 @@
 # casdoor-next-auth-kit
 
-Source repository for the reusable `@foldspace/casdoor-next-auth-kit` package, its CLI scaffolder, its skill distribution source, and a Next.js demo app.
+可复用的 `@foldspace/casdoor-next-auth-kit` 包的源码仓库，包含 CLI 脚手架工具、skill 分发源和 Next.js 演示应用。
 
-The package is intentionally headless:
+该包刻意设计为无头（headless）架构：
 
-- it keeps the Casdoor experience inside the host application
-- it proxies Casdoor login, signup, callback, logout, and commerce flows through same-origin route shells
-- it exposes React hooks and provider wrappers so host apps do not need to import `next-auth/react` directly
-- it keeps Casdoor-specific UI and navigation hidden behind the host shell
+- 将 Casdoor 认证体验完全内嵌于宿主应用，用户不应感知到跳转
+- 通过同源路由壳代理 Casdoor 的登录、注册、回调、注销和电商流程
+- 提供 React 钩子和 Provider 包装，宿主应用无需直接导入 `next-auth/react`
+- 将 Casdoor 特有的 UI 和导航隐藏在宿主壳之后
 
-## What lives here
+## 仓库结构
 
-- `packages/auth-kit`: reusable auth, commerce, React hooks, and host template helpers
-- `packages/auth-kit/src/cli.ts`: CLI entry that supports `init`, `update`, and `check`
-- `apps/demo`: smoke-test and manual verification app
-- `skills/casdoor-next-auth-kit/SKILL.md`: canonical skill copy for host projects
-- `scripts/install-skill.mjs`: copier that installs the skill into a target project's `.agents/skills`
-- Generated auth route shells live under `app/(auth-kit)` so they stay collocated without changing URLs.
-- `/auth/login` is the host login entry route.
-- `/auth/signup` is the host signup entry route.
-- `/login/oauth/authorize` is the in-app Casdoor login authorize shell.
-- `/signup/oauth/authorize` is the in-app Casdoor signup authorize shell.
-- The shell routes are meant to be same-origin wrappers around Casdoor, not user-visible Casdoor pages.
-- CLI managed host files:
+- `packages/auth-kit`：可复用的认证、电商、React 钩子和宿主模板辅助工具
+- `packages/auth-kit/src/cli.ts`：CLI 入口，支持 `init`、`update`、`check` 三条命令
+- `apps/demo`：冒烟测试和手动验证用的演示应用
+- `skills/casdoor-next-auth-kit/`：供宿主项目使用的规范 skill 目录
+- `skills/casdoor-next-auth-kit/references/`：Casdoor 个人操作 API 参考（markdown + swagger）
+- `scripts/install-skill.mjs`：将整个 skill 目录安装到目标项目 `.agents/skills` 目录的复制脚本
+- 生成的认证路由壳位于 `app/(auth-kit)` 下，保持就近放置但不改变 URL 结构
+- `/auth/login` — 宿主项目的登录入口路由
+- `/auth/signup` — 宿主项目的注册入口路由
+- `/login/oauth/authorize` — 应用内的 Casdoor 登录授权壳
+- `/signup/oauth/authorize` — 应用内的 Casdoor 注册授权壳
+- 壳路由是同源包装器，用户看到的是宿主应用的统一体验，而非 Casdoor 原始页面
+- CLI 管理的宿主文件：
   - `app/auth/index-html.ts`
-  - `.env`
-  - `.env.local`
-  - `.env.production`
-  - `.env.example`
+  - `.env` / `.env.local` / `.env.production` / `.env.example`
   - `prisma/auth-kit.prisma`
 
 ## CLI
 
-Use the package directly through `npx`:
+通过 `npx` 直接使用包：
 
 ```bash
-npx @foldspace/casdoor-next-auth-kit init
-npx @foldspace/casdoor-next-auth-kit update
-npx @foldspace/casdoor-next-auth-kit check
+npx @foldspace/casdoor-next-auth-kit init     # 初始化：安装 skill、生成路由壳、配置 Next.js
+npx @foldspace/casdoor-next-auth-kit update    # 更新：重新生成路由壳、同步 skill 和配置文件
+npx @foldspace/casdoor-next-auth-kit check     # 检查：验证宿主项目配置与生成物是否一致
 ```
 
-These commands generate or refresh the host project's managed route shells.
-They also keep the managed env files, skill copy, `app/auth/index-html.ts`, and the Prisma schema scaffold in sync.
+这些命令生成或刷新宿主项目的受管理路由壳，同时保持受管理的环境文件、skill 副本、`app/auth/index-html.ts` 和 Prisma schema 脚手架同步。
 
-The generated auth shells should be treated as host-controlled integration points:
+生成的认证壳应被视为宿主控制的集成点：
 
-- `/auth/login` stays in the host app as the login entry route
-- `/auth/signup` stays in the host app as the signup entry route
-- `/login/oauth/authorize` stays in the host app as the login authorize shell
-- `/signup/oauth/authorize` stays in the host app as the signup authorize shell
-- Casdoor API requests are proxied through `/auth/api/*`
-- callback and logout remain host routes
-- the user should experience a coherent in-app flow, not a direct jump into Casdoor's own UI
+- `/auth/login` 作为宿主应用的登录入口路由
+- `/auth/signup` 作为宿主应用的注册入口路由
+- `/login/oauth/authorize` 作为宿主应用的登录授权壳
+- `/signup/oauth/authorize` 作为宿主应用的注册授权壳
+- Casdoor API 请求通过 `/auth/api/*` 代理转发
+- 回调（callback）和注销（logout）保持为宿主路由
+- 用户应体验到连贯的应用内流程，而非直接跳转到 Casdoor 自身的 UI
 
-## Skill distribution
+## Skill 分发
 
-Install the shared skill into a target project:
+将共享 skill 安装到目标项目：
 
 ```bash
 node scripts/install-skill.mjs /path/to/host-project
 ```
 
-The script writes:
+脚本将写入：
 
-- `/path/to/host-project/.agents/skills/casdoor-next-auth-kit/SKILL.md`
+- `/path/to/host-project/.agents/skills/casdoor-next-auth-kit/`
+- `/path/to/host-project/.agents/skills/casdoor-next-auth-kit/references/`
 
-## Host integration model
+## 宿主集成模型
 
-- The host project imports the package and keeps only thin route wrappers.
-- The host project owns Prisma tables and persistence.
-- The package owns auth and commerce contracts, route helpers, React hooks, and generated route templates.
+- 宿主项目导入包后只需保持薄路由壳包装，认证逻辑由包内部处理
+- 宿主项目拥有 Prisma 数据表和持久化实现的完全控制权
+- 包负责认证和电商契约、路由辅助工具、React 钩子和生成的路由模板
 
-## Quick start
+## 快速开始
 
 ```bash
 pnpm install
 pnpm dev
 ```
 
-## Local verification
+## 本地验证
 
-In the host project, the recommended manual smoke test is:
+在宿主项目中，推荐的手动冒烟测试流程：
 
 ```bash
 pnpm run dev
 ```
 
-Then verify in the browser:
+然后在浏览器中验证：
 
-1. `GET /auth/login?redirect=%2F`
-2. `GET /login/oauth/authorize`
-3. Login with a test account
-4. Confirm the user menu shows the admin action after login
-5. `GET /auth/signup`
-6. `GET /signup/oauth/authorize`
-7. `GET /logout`
-8. Confirm `/api/auth/session` returns an empty object after logout
+1. 访问 `GET /auth/login?redirect=%2F`
+2. 访问 `GET /login/oauth/authorize`
+3. 使用测试账号登录
+4. 确认登录后用户菜单显示管理员操作
+5. 访问 `GET /auth/signup`
+6. 访问 `GET /signup/oauth/authorize`
+7. 访问 `GET /logout`
+8. 确认 `/api/auth/session` 注销后返回空对象
 
-If logout appears stale, refresh the host's generated files first:
+如果注销状态异常，先刷新宿主项目的生成文件：
 
 ```bash
 npx @foldspace/casdoor-next-auth-kit update
 ```
 
-## Notes
+## 备注
 
-The code in this repository is intentionally scaffolded so you can iterate on the actual Casdoor integration, proxy behavior, database contract, and host-project templates.
+本仓库的代码刻意采用脚手架结构，便于迭代 Casdoor 集成、代理行为、数据库契约和宿主项目模板。

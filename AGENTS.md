@@ -24,7 +24,7 @@
 
 - `packages/auth-kit`：认证、commerce、React hooks、路由 helper、数据库契约和 host 模板。
 - `apps/demo`：联调和 smoke test。
-- `skills/casdoor-next-auth-kit/SKILL.md`：分发到宿主项目的 skill 源文件。
+- `skills/casdoor-next-auth-kit/`：分发到宿主项目的 skill 源目录。
 - `scripts/install-skill.mjs`：把 skill 安装到目标项目 `.agents/skills`。
 - 受管的 auth route shells 统一放在 `app/(auth-kit)` route group 下，URL 不变但文件更集中。
 - `app/auth/index-html.ts`、`.env*` 和 `prisma/auth-kit.prisma` 由 CLI 受管并可生成到宿主工程。
