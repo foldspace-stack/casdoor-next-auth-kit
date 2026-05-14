@@ -36,6 +36,15 @@ npx @foldspace/casdoor-next-auth-kit check
 - host route shell templates
 - database contract and sync interfaces
 
+## Route model
+
+- `/auth/login` is the host login entry route.
+- `/auth/signup` is the host signup entry route.
+- `/login/oauth/authorize` is the same-origin login authorize shell rendered by the host.
+- `/signup/oauth/authorize` is the same-origin signup authorize shell rendered by the host.
+- `/callback` and `/logout` remain host routes.
+- `/auth/api/*` carries the Casdoor API proxy traffic.
+
 ## UX boundary
 
 - Keep the Casdoor experience inside the host application.

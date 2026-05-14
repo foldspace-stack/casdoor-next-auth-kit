@@ -17,6 +17,10 @@ The package is intentionally headless:
 - `skills/casdoor-next-auth-kit/SKILL.md`: canonical skill copy for host projects
 - `scripts/install-skill.mjs`: copier that installs the skill into a target project's `.agents/skills`
 - Generated auth route shells live under `app/(auth-kit)` so they stay collocated without changing URLs.
+- `/auth/login` is the host login entry route.
+- `/auth/signup` is the host signup entry route.
+- `/login/oauth/authorize` is the in-app Casdoor login authorize shell.
+- `/signup/oauth/authorize` is the in-app Casdoor signup authorize shell.
 - The shell routes are meant to be same-origin wrappers around Casdoor, not user-visible Casdoor pages.
 - CLI managed host files:
   - `app/auth/index-html.ts`
@@ -41,7 +45,10 @@ They also keep the managed env files, skill copy, `app/auth/index-html.ts`, and 
 
 The generated auth shells should be treated as host-controlled integration points:
 
-- `/login` and `/signup` stay in the host app
+- `/auth/login` stays in the host app as the login entry route
+- `/auth/signup` stays in the host app as the signup entry route
+- `/login/oauth/authorize` stays in the host app as the login authorize shell
+- `/signup/oauth/authorize` stays in the host app as the signup authorize shell
 - Casdoor API requests are proxied through `/auth/api/*`
 - callback and logout remain host routes
 - the user should experience a coherent in-app flow, not a direct jump into Casdoor's own UI
@@ -69,6 +76,31 @@ The script writes:
 ```bash
 pnpm install
 pnpm dev
+```
+
+## Local verification
+
+In the host project, the recommended manual smoke test is:
+
+```bash
+pnpm run dev
+```
+
+Then verify in the browser:
+
+1. `GET /auth/login?redirect=%2F`
+2. `GET /login/oauth/authorize`
+3. Login with a test account
+4. Confirm the user menu shows the admin action after login
+5. `GET /auth/signup`
+6. `GET /signup/oauth/authorize`
+7. `GET /logout`
+8. Confirm `/api/auth/session` returns an empty object after logout
+
+If logout appears stale, refresh the host's generated files first:
+
+```bash
+npx @foldspace/casdoor-next-auth-kit update
 ```
 
 ## Notes

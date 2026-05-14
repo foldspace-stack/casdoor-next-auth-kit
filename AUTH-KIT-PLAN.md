@@ -39,7 +39,11 @@
 
 建议遵循下面的交互边界：
 
-- `/login`、`/signup`、`/callback`、`/logout` 由宿主提供 route shell
+- `/auth/login` 负责发起站内登录入口
+- `/auth/signup` 负责发起站内注册入口
+- `/login/oauth/authorize` 由宿主提供 route shell，承载 Casdoor 登录授权页
+- `/signup/oauth/authorize` 由宿主提供 route shell，承载 Casdoor 注册授权页
+- `/callback`、`/logout` 由宿主提供 route shell
 - 宿主 route shell 通过包生成的 handler 调起 Casdoor 流程
 - Casdoor 的 API 请求走 `/auth/api/*` 这类同源代理路径
 - 登录成功后回到宿主站点的 callback，再由宿主完成 session 落库和页面跳转
@@ -101,8 +105,10 @@ npx @foldspace/casdoor-next-auth-kit check
 
 推荐保持以下结构：
 
-- `app/(auth-kit)/login`
-- `app/(auth-kit)/signup`
+- `app/(auth-kit)/auth/login`
+- `app/(auth-kit)/auth/signup`
+- `app/(auth-kit)/login/oauth/authorize`
+- `app/(auth-kit)/signup/oauth/authorize`
 - `app/(auth-kit)/callback`
 - `app/(auth-kit)/logout`
 - `app/(auth-kit)/auth/api/*`
