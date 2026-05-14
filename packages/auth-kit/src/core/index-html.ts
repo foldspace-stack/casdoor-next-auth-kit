@@ -52,6 +52,10 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
               return currentOrigin + url.pathname + url.search + url.hash
             }
 
+            if (url.origin === currentOrigin && url.pathname.indexOf('/static/') === 0) {
+              return cdnOrigin + url.pathname + url.search + url.hash
+            }
+
             if (url.origin === currentOrigin && (url.pathname === '/auth' || url.pathname.indexOf('/auth/') === 0)) {
               if (url.pathname === '/auth/api/get-application') {
                 url.searchParams.set('id', applicationId)
@@ -90,8 +94,32 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
             }
           }
 
+          if (element.tagName === 'SCRIPT' && element.getAttribute('src')) {
+            var scriptSrc = element.getAttribute('src')
+            var rewrittenScriptSrc = toProxyUrl(scriptSrc)
+            if (rewrittenScriptSrc !== scriptSrc) {
+              element.setAttribute('src', rewrittenScriptSrc)
+            }
+          }
+
+          if (element.tagName === 'LINK' && element.getAttribute('href')) {
+            var linkHref = element.getAttribute('href')
+            var rewrittenLinkHref = toProxyUrl(linkHref)
+            if (rewrittenLinkHref !== linkHref) {
+              element.setAttribute('href', rewrittenLinkHref)
+            }
+          }
+
+          if (element.tagName === 'IMG' && element.getAttribute('src')) {
+            var imgSrc = element.getAttribute('src')
+            var rewrittenImgSrc = toProxyUrl(imgSrc)
+            if (rewrittenImgSrc !== imgSrc) {
+              element.setAttribute('src', rewrittenImgSrc)
+            }
+          }
+
           if (typeof element.querySelectorAll === 'function') {
-            element.querySelectorAll('a[href], form[action]').forEach(rewriteElement)
+            element.querySelectorAll('a[href], form[action], script[src], link[href], img[src]').forEach(rewriteElement)
           }
         }
 
@@ -168,6 +196,18 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
             form.submit()
           }
         }, true)
+
+        var originalAppendChild = Node.prototype.appendChild
+        Node.prototype.appendChild = function (node) {
+          rewriteElement(node)
+          return originalAppendChild.call(this, node)
+        }
+
+        var originalInsertBefore = Node.prototype.insertBefore
+        Node.prototype.insertBefore = function (node, referenceNode) {
+          rewriteElement(node)
+          return originalInsertBefore.call(this, node, referenceNode)
+        }
 
         if (document.body) {
           rewriteElement(document.body)

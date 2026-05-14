@@ -2,8 +2,8 @@
     import { buildAuthPrismaSchemaTemplate } from '../prisma/schema-template';
     import { AUTH_KIT_ENV_FILES, buildManagedEnvTemplate } from '../core/env';
 
-export function loginRouteTemplate() {
-  return `import { loginHandler } from '../auth-config';
+export function authLoginRouteTemplate() {
+  return `import { loginHandler } from '../../auth-config';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,12 +11,30 @@ export const GET = loginHandler;
 `;
 }
 
-export function signupRouteTemplate() {
-  return `import { signupHandler } from '../auth-config';
+export function authSignupRouteTemplate() {
+  return `import { signupHandler } from '../../auth-config';
 
 export const dynamic = 'force-dynamic';
 
 export const GET = signupHandler;
+`;
+}
+
+export function authorizeRouteTemplate() {
+  return `import { authorizeHandler } from '../../../auth-config';
+
+export const dynamic = 'force-dynamic';
+
+export const GET = authorizeHandler;
+`;
+}
+
+export function signupAuthorizeRouteTemplate() {
+  return `import { authorizeHandler } from '../../../auth-config';
+
+export const dynamic = 'force-dynamic';
+
+export const GET = authorizeHandler;
 `;
 }
 
@@ -43,6 +61,7 @@ export function authConfigTemplate() {
   createCallbackHandler,
   createCasdoorApiProxyHandler,
   createCasdoorCommerceProxyHandler,
+  createAuthorizeRouteHandler,
   createLoginRouteHandler,
   createLogoutHandler,
   createNextAuthOptions,
@@ -130,6 +149,7 @@ const persistence: AuthPersistenceAdapter = {
 
 export const loginHandler = createLoginRouteHandler(authKitConfig);
 export const signupHandler = createSignupRouteHandler(authKitConfig);
+export const authorizeHandler = createAuthorizeRouteHandler(authKitConfig);
 export const callbackHandler = createCallbackHandler({
   config: authKitConfig,
   adapter,

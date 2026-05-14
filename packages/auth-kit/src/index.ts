@@ -16,6 +16,7 @@ export * from './casdoor/proxy';
 export * from './casdoor/callback';
 export * from './next/login';
 export * from './next/signup';
+export * from './next/authorize';
 export * from './next/callback';
 export * from './next/logout';
 export * from './next/nextauth';

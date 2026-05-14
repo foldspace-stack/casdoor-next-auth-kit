@@ -5,14 +5,16 @@
       apiProxyRouteTemplate,
       authConfigTemplate,
       authIndexHtmlTemplate,
+      authorizeRouteTemplate,
       callbackRouteTemplate,
       commerceProxyRouteTemplate,
       envTemplate,
-      loginRouteTemplate,
+      authLoginRouteTemplate,
       logoutRouteTemplate,
       nextAuthRouteTemplate,
       prismaSchemaTemplate,
-      signupRouteTemplate,
+      authSignupRouteTemplate,
+      signupAuthorizeRouteTemplate,
     } from './templates';
     import { SKILL_TEMPLATE } from './skill';
     import { AUTH_KIT_ENV_FILES, getMissingManagedEnvKeys } from '../core/env';
@@ -20,8 +22,10 @@
     const projectRoot = process.cwd();
     const targets = [
       ['app/(auth-kit)/auth-config.ts', authConfigTemplate],
-      ['app/(auth-kit)/login/route.ts', loginRouteTemplate],
-      ['app/(auth-kit)/signup/route.ts', signupRouteTemplate],
+      ['app/(auth-kit)/auth/login/route.ts', authLoginRouteTemplate],
+      ['app/(auth-kit)/auth/signup/route.ts', authSignupRouteTemplate],
+      ['app/(auth-kit)/login/oauth/authorize/route.ts', authorizeRouteTemplate],
+      ['app/(auth-kit)/signup/oauth/authorize/route.ts', signupAuthorizeRouteTemplate],
       ['app/(auth-kit)/auth/api/[...path]/route.ts', apiProxyRouteTemplate],
       ['app/(auth-kit)/api/auth/[...nextauth]/route.ts', nextAuthRouteTemplate],
       ['app/(auth-kit)/callback/route.ts', callbackRouteTemplate],
@@ -36,6 +40,9 @@
       'app/(auth-kit)/api/casdoor/commerce/[...path]/route.ts',
       'app/(auth-kit)/auth/api/casdoor/[...path]/route.ts',
       'app/(auth-kit)/auth/api/casdoor/commerce/[...path]/route.ts',
+      'app/(auth-kit)/login/route.ts',
+      'app/(auth-kit)/signup/route.ts',
+      'app/(auth-kit)/signup/oauth/authorize/route.ts',
       'app/auth/index-html.ts',
       'app/auth/libs/index.ts',
       'app/auth/libs/auth-config.ts',

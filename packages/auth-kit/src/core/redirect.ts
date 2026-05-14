@@ -1,8 +1,14 @@
 import type { AuthUser } from '../types';
 
 export function buildAuthJumpHref(kind: 'login' | 'signup', redirect?: string, basePath = '/auth'): string {
-  const url = new URL(basePath + '/' + kind, 'http://localhost');
-  if (redirect) url.searchParams.set('redirect', redirect);
+  const normalizedBasePath = basePath ? (basePath.startsWith('/') ? basePath : '/' + basePath) : '';
+  const targetPath = (normalizedBasePath + '/' + kind).replace(/\/+/g, '/');
+  const url = new URL(targetPath, 'http://localhost');
+
+  if (redirect) {
+    url.searchParams.set('redirect', redirect);
+  }
+
   return url.pathname + url.search;
 }
 
