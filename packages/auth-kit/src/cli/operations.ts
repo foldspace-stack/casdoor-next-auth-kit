@@ -1,18 +1,94 @@
     import path from 'node:path';
     import fs from 'node:fs';
     import { exists, read, writeGeneratedFile, preserveCustomBlock } from './fs';
-    import { apiProxyRouteTemplate, callbackRouteTemplate, commerceProxyRouteTemplate, envExampleTemplate, loginRouteTemplate, logoutRouteTemplate, nextAuthRouteTemplate, signupRouteTemplate } from './templates';
+    import {
+      apiProxyRouteTemplate,
+      authConfigTemplate,
+      authIndexHtmlTemplate,
+      callbackRouteTemplate,
+      commerceProxyRouteTemplate,
+      envTemplate,
+      loginRouteTemplate,
+      logoutRouteTemplate,
+      nextAuthRouteTemplate,
+      prismaSchemaTemplate,
+      signupRouteTemplate,
+    } from './templates';
+    import { SKILL_TEMPLATE } from './skill';
+    import { AUTH_KIT_ENV_FILES, getMissingManagedEnvKeys } from '../core/env';
 
     const projectRoot = process.cwd();
     const targets = [
-      ['app/auth/login/route.ts', loginRouteTemplate],
-      ['app/auth/signup/route.ts', signupRouteTemplate],
-      ['app/auth/api/[...path]/route.ts', apiProxyRouteTemplate],
-      ['app/api/auth/[...nextauth]/route.ts', nextAuthRouteTemplate],
-      ['app/callback/route.ts', callbackRouteTemplate],
-      ['app/logout/route.ts', logoutRouteTemplate],
-      ['app/api/casdoor/commerce/[...path]/route.ts', commerceProxyRouteTemplate]
+      ['app/(auth-kit)/auth-config.ts', authConfigTemplate],
+      ['app/(auth-kit)/login/route.ts', loginRouteTemplate],
+      ['app/(auth-kit)/signup/route.ts', signupRouteTemplate],
+      ['app/(auth-kit)/auth/api/[...path]/route.ts', apiProxyRouteTemplate],
+      ['app/(auth-kit)/api/auth/[...nextauth]/route.ts', nextAuthRouteTemplate],
+      ['app/(auth-kit)/callback/route.ts', callbackRouteTemplate],
+      ['app/(auth-kit)/logout/route.ts', logoutRouteTemplate],
+      ['app/(auth-kit)/auth/api/commerce/[...path]/route.ts', commerceProxyRouteTemplate],
+      ['app/(auth-kit)/index-html.ts', authIndexHtmlTemplate],
+      ['prisma/auth-kit.prisma', prismaSchemaTemplate],
     ] as const;
+
+    const deprecatedTargets = [
+      'app/(auth-kit)/api/casdoor/[...path]/route.ts',
+      'app/(auth-kit)/api/casdoor/commerce/[...path]/route.ts',
+      'app/(auth-kit)/auth/api/casdoor/[...path]/route.ts',
+      'app/(auth-kit)/auth/api/casdoor/commerce/[...path]/route.ts',
+      'app/auth/index-html.ts',
+      'app/auth/libs/index.ts',
+      'app/auth/libs/auth-config.ts',
+      'app/auth/libs/casdoor-config.ts',
+      'app/auth/libs/session-token.ts',
+      'app/auth/libs/oauth-state.ts',
+      'app/auth/libs/page-proxy.ts',
+      'app/auth/libs/api-proxy.ts',
+      'app/auth/libs/casdoor-oauth.ts',
+      'app/auth/libs/nextauth-route.ts',
+      'app/auth/libs',
+      'lib/auth-kit/index.ts',
+      'lib/auth-kit/index-html.ts',
+      'lib/auth-kit',
+      'lib/casdoor-entry.ts',
+      'lib/auth.ts',
+      'lib/public-origin.ts',
+      'lib/request-security.ts',
+      'lib/auth-redirect.ts',
+    ] as const;
+
+    const envTargets = AUTH_KIT_ENV_FILES;
+    const skillTarget = '.agents/skills/casdoor-next-auth-kit/SKILL.md';
+
+    function syncManagedEnvFiles() {
+      for (const file of envTargets) {
+        const filePath = path.join(projectRoot, file);
+        const current = exists(filePath) ? read(filePath) : '';
+        const next = envTemplate(file, current);
+        if (!exists(filePath) || current !== next) {
+          fs.mkdirSync(path.dirname(filePath), { recursive: true });
+          fs.writeFileSync(filePath, next, 'utf8');
+        }
+      }
+    }
+
+    function syncManagedSkillFile() {
+      const filePath = path.join(projectRoot, skillTarget);
+      try {
+        fs.mkdirSync(path.dirname(filePath), { recursive: true });
+        if (!exists(filePath)) {
+          fs.writeFileSync(filePath, SKILL_TEMPLATE + '\n', 'utf8');
+          return;
+        }
+        const current = read(filePath);
+        const next = SKILL_TEMPLATE + '\n';
+        if (current !== next) {
+          fs.writeFileSync(filePath, next, 'utf8');
+        }
+      } catch (error) {
+        console.warn(`Skipped skill sync for ${skillTarget}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
 
     export async function initProject() {
       for (const [rel, factory] of targets) {
@@ -21,14 +97,18 @@
           writeGeneratedFile(filePath, factory());
         }
       }
-      const envExample = path.join(projectRoot, '.env.example');
-      if (!exists(envExample)) {
-        writeGeneratedFile(envExample, envExampleTemplate());
-      }
-      console.log('Initialized casdoor-next-auth-kit route shells.');
+      syncManagedEnvFiles();
+      syncManagedSkillFile();
+      console.log('Initialized casdoor-next-auth-kit managed files.');
     }
 
     export async function updateProject() {
+      for (const rel of deprecatedTargets) {
+        const filePath = path.join(projectRoot, rel);
+        if (exists(filePath)) {
+          fs.rmSync(filePath, { force: true, recursive: true });
+        }
+      }
       for (const [rel, factory] of targets) {
         const filePath = path.join(projectRoot, rel);
         const next = '// generated by @foldspace/casdoor-next-auth-kit\n' + factory();
@@ -42,16 +122,28 @@
           fs.writeFileSync(filePath, updated, 'utf8');
         }
       }
-      console.log('Updated managed route shells.');
+      syncManagedEnvFiles();
+      syncManagedSkillFile();
+      console.log('Updated managed route shells, env files, and skill file.');
     }
 
     export async function checkProject() {
-      const missing = targets.filter(([rel]) => !exists(path.join(projectRoot, rel))).map(([rel]) => rel);
+      const missingRoutes = targets.filter(([rel]) => !exists(path.join(projectRoot, rel))).map(([rel]) => rel);
+      const missingEnv = envTargets.filter((file) => {
+        const filePath = path.join(projectRoot, file);
+        if (!exists(filePath)) {
+          return true;
+        }
+        return getMissingManagedEnvKeys(read(filePath)).length > 0;
+      });
+      const missingSkill = exists(path.join(projectRoot, skillTarget)) ? [] : [skillTarget];
+      const missing = [...missingRoutes, ...missingEnv, ...missingSkill];
+
       if (missing.length > 0) {
         console.error('Missing generated files:');
         for (const rel of missing) console.error('- ' + rel);
         process.exitCode = 1;
         return;
       }
-      console.log('All generated route shells are present.');
+      console.log('All managed files are present.');
     }

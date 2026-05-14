@@ -1,4 +1,9 @@
 import type { AuthKitConfig } from '../types';
+import { normalizeAuthKitConfig } from '../core/config';
+
+export function getCasdoorConfig(config: AuthKitConfig): AuthKitConfig {
+  return normalizeAuthKitConfig(config);
+}
 
 export function getCasdoorAuthorizeUrl(config: AuthKitConfig, params: { state: string; codeChallenge: string; redirectUri: string; kind: 'login' | 'signup' }): string {
   const base = new URL(config.casdoor.signinPath ?? '/login/oauth/authorize', config.casdoor.serverUrl);

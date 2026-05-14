@@ -1,100 +1,205 @@
     import { customBegin, customEnd } from './fs';
+    import { buildAuthPrismaSchemaTemplate } from '../prisma/schema-template';
+    import { AUTH_KIT_ENV_FILES, buildManagedEnvTemplate } from '../core/env';
 
-    export function loginRouteTemplate() {
-      return `import { createLoginEntryResponse } from '@foldspace/casdoor-next-auth-kit';
-import { demoAuthConfig } from '../../../lib/demo-auth';
-import type { NextRequest } from 'next/server';
+export function loginRouteTemplate() {
+  return `import { loginHandler } from '../auth-config';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: NextRequest) {
-  return createLoginEntryResponse(request, demoAuthConfig);
+export const GET = loginHandler;
+`;
 }
-`;
-    }
 
-    export function signupRouteTemplate() {
-      return `import { createSignupEntryResponse } from '@foldspace/casdoor-next-auth-kit';
-import { demoAuthConfig } from '../../../lib/demo-auth';
-import type { NextRequest } from 'next/server';
+export function signupRouteTemplate() {
+  return `import { signupHandler } from '../auth-config';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: NextRequest) {
-  return createSignupEntryResponse(request, demoAuthConfig);
+export const GET = signupHandler;
+`;
 }
-`;
-    }
 
-    export function callbackRouteTemplate() {
-      return `import { createCallbackHandler } from '@foldspace/casdoor-next-auth-kit';
-import { demoAuthAdapter, demoAuthConfig } from '../../lib/demo-auth';
+export function callbackRouteTemplate() {
+  return `import { callbackHandler } from '../auth-config';
 
 export const dynamic = 'force-dynamic';
 
-export const GET = createCallbackHandler({ config: demoAuthConfig, adapter: demoAuthAdapter });
-
-${customBegin}
-// put project-specific session sync or redirect logic here
-${customEnd}
+export const GET = callbackHandler;
 `;
-    }
+}
 
-    export function logoutRouteTemplate() {
-      return `import { createLogoutHandler } from '@foldspace/casdoor-next-auth-kit';
-import { demoAuthConfig } from '../../lib/demo-auth';
+export function logoutRouteTemplate() {
+  return `import { logoutHandler } from '../auth-config';
 
 export const dynamic = 'force-dynamic';
 
-export const GET = createLogoutHandler(demoAuthConfig);
+export const GET = logoutHandler;
+`;
+}
+
+export function authConfigTemplate() {
+  return `import {
+  createCallbackHandler,
+  createCasdoorApiProxyHandler,
+  createCasdoorCommerceProxyHandler,
+  createLoginRouteHandler,
+  createLogoutHandler,
+  createNextAuthOptions,
+  createNextAuthRouteHandler,
+  createSignupRouteHandler,
+  type AuthBusinessAdapter,
+  type AuthKitConfig,
+  type AuthPersistenceAdapter,
+  type AuthUser,
+} from '@foldspace/casdoor-next-auth-kit';
+import { db } from '@/lib/db';
+import { isGlobalAdminEmail } from '@/lib/auth-roles';
+import { syncUserRecord } from '@/lib/user-record';
+
+export function createAuthKitConfig(): AuthKitConfig {
+  return {
+    appUrl: process.env.APP_URL || process.env.NEXTAUTH_URL || '',
+    nextauthSecret: process.env.NEXTAUTH_SECRET || 'dev-nextauth-secret',
+    casdoor: {
+      serverUrl: process.env.NEXT_PUBLIC_CASDOOR_SERVER_URL || process.env.CASDOOR_SERVER_URL || '',
+      clientId: process.env.NEXT_PUBLIC_CASDOOR_CLIENT_ID || process.env.CASDOOR_CLIENT_ID || '',
+      clientSecret: process.env.CASDOOR_CLIENT_SECRET || '',
+      appName: process.env.NEXT_PUBLIC_CASDOOR_APP_NAME || '',
+      organizationName: process.env.NEXT_PUBLIC_CASDOOR_ORGANIZATION_NAME || '',
+      redirectPath: process.env.NEXT_PUBLIC_CASDOOR_REDIRECT_PATH || '/callback',
+      signinPath: process.env.NEXT_PUBLIC_CASDOOR_SIGNIN_PATH || '/login/oauth/authorize',
+    },
+  };
+}
+
+const authKitConfig = createAuthKitConfig();
+
+const adapter: AuthBusinessAdapter = {
+  isAdminEmail: isGlobalAdminEmail,
+};
+
+const persistence: AuthPersistenceAdapter = {
+  async syncAuthUser(user) {
+    await syncUserRecord(user);
+  },
+  async findAuthUser({ id, email }) {
+    const user = id
+      ? await db.user.findUnique({
+          where: { id },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+            tokenBalance: true,
+            isVip: true,
+            isAdmin: true,
+          },
+        })
+      : email
+        ? await db.user.findFirst({
+            where: { email },
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              image: true,
+              tokenBalance: true,
+              isVip: true,
+              isAdmin: true,
+            },
+          })
+        : null;
+
+    if (!user) {
+      return null;
+    }
+
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      image: user.image,
+      tokenBalance: Number(user.tokenBalance ?? 2580),
+      isVip: Boolean(user.isVip ?? true),
+      isAdmin: Boolean(user.isAdmin) || isGlobalAdminEmail(user.email),
+    } satisfies AuthUser;
+  },
+};
+
+export const loginHandler = createLoginRouteHandler(authKitConfig);
+export const signupHandler = createSignupRouteHandler(authKitConfig);
+export const callbackHandler = createCallbackHandler({
+  config: authKitConfig,
+  adapter,
+  persistence,
+});
+export const logoutHandler = createLogoutHandler(authKitConfig);
+export const authOptions = createNextAuthOptions({
+  config: authKitConfig,
+  adapter,
+  persistence,
+});
+export const nextAuthHandlers = createNextAuthRouteHandler({
+  config: authKitConfig,
+  adapter,
+  persistence,
+});
+export const apiProxyHandler = createCasdoorApiProxyHandler(authKitConfig, '/auth/api', '/api');
+export const commerceProxyHandler = createCasdoorCommerceProxyHandler(authKitConfig, '/auth/api/commerce', '/api/commerce');
+`;
+}
+
+export function nextAuthRouteTemplate() {
+  return `import { nextAuthHandlers } from '../../../auth-config';
+
+export const dynamic = 'force-dynamic';
+
+export const GET = nextAuthHandlers.GET;
+export const POST = nextAuthHandlers.POST;
+`;
+}
+
+    export function authIndexHtmlTemplate() {
+      return `export { AUTH_INDEX_HTML, createAuthIndexHtml } from '@foldspace/casdoor-next-auth-kit';
 `;
     }
 
-    export function nextAuthRouteTemplate() {
-      return `import { createNextAuthRouteHandler } from '@foldspace/casdoor-next-auth-kit';
-import { demoAuthAdapter, demoAuthConfig } from '../../../../lib/demo-auth';
-
-const handler = createNextAuthRouteHandler({ config: demoAuthConfig, adapter: demoAuthAdapter });
-
-export const GET = handler.GET;
-export const POST = handler.POST;
-`;
+    export function prismaSchemaTemplate() {
+      return buildAuthPrismaSchemaTemplate();
     }
 
-    export function apiProxyRouteTemplate() {
-      return `import { createCasdoorApiProxyHandler } from '@foldspace/casdoor-next-auth-kit';
-import { demoAuthConfig } from '../../../../lib/demo-auth';
+export function apiProxyRouteTemplate() {
+  return `import { apiProxyHandler } from '../../../auth-config';
 
-const handler = createCasdoorApiProxyHandler(demoAuthConfig, '/auth/api');
+export const dynamic = 'force-dynamic';
 
-export const GET = handler;
-export const POST = handler;
-export const PUT = handler;
-export const DELETE = handler;
+export const GET = apiProxyHandler;
+export const HEAD = apiProxyHandler;
+export const POST = apiProxyHandler;
+export const PUT = apiProxyHandler;
+export const PATCH = apiProxyHandler;
+export const DELETE = apiProxyHandler;
+export const OPTIONS = apiProxyHandler;
 `;
-    }
+}
 
-    export function commerceProxyRouteTemplate() {
-      return `import { createCasdoorCommerceProxyHandler } from '@foldspace/casdoor-next-auth-kit';
-import { demoAuthConfig } from '../../../../../lib/demo-auth';
+export function commerceProxyRouteTemplate() {
+  return `import { commerceProxyHandler } from '../../../../auth-config';
 
-const handler = createCasdoorCommerceProxyHandler(demoAuthConfig, '/api/casdoor/commerce');
+export const dynamic = 'force-dynamic';
 
-export const GET = handler;
-export const POST = handler;
-export const PUT = handler;
-export const DELETE = handler;
+export const GET = commerceProxyHandler;
+export const HEAD = commerceProxyHandler;
+export const POST = commerceProxyHandler;
+export const PUT = commerceProxyHandler;
+export const PATCH = commerceProxyHandler;
+export const DELETE = commerceProxyHandler;
+export const OPTIONS = commerceProxyHandler;
 `;
-    }
+}
 
-    export function envExampleTemplate() {
-      return `APP_URL=https://localhost:3000
-NEXTAUTH_URL=https://localhost:3000
-NEXTAUTH_SECRET=replace-with-secret
-CASDOOR_SERVER_URL=https://auth.example.com
-CASDOOR_CLIENT_ID=client-id
-CASDOOR_CLIENT_SECRET=client-secret
-CASDOOR_APP_NAME=app-name
-CASDOOR_ORGANIZATION_NAME=org-name
-`;
+    export function envTemplate(file: typeof AUTH_KIT_ENV_FILES[number], existingContent = '') {
+      return buildManagedEnvTemplate(file, existingContent);
     }

@@ -1,7 +1,8 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
-import type { DefaultSession, Session } from 'next-auth';
+import { buildAuthJumpHref } from '../core/redirect';
+import type { AuthSession } from '../next/options';
 
 export type AuthRole = 'guest' | 'user' | 'admin';
 
@@ -25,16 +26,9 @@ export interface AuthActions {
   adminHref: string;
 }
 
-type AuthSessionUser = DefaultSession['user'] & {
-  id?: string;
-  isAdmin?: boolean;
-  tokenBalance?: number;
-  isVip?: boolean;
-};
-
-type AuthSession = Session & {
-  user?: AuthSessionUser | null;
-};
+export interface AuthActionsOptions {
+  redirect?: string | null;
+}
 
 function getUserSummary(session: AuthSession | null | undefined): AuthUserSummary {
   const user = session?.user;
@@ -57,11 +51,13 @@ function getUserSummary(session: AuthSession | null | undefined): AuthUserSummar
 }
 
 export function useAuthSession() {
-  return useSession();
+  return useSession() as ReturnType<typeof useSession> & {
+    data: AuthSession | null | undefined;
+  };
 }
 
 export function useAuthUser(): AuthUserSummary {
-  const { data: session } = useSession();
+  const { data: session } = useAuthSession();
   return getUserSummary(session ?? null);
 }
 
@@ -69,12 +65,13 @@ export function useAuthRole(): AuthRole {
   return useAuthUser().role;
 }
 
-export function useAuthActions(): AuthActions {
+export function useAuthActions(options: AuthActionsOptions = {}): AuthActions {
   const user = useAuthUser();
+  const redirect = options.redirect ?? null;
 
   return {
-    loginHref: '/auth/login',
-    signupHref: '/auth/signup',
+    loginHref: buildAuthJumpHref('login', redirect ?? undefined),
+    signupHref: buildAuthJumpHref('signup', redirect ?? undefined),
     logoutHref: '/logout',
     accountHref: user.isAdmin ? '/admin' : '/user/account',
     adminHref: '/admin',

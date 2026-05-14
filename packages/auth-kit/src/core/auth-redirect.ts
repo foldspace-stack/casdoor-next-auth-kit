@@ -10,8 +10,17 @@ export function getAuthRedirectTarget(request: Request): string | null {
     const [rawName, ...valueParts] = entry.trim().split('=');
     if (rawName === AUTH_REDIRECT_COOKIE_NAME) {
       const value = valueParts.join('=').trim();
-      if (value && value.startsWith('/') && !value.startsWith('//')) {
-        return value;
+      if (!value) {
+        return null;
+      }
+      let decoded = value;
+      try {
+        decoded = decodeURIComponent(value);
+      } catch {
+        // ignore
+      }
+      if (decoded.startsWith('/') && !decoded.startsWith('//')) {
+        return decoded;
       }
       return null;
     }

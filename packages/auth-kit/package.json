@@ -6,10 +6,22 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./dist/index.js",
-    "./casdoor": "./dist/casdoor/index.js",
-    "./next": "./dist/next/index.js",
-    "./react": "./dist/react/index.js"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./casdoor": {
+      "types": "./dist/casdoor/index.d.ts",
+      "default": "./dist/casdoor/index.js"
+    },
+    "./next": {
+      "types": "./dist/next/index.d.ts",
+      "default": "./dist/next/index.js"
+    },
+    "./react": {
+      "types": "./dist/react/index.d.ts",
+      "default": "./dist/react/index.js"
+    }
   },
   "bin": {
     "casdoor-next-auth-kit": "./dist/cli.js"

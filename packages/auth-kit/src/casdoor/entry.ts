@@ -6,17 +6,29 @@ import { isSecureRequest } from '../core/request-security';
 import { createPkcePair } from '../core/pkce';
 import { generateStateToken, getPkceCookieName } from '../core/oauth-state';
 import { getAuthRedirectTarget, setAuthRedirectCookie } from '../core/auth-redirect';
-import { getCasdoorAuthorizeUrl } from './config';
+import { createAuthIndexHtml } from '../core/index-html';
 
-async function createEntryResponse(request: NextRequest, config: AuthKitConfig, kind: 'login' | 'signup'): Promise<NextResponse> {
+async function createEntryResponse(request: NextRequest, config: AuthKitConfig): Promise<NextResponse> {
   const normalized = normalizeAuthKitConfig(config);
   const origin = getRequestOrigin(request, normalized.appUrl);
   const secure = normalized.cookie?.secure === 'auto' ? isSecureRequest(request, normalized.appUrl) : Boolean(normalized.cookie?.secure);
-  const redirectUri = new URL(normalized.casdoor.redirectPath ?? '/callback', origin).toString();
-  const { verifier, challenge } = await createPkcePair();
+  const { verifier } = await createPkcePair();
   const state = generateStateToken();
-  const url = getCasdoorAuthorizeUrl(normalized, { state, codeChallenge: challenge, redirectUri, kind });
-  const response = NextResponse.redirect(url);
+  const response = new NextResponse(
+    createAuthIndexHtml({
+      appName: normalized.casdoor.appName,
+      organizationName: normalized.casdoor.organizationName,
+      staticOrigin: process.env.NEXT_PUBLIC_CASDOOR_STATIC_ORIGIN,
+      casdoorOrigin: normalized.casdoor.serverUrl,
+      apiProxyPrefix: '/auth/',
+    }),
+    {
+    status: 200,
+    headers: {
+      'content-type': 'text/html; charset=utf-8',
+      'cache-control': 'no-store, max-age=0',
+    },
+  });
   const redirectTarget = getAuthRedirectTarget(request);
   if (redirectTarget) {
     setAuthRedirectCookie(response, redirectTarget, secure);
@@ -28,9 +40,9 @@ async function createEntryResponse(request: NextRequest, config: AuthKitConfig, 
 }
 
 export async function createLoginEntryResponse(request: NextRequest, config: AuthKitConfig): Promise<NextResponse> {
-  return createEntryResponse(request, config, 'login');
+  return createEntryResponse(request, config);
 }
 
 export async function createSignupEntryResponse(request: NextRequest, config: AuthKitConfig): Promise<NextResponse> {
-  return createEntryResponse(request, config, 'signup');
+  return createEntryResponse(request, config);
 }

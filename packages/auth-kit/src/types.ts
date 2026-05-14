@@ -1,8 +1,10 @@
 export interface CasdoorUserInfo {
   id?: string;
+  sub?: string;
   name?: string | null;
   displayName?: string | null;
   email?: string | null;
+  picture?: string | null;
   avatarUrl?: string | null;
   isAdmin?: boolean;
   [key: string]: unknown;
@@ -13,6 +15,11 @@ export interface OAuthTokens {
   refreshToken?: string;
   idToken?: string;
   expiresAt?: number;
+  access_token?: string;
+  refresh_token?: string;
+  id_token?: string;
+  expires_in?: number;
+  token_type?: string;
   [key: string]: unknown;
 }
 
@@ -48,6 +55,7 @@ export interface AuthDatabaseContract {
 
 export interface AuthPersistenceAdapter {
   syncAuthUser: (user: AuthUser) => Promise<void>;
+  findAuthUser?: (query: { id?: string; email?: string | null }) => Promise<AuthUser | null>;
   syncCommerceRecord?: (kind: 'order' | 'subscription' | 'invoice', payload: Record<string, unknown>) => Promise<void>;
 }
 
@@ -84,4 +92,39 @@ export interface AuthRuntimeContext {
   adapter?: AuthBusinessAdapter;
   database?: AuthDatabaseContract;
   persistence?: AuthPersistenceAdapter;
+}
+
+export interface AuthIndexHtmlOptions {
+  appName?: string;
+  organizationName?: string;
+  description?: string;
+  staticOrigin?: string;
+  casdoorOrigin?: string;
+  apiProxyPrefix?: string;
+  iconHref?: string;
+  manifestHref?: string;
+}
+
+export type ManagedEnvFile = '.env' | '.env.local' | '.env.production' | '.env.example';
+
+export interface ManagedEnvVariableDefinition {
+  key: string;
+  description: string;
+  example: string;
+  local?: string;
+  production?: string;
+  base?: string;
+}
+
+export interface PrismaSchemaFieldDefinition {
+  name: string;
+  type: string;
+  attributes?: string[];
+}
+
+export interface PrismaSchemaModelDefinition {
+  name: string;
+  description: string;
+  fields: PrismaSchemaFieldDefinition[];
+  blockAttributes?: string[];
 }

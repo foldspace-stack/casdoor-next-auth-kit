@@ -1,5 +1,20 @@
 import type { AuthKitConfig, CasdoorUserInfo, OAuthTokens } from '../types';
 import { getCasdoorTokenUrl, getCasdoorUserInfoUrl } from './config';
+import { Buffer } from 'node:buffer';
+
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
+  const parts = token.split('.');
+  if (parts.length < 2) {
+    return null;
+  }
+
+  try {
+    const payload = parts[1];
+    return JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
 
 export async function exchangeCodeForToken(config: AuthKitConfig, code: string, redirectUri: string, codeVerifier: string): Promise<OAuthTokens> {
   const response = await fetch(getCasdoorTokenUrl(config), {
@@ -31,3 +46,9 @@ export async function fetchCasdoorUserInfo(config: AuthKitConfig, accessToken: s
   }
   return (await response.json()) as CasdoorUserInfo;
 }
+
+export function decodeCasdoorAccessToken(accessToken: string): Record<string, unknown> | null {
+  return decodeJwtPayload(accessToken);
+}
+
+export const exchangeCasdoorOAuthToken = exchangeCodeForToken;

@@ -65,7 +65,14 @@ export function getStoredPublicOrigin(request: Request): string | null {
     const [rawName, ...valueParts] = entry.trim().split('=');
     if (rawName === PUBLIC_ORIGIN_COOKIE_NAME) {
       const value = valueParts.join('=').trim();
-      return value || null;
+      if (!value) {
+        return null;
+      }
+      try {
+        return decodeURIComponent(value);
+      } catch {
+        return value;
+      }
     }
   }
 

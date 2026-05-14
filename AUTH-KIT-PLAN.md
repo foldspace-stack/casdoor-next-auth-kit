@@ -5,6 +5,8 @@
 ## 目标
 
 - 将 Casdoor 登录、PKCE、回调、退出、React auth hooks、commerce 转发做成可复用的包。
+- 把 Casdoor 的站外能力包装成站内可控壳子，避免宿主用户感知到 Casdoor 页面跳转。
+- 登录、注册、回调、退出、commerce 这些能力都以 host route shells 的方式暴露，URL 保持稳定，但真正的 Casdoor 交互由包来代理。
 - 主工程只保留薄路由壳、业务用户同步和 Prisma 持久化。
 - 先支持本地 `link:` 依赖，后续切到 npm 发布版。
 - 用 `npx @foldspace/casdoor-next-auth-kit init` 和 `update` 管理宿主工程生成文件。
@@ -14,8 +16,8 @@
 
 ### 包负责
 
-- Casdoor 授权入口
-- OAuth callback
+- Casdoor 授权入口的站内封装
+- OAuth callback 的站内闭环
 - logout
 - React auth hooks
 - commerce/headless 接口转发
@@ -29,6 +31,28 @@
 - 用户、订单、订阅、积分等业务数据的存储
 - 业务级跳转和页面内容
 - `@next-auth/prisma-adapter` 或同类存储适配依赖
+- 站点的最终视觉和导航体验
+
+## 交互基线
+
+包的核心原则是“用户只感知宿主站点，不直接感知 Casdoor”。
+
+建议遵循下面的交互边界：
+
+- `/login`、`/signup`、`/callback`、`/logout` 由宿主提供 route shell
+- 宿主 route shell 通过包生成的 handler 调起 Casdoor 流程
+- Casdoor 的 API 请求走 `/auth/api/*` 这类同源代理路径
+- 登录成功后回到宿主站点的 callback，再由宿主完成 session 落库和页面跳转
+- React 组件和 hooks 只暴露宿主需要的认证状态和动作，不直接泄露 Casdoor 原生页面结构
+
+### 推荐命名
+
+为了让宿主侧的配置与生成器保持一致，建议按下面的项目命名约定理解：
+
+- `NEXT_PUBLIC_CASDOOR_APP_NAME=qixiaoju`
+- `NEXT_PUBLIC_CASDOOR_ORGANIZATION_NAME=qixiaoju`
+
+实际的 Casdoor 组织、应用和重定向仍由宿主项目环境变量决定，但包的文档和生成器应默认把它们当成同一个站点命名空间来处理。
 
 ## 数据库契约
 
@@ -71,6 +95,21 @@ npx @foldspace/casdoor-next-auth-kit check
 - `update`：刷新包管理的受管文件
 - `check`：只校验，不改文件
 
+## 路由 shell 约定
+
+宿主工程应该把认证相关路由集中到 `app/(auth-kit)` 这组 route group 下。
+
+推荐保持以下结构：
+
+- `app/(auth-kit)/login`
+- `app/(auth-kit)/signup`
+- `app/(auth-kit)/callback`
+- `app/(auth-kit)/logout`
+- `app/(auth-kit)/auth/api/*`
+- `app/(auth-kit)/api/auth/*`
+
+其中 `auth/api` 是 Casdoor 同源代理入口，`api/auth` 是 NextAuth 路由入口。
+
 ## Skill 分发
 
 仓库内的 skill 是 canonical 版本。
@@ -85,7 +124,7 @@ npx @foldspace/casdoor-next-auth-kit check
 
 `apps/demo` 负责：
 
-- 验证 login / callback / logout
+- 验证 login / callback / logout 的完整站内闭环
 - 验证 React hooks
 - 验证 commerce 转发
 - 验证更新后的 route shell 是否仍然可运行
