@@ -20,21 +20,21 @@ jobs:
 
     steps:
       - name: Check out
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10.32.1
-
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: pnpm
           registry-url: https://registry.npmjs.org
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.32.1 --activate
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -128,7 +128,6 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Promote latest dist-tag
-        if: steps.version.outputs.dist_tag == 'latest'
         working-directory: packages/auth-kit
         run: npm dist-tag add "@foldspace-fe/casdoor-next-auth-kit@${{ steps.version.outputs.version }}" latest
         env:
