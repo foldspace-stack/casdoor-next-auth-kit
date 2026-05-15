@@ -4,9 +4,12 @@ CLI 负责管理宿主生成文件，并保持 skill 源同步。
 
 ## 命令
 
-- `npx @foldspace-fe/casdoor-next-auth-kit init`
-- `npx @foldspace-fe/casdoor-next-auth-kit update`
-- `npx @foldspace-fe/casdoor-next-auth-kit check`
+- `npx @foldspace-fe/casdoor-next-auth-kit@latest init`
+- `npx @foldspace-fe/casdoor-next-auth-kit@latest update`
+- `npx @foldspace-fe/casdoor-next-auth-kit@latest check`
+- `npx @foldspace-fe/casdoor-next-auth-kit@latest --version`
+
+`npx` 会通过 package 的 `bin` 入口执行 `casdoor-next-auth-kit` 这个 CLI，所以可以直接使用 `@latest` 的写法。
 
 ## 发布流程
 

@@ -70,10 +70,13 @@ import {
 ## 最常用命令
 
 ```bash
-npx @foldspace-fe/casdoor-next-auth-kit init
-npx @foldspace-fe/casdoor-next-auth-kit update
-npx @foldspace-fe/casdoor-next-auth-kit check
+npx @foldspace-fe/casdoor-next-auth-kit@latest init
+npx @foldspace-fe/casdoor-next-auth-kit@latest update
+npx @foldspace-fe/casdoor-next-auth-kit@latest check
+npx @foldspace-fe/casdoor-next-auth-kit@latest --version
 ```
+
+`npx` 会读取 package 的 `bin` 入口并运行 `casdoor-next-auth-kit` CLI。
 
 ## 包导出
 

@@ -47,6 +47,9 @@ jobs:
       - name: Build package
         run: pnpm build:auth-kit
 
+      - name: Smoke test CLI
+        run: pnpm exec casdoor-next-auth-kit --version
+
       - name: Calculate version
         id: version
         run: |

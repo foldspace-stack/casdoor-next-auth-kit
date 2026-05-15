@@ -34,6 +34,9 @@ jobs:
       - name: Build auth kit
         run: pnpm build:auth-kit
 
+      - name: Smoke test CLI
+        run: pnpm exec casdoor-next-auth-kit --version
+
       - name: Type check
         run: pnpm type-check
 

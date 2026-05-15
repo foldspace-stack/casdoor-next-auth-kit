@@ -54,10 +54,13 @@ npm install @foldspace-fe/casdoor-next-auth-kit
 通过 `npx` 直接使用包：
 
 ```bash
-npx @foldspace-fe/casdoor-next-auth-kit init     # 初始化：安装 skill、生成路由壳、配置 Next.js
-npx @foldspace-fe/casdoor-next-auth-kit update    # 更新：重新生成路由壳、同步 skill 和配置文件
-npx @foldspace-fe/casdoor-next-auth-kit check     # 检查：验证宿主项目配置与生成物是否一致
+npx @foldspace-fe/casdoor-next-auth-kit@latest init     # 初始化：安装 skill、生成路由壳、配置 Next.js
+npx @foldspace-fe/casdoor-next-auth-kit@latest update   # 更新：重新生成路由壳、同步 skill 和配置文件
+npx @foldspace-fe/casdoor-next-auth-kit@latest check    # 检查：验证宿主项目配置与生成物是否一致
+npx @foldspace-fe/casdoor-next-auth-kit@latest --version
 ```
+
+`npx` 会读取 package 的 `bin` 入口并执行 `casdoor-next-auth-kit` 这个 CLI，所以 `@latest` 形式可以直接调用这些命令。
 
 这些命令生成或刷新宿主项目的受管理路由壳，同时保持受管理的环境文件、skill 副本、`app/auth/index-html.ts` 和 Prisma schema 脚手架同步。
 
@@ -126,7 +129,7 @@ pnpm run dev
 如果注销状态异常，先刷新宿主项目的生成文件：
 
 ```bash
-npx @foldspace-fe/casdoor-next-auth-kit update
+npx @foldspace-fe/casdoor-next-auth-kit@latest update
 ```
 
 ## 备注
