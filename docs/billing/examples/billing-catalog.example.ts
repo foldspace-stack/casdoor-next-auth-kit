@@ -1,4 +1,4 @@
-import type { BillingCatalogConfig } from '@foldspace/casdoor-next-auth-kit/billing';
+import type { BillingCatalogConfig } from '@foldspace-fe/casdoor-next-auth-kit/billing';
 
 export const billingCatalogExample: BillingCatalogConfig = {
   catalogKey: 'main',

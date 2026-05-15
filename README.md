@@ -1,6 +1,6 @@
 # casdoor-next-auth-kit
 
-可复用的 `@foldspace/casdoor-next-auth-kit` 包的源码仓库，包含 CLI 脚手架工具、skill 分发源和 Next.js 演示应用。
+可复用的 `@foldspace-fe/casdoor-next-auth-kit` 包的源码仓库，包含 CLI 脚手架工具、skill 分发源和 Next.js 演示应用。
 
 该包刻意设计为无头（headless）架构：
 
@@ -41,12 +41,18 @@
 通过 `npx` 直接使用包：
 
 ```bash
-npx @foldspace/casdoor-next-auth-kit init     # 初始化：安装 skill、生成路由壳、配置 Next.js
-npx @foldspace/casdoor-next-auth-kit update    # 更新：重新生成路由壳、同步 skill 和配置文件
-npx @foldspace/casdoor-next-auth-kit check     # 检查：验证宿主项目配置与生成物是否一致
+npx @foldspace-fe/casdoor-next-auth-kit init     # 初始化：安装 skill、生成路由壳、配置 Next.js
+npx @foldspace-fe/casdoor-next-auth-kit update    # 更新：重新生成路由壳、同步 skill 和配置文件
+npx @foldspace-fe/casdoor-next-auth-kit check     # 检查：验证宿主项目配置与生成物是否一致
 ```
 
 这些命令生成或刷新宿主项目的受管理路由壳，同时保持受管理的环境文件、skill 副本、`app/auth/index-html.ts` 和 Prisma schema 脚手架同步。
+
+仓库的 npm 发布也由 GitHub Actions 自动处理：
+
+- `push` 到 `main` 时，会基于最近的 `v*` tag 自动递增 patch 并发布到 npm `next`
+- `push` `v0.1` 这类 tag 时，会规范化成 `0.1.0` 并发布到 npm `latest`
+- 如果最近的 tag 是 `v0.1`，那么下一次 `main` push 会自动发布 `0.1.1`
 
 生成的认证壳应被视为宿主控制的集成点：
 
@@ -106,7 +112,7 @@ pnpm run dev
 如果注销状态异常，先刷新宿主项目的生成文件：
 
 ```bash
-npx @foldspace/casdoor-next-auth-kit update
+npx @foldspace-fe/casdoor-next-auth-kit update
 ```
 
 ## 备注

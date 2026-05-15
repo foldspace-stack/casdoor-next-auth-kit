@@ -1,5 +1,5 @@
 import type { NextRequest } from 'next/server';
-import { createSignupEntryResponse } from '@foldspace/casdoor-next-auth-kit';
+import { createSignupEntryResponse } from '@foldspace-fe/casdoor-next-auth-kit';
 import { demoAuthConfig } from '../../../lib/demo-auth';
 
 export const dynamic = 'force-dynamic';

@@ -1,6 +1,6 @@
 {
-  "name": "@foldspace/casdoor-next-auth-kit",
-  "version": "0.0.0",
+  "name": "@foldspace-fe/casdoor-next-auth-kit",
+  "version": "0.1.0",
   "private": false,
   "type": "module",
   "main": "./dist/index.js",
@@ -29,6 +29,10 @@
   },
   "bin": {
     "casdoor-next-auth-kit": "./dist/cli.js"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   },
   "files": ["dist"],
   "scripts": {

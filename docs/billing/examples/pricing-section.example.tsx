@@ -11,7 +11,7 @@ import {
   usePurchaseCredits,
   usePurchaseProduct,
   useSubscribePlan,
-} from '@foldspace/casdoor-next-auth-kit/react';
+} from '@foldspace-fe/casdoor-next-auth-kit/react';
 
 export function PricingSectionExample() {
   const { plans } = useBillingAvailablePlans();

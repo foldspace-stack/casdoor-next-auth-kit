@@ -10,7 +10,7 @@ importers:
 
   apps/demo:
     dependencies:
-      '@foldspace/casdoor-next-auth-kit':
+      '@foldspace-fe/casdoor-next-auth-kit':
         specifier: workspace:*
         version: link:../../packages/auth-kit
       next:

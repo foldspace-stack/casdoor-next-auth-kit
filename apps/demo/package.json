@@ -9,7 +9,7 @@
     "check": "node ./scripts/check.js"
   },
   "dependencies": {
-    "@foldspace/casdoor-next-auth-kit": "workspace:*",
+    "@foldspace-fe/casdoor-next-auth-kit": "workspace:*",
     "next": "^16.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

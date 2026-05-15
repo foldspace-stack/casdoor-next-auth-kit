@@ -1,0 +1,90 @@
+name: Publish npm package
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.32.1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build package
+        run: pnpm build:auth-kit
+
+      - name: Calculate version
+        id: version
+        run: |
+          normalize_version() {
+            local raw="${1#v}"
+            IFS='.' read -r major minor patch <<< "$raw"
+            if [[ -z "${minor:-}" ]]; then
+              minor=0
+              patch=0
+            elif [[ -z "${patch:-}" ]]; then
+              patch=0
+            fi
+            echo "${major}.${minor}.${patch}"
+          }
+
+          increment_patch() {
+            local version="$1"
+            IFS='.' read -r major minor patch <<< "$version"
+            echo "${major}.${minor}.$((patch + 1))"
+          }
+
+          latest_tag="$(git tag --list 'v*' --sort=-version:refname | head -n 1)"
+
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            VERSION="$(normalize_version "${GITHUB_REF_NAME}")"
+            DIST_TAG="latest"
+          else
+            if [[ -n "${latest_tag}" ]]; then
+              BASE_VERSION="$(normalize_version "${latest_tag}")"
+            else
+              BASE_VERSION="0.1.0"
+            fi
+
+            VERSION="$(increment_patch "${BASE_VERSION}")"
+            DIST_TAG="next"
+          fi
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "dist_tag=$DIST_TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Set publish version
+        working-directory: packages/auth-kit
+        run: npm version "${{ steps.version.outputs.version }}" --no-git-tag-version --allow-same-version
+
+      - name: Publish package
+        working-directory: packages/auth-kit
+        run: npm publish --access public --provenance --tag "${{ steps.version.outputs.dist_tag }}"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

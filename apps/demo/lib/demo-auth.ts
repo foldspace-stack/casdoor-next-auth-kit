@@ -1,4 +1,4 @@
-import type { AuthBusinessAdapter, AuthKitConfig } from '@foldspace/casdoor-next-auth-kit';
+import type { AuthBusinessAdapter, AuthKitConfig } from '@foldspace-fe/casdoor-next-auth-kit';
 
 export const demoAuthConfig: AuthKitConfig = {
   appUrl: process.env.APP_URL ?? 'http://localhost:3000',

@@ -5,7 +5,7 @@ import {
   useBillingPaymentHistory,
   useBillingSubscriptionHistory,
   useBillingPurchaseStatus,
-} from '@foldspace/casdoor-next-auth-kit/react';
+} from '@foldspace-fe/casdoor-next-auth-kit/react';
 
 export function OrderHistoryPageExample() {
   const { orders } = useBillingOrderHistory();

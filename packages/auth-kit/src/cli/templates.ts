@@ -71,7 +71,7 @@ export function authConfigTemplate() {
   type AuthKitConfig,
   type AuthPersistenceAdapter,
   type AuthUser,
-} from '@foldspace/casdoor-next-auth-kit';
+} from '@foldspace-fe/casdoor-next-auth-kit';
 import { db } from '@/lib/db';
 import { isGlobalAdminEmail } from '@/lib/auth-roles';
 import { syncUserRecord } from '@/lib/user-record';
@@ -182,7 +182,7 @@ export const POST = nextAuthHandlers.POST;
 }
 
     export function authIndexHtmlTemplate() {
-      return `export { AUTH_INDEX_HTML, createAuthIndexHtml } from '@foldspace/casdoor-next-auth-kit';
+      return `export { AUTH_INDEX_HTML, createAuthIndexHtml } from '@foldspace-fe/casdoor-next-auth-kit';
 `;
     }
 

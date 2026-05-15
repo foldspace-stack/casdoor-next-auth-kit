@@ -10,7 +10,7 @@ import type {
   BillingProductState,
   BillingOrderHistoryItem,
   BillingPaymentHistoryItem,
-} from '@foldspace/casdoor-next-auth-kit/billing';
+} from '@foldspace-fe/casdoor-next-auth-kit/billing';
 
 import { billingCatalogExample } from './billing-catalog.example';
 

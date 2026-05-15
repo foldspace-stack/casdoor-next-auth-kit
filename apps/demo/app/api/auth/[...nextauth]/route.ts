@@ -1,4 +1,4 @@
-import { createNextAuthRouteHandler } from '@foldspace/casdoor-next-auth-kit';
+import { createNextAuthRouteHandler } from '@foldspace-fe/casdoor-next-auth-kit';
 import { demoAuthAdapter, demoAuthConfig } from '../../../../lib/demo-auth';
 
 const handler = createNextAuthRouteHandler({ config: demoAuthConfig, adapter: demoAuthAdapter });

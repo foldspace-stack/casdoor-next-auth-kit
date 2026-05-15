@@ -7,7 +7,7 @@ This section covers the hosted Casdoor authentication integration.
 - Login and signup route shells
 - OAuth authorize flow inside the host app
 - Session, callback, and logout helpers
-- `@foldspace/casdoor-next-auth-kit/react` auth hooks and provider
+- `@foldspace-fe/casdoor-next-auth-kit/react` auth hooks and provider
 
 ## Main Entry Points
 
@@ -17,6 +17,6 @@ This section covers the hosted Casdoor authentication integration.
 
 ## Related Package Exports
 
-- `@foldspace/casdoor-next-auth-kit`
-- `@foldspace/casdoor-next-auth-kit/react`
-- `@foldspace/casdoor-next-auth-kit/next`
+- `@foldspace-fe/casdoor-next-auth-kit`
+- `@foldspace-fe/casdoor-next-auth-kit/react`
+- `@foldspace-fe/casdoor-next-auth-kit/next`

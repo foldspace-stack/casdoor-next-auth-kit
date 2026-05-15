@@ -9,7 +9,7 @@
     "lint": "pnpm -r lint",
     "test": "pnpm -r test",
     "check": "pnpm --filter demo check",
-    "build:auth-kit": "pnpm --filter @foldspace/casdoor-next-auth-kit build",
+    "build:auth-kit": "pnpm --filter @foldspace-fe/casdoor-next-auth-kit build",
     "build:demo": "pnpm --filter demo build",
     "skill:install": "node scripts/install-skill.mjs"
   }
