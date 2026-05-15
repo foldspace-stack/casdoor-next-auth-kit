@@ -3,6 +3,14 @@
   "version": "0.1.0",
   "private": false,
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/foldspace-stack/casdoor-next-auth-kit"
+  },
+  "homepage": "https://github.com/foldspace-stack/casdoor-next-auth-kit#readme",
+  "bugs": {
+    "url": "https://github.com/foldspace-stack/casdoor-next-auth-kit/issues"
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
