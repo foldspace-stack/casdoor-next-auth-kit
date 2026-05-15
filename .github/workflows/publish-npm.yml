@@ -50,42 +50,72 @@ jobs:
       - name: Calculate version
         id: version
         run: |
-          normalize_version() {
-            local raw="${1#v}"
-            IFS='.' read -r major minor patch <<< "$raw"
-            if [[ -z "${minor:-}" ]]; then
-              minor=0
-              patch=0
-            elif [[ -z "${patch:-}" ]]; then
-              patch=0
-            fi
-            echo "${major}.${minor}.${patch}"
+          node - <<'NODE'
+          const { execSync } = require('node:child_process');
+          const fs = require('node:fs');
+
+          const pkg = JSON.parse(fs.readFileSync('./packages/auth-kit/package.json', 'utf8'));
+          const name = pkg.name;
+          const refType = process.env.GITHUB_REF_TYPE ?? '';
+          const refName = process.env.GITHUB_REF_NAME ?? '';
+
+          const normalize = (raw) => {
+            const value = String(raw).replace(/^v/, '');
+            const parts = value.split('.');
+            const major = Number(parts[0] ?? 0);
+            const minor = Number(parts[1] ?? 0);
+            const patch = Number(parts[2] ?? 0);
+            return { major, minor, patch };
+          };
+
+          const stringify = ({ major, minor, patch }) => `${major}.${minor}.${patch}`;
+          const compare = (left, right) => {
+            if (left.major !== right.major) return left.major - right.major;
+            if (left.minor !== right.minor) return left.minor - right.minor;
+            return left.patch - right.patch;
+          };
+          const bumpPatch = (version) => ({ ...version, patch: version.patch + 1 });
+          const maxVersion = (versions) => versions.reduce((acc, version) => (compare(version, acc) > 0 ? version : acc));
+
+          const latestTag = execSync("git tag --list 'v*' --sort=-version:refname | head -n 1", { encoding: 'utf8' }).trim();
+          const localBaseline = latestTag ? normalize(latestTag) : normalize('0.1.0');
+
+          let npmBaseline = null;
+          try {
+            const raw = execSync(`npm view ${JSON.stringify(name)} versions --json`, { encoding: 'utf8' }).trim();
+            const parsed = raw ? JSON.parse(raw) : [];
+            const list = Array.isArray(parsed) ? parsed : [parsed];
+            const filtered = list
+              .map((value) => String(value))
+              .filter((value) => /^\d+\.\d+\.\d+$/.test(value))
+              .map(normalize);
+            if (filtered.length > 0) {
+              npmBaseline = maxVersion(filtered);
+            }
+          } catch {
+            npmBaseline = null;
           }
 
-          increment_patch() {
-            local version="$1"
-            IFS='.' read -r major minor patch <<< "$version"
-            echo "${major}.${minor}.$((patch + 1))"
+          const output = process.env.GITHUB_OUTPUT;
+          if (!output) {
+            throw new Error('GITHUB_OUTPUT is required');
           }
 
-          latest_tag="$(git tag --list 'v*' --sort=-version:refname | head -n 1)"
+          const write = (key, value) => {
+            fs.appendFileSync(output, `${key}=${value}\n`);
+          };
 
-          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
-            VERSION="$(normalize_version "${GITHUB_REF_NAME}")"
-            DIST_TAG="latest"
-          else
-            if [[ -n "${latest_tag}" ]]; then
-              BASE_VERSION="$(normalize_version "${latest_tag}")"
-            else
-              BASE_VERSION="0.1.0"
-            fi
-
-            VERSION="$(increment_patch "${BASE_VERSION}")"
-            DIST_TAG="next"
-          fi
-
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "dist_tag=$DIST_TAG" >> "$GITHUB_OUTPUT"
+          if (refType === 'tag') {
+            const version = normalize(refName);
+            write('version', stringify(version));
+            write('dist_tag', 'latest');
+          } else {
+            const base = npmBaseline && compare(npmBaseline, localBaseline) > 0 ? npmBaseline : localBaseline;
+            const nextVersion = bumpPatch(base);
+            write('version', stringify(nextVersion));
+            write('dist_tag', 'next');
+          }
+          NODE
 
       - name: Set publish version
         working-directory: packages/auth-kit
