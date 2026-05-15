@@ -1,15 +1,15 @@
-# Docs Index
+# 文档索引
 
-This folder groups the repository docs by domain.
+本目录按领域整理仓库文档。
 
-## Categories
+## 分类
 
-- [Auth](./auth/README.md)
+- [认证](./auth/README.md)
 - [Billing](./billing/README.md)
 - [CLI](./cli/README.md)
 - [Skills](./skills/README.md)
 
-## Source Docs
+## 源文档
 
-- [Main README](../README.md)
-- [Auth Kit Plan](../AUTH-KIT-PLAN.md)
+- [仓库 README](../README.md)
+- [Auth Kit 方案](../AUTH-KIT-PLAN.md)

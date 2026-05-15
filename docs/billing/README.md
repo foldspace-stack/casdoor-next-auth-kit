@@ -1,23 +1,23 @@
 # Billing
 
-This section documents the headless billing runtime for SaaS subscriptions, credits, and virtual products.
+这一部分说明面向 SaaS 订阅、积分商品和虚拟商品的 headless billing runtime。
 
-## Scope
+## 覆盖范围
 
-- Subscription purchase
-- Product purchase
-- Credits as a product extension
-- Order, payment, transaction, and subscription history
-- Purchase state and entitlement snapshots
-- Provider-driven configuration injection
+- 订阅购买
+- 商品购买
+- 积分作为商品扩展
+- 订单、支付、交易和订阅历史
+- 购买状态和权益快照
+- 基于 provider 的配置注入
 
-## Key Files
+## 关键文件
 
-- [Billing Runtime Types](../../packages/auth-kit/src/billing/types.ts)
-- [Billing Runtime Helpers](../../packages/auth-kit/src/billing/runtime.ts)
+- [Billing Runtime 类型](../../packages/auth-kit/src/billing/types.ts)
+- [Billing Runtime 辅助函数](../../packages/auth-kit/src/billing/runtime.ts)
 - [Billing React Hooks](../../packages/auth-kit/src/billing/react.tsx)
 
-## Main Runtime Shape
+## 主要运行时结构
 
 - `BillingProvider`
 - `BillingCoreProvider`
@@ -25,17 +25,17 @@ This section documents the headless billing runtime for SaaS subscriptions, cred
 - `ProductProvider`
 - `CreditsProvider`
 
-## Provider Inputs
+## Provider 输入
 
-For host apps, the available catalog is usually injected from backend config:
+对宿主应用来说，可用商品目录通常来自后端配置注入：
 
 - `runtimeConfig`: full catalog configuration
 - `availablePlans`: subscription items only
 - `availableProducts`: product and credits items
 
-The runtime can also derive `availablePlans` and `availableProducts` from `runtimeConfig.items`, but explicit injection keeps host-side control clearer.
+runtime 也可以从 `runtimeConfig.items` 推导 `availablePlans` 和 `availableProducts`，但显式注入更利于宿主侧控制。
 
-## Main Hooks
+## 主要 Hooks
 
 - `useBillingAvailablePlans`
 - `useBillingAvailableProducts`
@@ -55,9 +55,9 @@ The runtime can also derive `availablePlans` and `availableProducts` from `runti
 - `usePurchaseProduct`
 - `usePurchaseCredits`
 
-## Example Files
+## 示例文件
 
-- [Billing catalog example](./examples/billing-catalog.example.ts)
-- [Pricing section example](./examples/pricing-section.example.tsx)
-- [Order history page example](./examples/order-history-page.example.tsx)
-- [Mock api client example](./examples/mock-billing-api-client.example.ts)
+- [Billing catalog 示例](./examples/billing-catalog.example.ts)
+- [Pricing section 示例](./examples/pricing-section.example.tsx)
+- [订单历史页面示例](./examples/order-history-page.example.tsx)
+- [Mock api client 示例](./examples/mock-billing-api-client.example.ts)

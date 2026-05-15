@@ -59,3 +59,4 @@
 
 - `AUTH-KIT-PLAN.md` 是本仓库的主方案文档。
 - 当前宿主工程的 AGENTS.md 和 skill 文件都引用本仓库作为源头。
+- 对外 README、docs 和 skill 源文件默认使用中文描述，保留英文内容时只写必要的包名、命令、API 名称和代码标识符。

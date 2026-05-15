@@ -3,31 +3,31 @@
 [![npm version](https://img.shields.io/npm/v/@foldspace-fe/casdoor-next-auth-kit?label=npm)](https://www.npmjs.com/package/@foldspace-fe/casdoor-next-auth-kit)
 [![npm downloads](https://img.shields.io/npm/dm/@foldspace-fe/casdoor-next-auth-kit?label=downloads)](https://www.npmjs.com/package/@foldspace-fe/casdoor-next-auth-kit)
 
-Headless Casdoor auth and billing toolkit for Next.js.
+面向 Next.js 的无头 Casdoor 认证与 billing 工具包。
 
-This package provides:
+提供：
 
-- Host-side login, signup, callback, and logout route shells
-- React provider and hook wrappers for auth state
-- Headless billing runtime for SaaS subscriptions, virtual products, and credits
-- CLI helpers to generate and validate the managed host files
+- 宿主站内登录、注册、回调、注销路由壳
+- 认证状态与动作的 React Provider / Hook
+- SaaS 订阅、虚拟商品、积分商品的 headless billing runtime
+- 生成和校验宿主受管文件的 CLI
 
-## Install
+## 安装
 
 ```bash
 npm install @foldspace-fe/casdoor-next-auth-kit
 ```
 
-Or with your preferred package manager:
+也可以使用你常用的包管理器：
 
 ```bash
 pnpm add @foldspace-fe/casdoor-next-auth-kit
 yarn add @foldspace-fe/casdoor-next-auth-kit
 ```
 
-## Quick Start
+## 快速开始
 
-### Auth
+### 认证导入
 
 ```ts
 import {
@@ -36,7 +36,7 @@ import {
 } from '@foldspace-fe/casdoor-next-auth-kit';
 ```
 
-### React Auth Hooks
+### React 认证
 
 ```tsx
 'use client';
@@ -48,14 +48,14 @@ import {
 } from '@foldspace-fe/casdoor-next-auth-kit/react';
 ```
 
-### Billing Runtime
+### Billing runtime
 
 ```ts
 import type { BillingCatalogConfig } from '@foldspace-fe/casdoor-next-auth-kit/billing';
 import { BillingProvider } from '@foldspace-fe/casdoor-next-auth-kit/react';
 ```
 
-### Billing Actions
+### Billing 动作
 
 ```tsx
 'use client';
@@ -67,7 +67,7 @@ import {
 } from '@foldspace-fe/casdoor-next-auth-kit/react';
 ```
 
-## CLI
+## 最常用命令
 
 ```bash
 npx @foldspace-fe/casdoor-next-auth-kit init
@@ -75,22 +75,22 @@ npx @foldspace-fe/casdoor-next-auth-kit update
 npx @foldspace-fe/casdoor-next-auth-kit check
 ```
 
-## Package Exports
+## 包导出
 
 - `@foldspace-fe/casdoor-next-auth-kit`
 - `@foldspace-fe/casdoor-next-auth-kit/react`
 - `@foldspace-fe/casdoor-next-auth-kit/billing`
 - `@foldspace-fe/casdoor-next-auth-kit/next`
 
-## Docs
+## 文档
 
-- [Repository README](https://github.com/foldspace-stack/casdoor-next-auth-kit)
-- [Auth docs](https://github.com/foldspace-stack/casdoor-next-auth-kit/blob/main/docs/auth/README.md)
-- [Billing docs](https://github.com/foldspace-stack/casdoor-next-auth-kit/blob/main/docs/billing/README.md)
-- [CLI docs](https://github.com/foldspace-stack/casdoor-next-auth-kit/blob/main/docs/cli/README.md)
-- [Skills docs](https://github.com/foldspace-stack/casdoor-next-auth-kit/blob/main/docs/skills/README.md)
+- [仓库 README](https://github.com/foldspace-stack/casdoor-next-auth-kit)
+- [Auth 文档](https://github.com/foldspace-stack/casdoor-next-auth-kit/blob/main/docs/auth/README.md)
+- [Billing 文档](https://github.com/foldspace-stack/casdoor-next-auth-kit/blob/main/docs/billing/README.md)
+- [CLI 文档](https://github.com/foldspace-stack/casdoor-next-auth-kit/blob/main/docs/cli/README.md)
+- [Skills 文档](https://github.com/foldspace-stack/casdoor-next-auth-kit/blob/main/docs/skills/README.md)
 
 ## npm
 
-- Package page: https://www.npmjs.com/package/@foldspace-fe/casdoor-next-auth-kit
-- Publish scope: `@foldspace-fe`
+- 包页面：https://www.npmjs.com/package/@foldspace-fe/casdoor-next-auth-kit
+- 发布 scope：`@foldspace-fe`
