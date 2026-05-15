@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "pnpm --filter demo dev",
     "build": "pnpm -r build",
-    "type-check": "pnpm -r typecheck",
+    "type-check": "pnpm build:auth-kit && pnpm -r typecheck",
     "lint": "pnpm -r lint",
     "test": "pnpm -r test",
     "check": "pnpm --filter demo check",
