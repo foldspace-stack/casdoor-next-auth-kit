@@ -126,3 +126,10 @@ jobs:
         run: npm publish --access public --provenance --tag "${{ steps.version.outputs.dist_tag }}"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Promote latest dist-tag
+        if: steps.version.outputs.dist_tag == 'latest'
+        working-directory: packages/auth-kit
+        run: npm dist-tag add "@foldspace-fe/casdoor-next-auth-kit@${{ steps.version.outputs.version }}" latest
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
