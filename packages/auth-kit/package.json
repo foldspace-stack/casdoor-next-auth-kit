@@ -42,7 +42,7 @@
     "access": "public",
     "provenance": true
   },
-  "files": ["dist"],
+  "files": ["dist", "README.md"],
   "scripts": {
     "build": "tsup && node ./scripts/copy-skill.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
