@@ -1,6 +1,6 @@
 # 仓库约定
 
-这是 `@foldspace/casdoor-next-auth-kit` 的独立源仓库，包含：
+这是 `@foldspace-fe/casdoor-next-auth-kit` 的独立源仓库，包含：
 
 - 可复用认证包
 - CLI 脚手架
@@ -32,12 +32,12 @@
 
 ## 对外约定
 
-- `npx @foldspace/casdoor-next-auth-kit init` 生成宿主工程的受管 route shells。
-- `npx @foldspace/casdoor-next-auth-kit update` 刷新受管文件。
-- `npx @foldspace/casdoor-next-auth-kit check` 校验受管文件是否齐全。
+- `npx @foldspace-fe/casdoor-next-auth-kit init` 生成宿主工程的受管 route shells。
+- `npx @foldspace-fe/casdoor-next-auth-kit update` 刷新受管文件。
+- `npx @foldspace-fe/casdoor-next-auth-kit check` 校验受管文件是否齐全。
 - 生成的登录体验应保持在宿主站点内完成，Casdoor 页面只作为包内部代理的上游，不应直接暴露给最终用户。
 - 宿主工程推荐把 `NEXT_PUBLIC_CASDOOR_APP_NAME` 和 `NEXT_PUBLIC_CASDOOR_ORGANIZATION_NAME` 视作同一个站点命名空间来配置，例如 `qixiaoju / qixiaoju`。
-- 宿主工程通过 `@foldspace/casdoor-next-auth-kit/react` 读取认证状态和动作。
+- 宿主工程通过 `@foldspace-fe/casdoor-next-auth-kit/react` 读取认证状态和动作。
 - 宿主工程只负责建表和持久化，数据库字段与同步需求由包定义。
 
 ## 明确禁止
@@ -50,7 +50,7 @@
 - 不要再恢复旧的 `/login`、`/signup`、`/logout` 兼容入口，宿主只保留 `app/(auth-kit)` 下的新路由。
 - 不要再把 `NEXTAUTH_URL` 当成公共站点 origin 的来源，公共 origin 由请求头或 `APP_URL` 识别。
 - 不要再用 `request.cookies.getAll()` 作为 logout 唯一依据，退出必须按原始 `Cookie` 头和 cookie 前缀清理分片 session。
-- 不要再在宿主工程手工 copy 生成文件到别的目录，受管文件只能通过 `npx @foldspace/casdoor-next-auth-kit init|update|check` 维护。
+- 不要再在宿主工程手工 copy 生成文件到别的目录，受管文件只能通过 `npx @foldspace-fe/casdoor-next-auth-kit init|update|check` 维护。
 - 不要再尝试向宿主工程的 `.agents/skills` 目录直接写入文件；宿主只通过仓库内 skill 分发脚本安装 skill，写入失败时应跳过并提示，而不是改造宿主仓库权限。
 - 不要在未重新构建包产物的情况下判断本地 `file:` 依赖已经生效；修改 `packages/auth-kit` 后必须先 `pnpm build`，宿主再 `pnpm install` 或 `npx ... update`。
 - 不要在没有验证 logout/session 的情况下下结论为“已退出”；必须以 `/api/auth/session` 为空对象为准。

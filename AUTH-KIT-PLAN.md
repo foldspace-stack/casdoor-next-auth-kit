@@ -1,15 +1,15 @@
-# `@foldspace/casdoor-next-auth-kit`
+# `@foldspace-fe/casdoor-next-auth-kit`
 
-这是独立仓库的主方案文档，作为认证包、demo、CLI 和 skill 分发的 source of truth。
+这是独立仓库的主方案文档，作为认证包、billing headless、demo、CLI 和 skill 分发的 source of truth。
 
 ## 目标
 
-- 将 Casdoor 登录、PKCE、回调、退出、React auth hooks、commerce 转发做成可复用的包。
+- 将 Casdoor 登录、PKCE、回调、退出、React auth hooks、commerce 转发、billing headless 做成可复用的包。
 - 把 Casdoor 的站外能力包装成站内可控壳子，避免宿主用户感知到 Casdoor 页面跳转。
 - 登录、注册、回调、退出、commerce 这些能力都以 host route shells 的方式暴露，URL 保持稳定，但真正的 Casdoor 交互由包来代理。
 - 主工程只保留薄路由壳、业务用户同步和 Prisma 持久化。
-- 先支持本地 `link:` 依赖，后续切到 npm 发布版。
-- 用 `npx @foldspace/casdoor-next-auth-kit init` 和 `update` 管理宿主工程生成文件。
+- 包通过 npm scope `@foldspace-fe/casdoor-next-auth-kit` 发布。
+- 用 `npx @foldspace-fe/casdoor-next-auth-kit init` 和 `update` 管理宿主工程生成文件。
 - 用 skill 文件把这套用法同步到宿主项目的 `.agents/skills`。
 
 ## 模块边界
@@ -21,6 +21,7 @@
 - logout
 - React auth hooks
 - commerce/headless 接口转发
+- billing headless 的 provider / hooks / runtime / payload 规范
 - host route shell 模板
 - 数据库契约和同步需求
 - skill 的源码和分发脚本
@@ -74,6 +75,8 @@
 - schema
 - migration
 - upsert / sync / query
+- billing catalog 配置注入
+- 订阅、商品、积分、订单、支付状态的业务编排
 
 ## React 层
 
@@ -84,20 +87,64 @@
 - `useAuthUser`
 - `useAuthRole`
 - `useAuthActions`
+- `BillingProvider`
+- `BillingCoreProvider`
+- `SubscriptionProvider`
+- `ProductProvider`
+- `CreditsProvider`
+- `useBillingAvailablePlans`
+- `useBillingAvailableProducts`
+- `useBillingSubscription`
+- `useBillingSubscriptionHistory`
+- `useBillingProducts`
+- `useBillingOrderHistory`
+- `useBillingPaymentHistory`
+- `useBillingCredits`
+- `useBillingEntitlements`
+- `useBillingPurchaseStatus`
+- `useSubscribePlan`
+- `usePurchaseProduct`
+- `usePurchaseCredits`
 
 ## CLI
 
 CLI 约定如下：
 
 ```bash
-npx @foldspace/casdoor-next-auth-kit init
-npx @foldspace/casdoor-next-auth-kit update
-npx @foldspace/casdoor-next-auth-kit check
+npx @foldspace-fe/casdoor-next-auth-kit init
+npx @foldspace-fe/casdoor-next-auth-kit update
+npx @foldspace-fe/casdoor-next-auth-kit check
 ```
 
 - `init`：首次生成 route shells 和 `.env.example`
 - `update`：刷新包管理的受管文件
 - `check`：只校验，不改文件
+
+## Billing Headless
+
+Billing headless 只覆盖标准数字商品场景：
+
+- SaaS 订阅
+- 积分商品
+- 虚拟商品
+- 订单历史
+- 支付历史
+- 订阅历史
+- 当前订阅产品与购买状态
+
+它的配置注入方式是：
+
+- `runtimeConfig`
+- `availablePlans`
+- `availableProducts`
+
+三类对象统一建模为：
+
+- `subscription`
+- `product`
+- `credits`
+
+其中 `credits` 是 `product` 的扩展。
 
 ## 路由 shell 约定
 
@@ -139,6 +186,5 @@ npx @foldspace/casdoor-next-auth-kit check
 
 1. 完成本仓库开发
 2. 在 demo 中跑通
-3. 用 `npx` 方式在宿主工程接入
-4. 再发布到 npm
-5. 最后把宿主工程依赖切到 npm 版本
+3. 通过 GitHub Actions push/tag 自动计算版本并发布到 npm
+4. 宿主工程切换到 npm 版本
