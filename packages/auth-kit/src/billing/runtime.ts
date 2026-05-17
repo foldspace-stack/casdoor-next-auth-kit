@@ -58,6 +58,8 @@ export function resolveBillingSubscriptionProduct(
     planId: item.backendRef.planId,
     priceId: item.backendRef.priceId,
     interval: item.interval,
+    creditGrant: item.creditGrant,
+    creditRedeem: item.creditRedeem,
     metadata: item.metadata,
   };
 }
@@ -72,6 +74,8 @@ export function resolveBillingProductSnapshot(item?: BillingItem | null): Billin
     planId: item.backendRef.planId,
     priceId: item.backendRef.priceId,
     interval: item.interval,
+    creditGrant: item.creditGrant,
+    creditRedeem: item.creditRedeem,
     metadata: item.metadata,
   };
 }
@@ -84,8 +88,16 @@ export function deriveBillingCreditsState(
   if (credits) return credits;
 
   const fromProducts = products?.reduce((total, product) => {
-    if (product.kind !== 'credits') return total;
-    return total + Number(product.creditsBalance ?? product.quantity ?? 0);
+    if (typeof product.creditsBalance === 'number') {
+      return total + Number(product.creditsBalance);
+    }
+
+    if (!product.creditGrant) {
+      return total;
+    }
+
+    const quantity = Number(product.quantity ?? 1);
+    return total + Number(product.creditGrant.creditsPerUnit || 0) * quantity;
   }, 0);
 
   const fromRules = conversionRules?.reduce((total, rule) => {
@@ -188,11 +200,6 @@ export function normalizeBillingPurchaseStatus(
     transactionStatus: payment?.transactionId ? 'linked' : undefined,
     updatedAt: payment?.updatedAt ?? order?.updatedAt,
   };
-}
-
-export function filterProductsByKind(products: BillingProductState[] | undefined, kind?: 'product' | 'credits') {
-  if (!kind) return products ?? [];
-  return (products ?? []).filter((product) => product.kind === kind);
 }
 
 export function resolveBillingInterval(interval?: BillingInterval | null): BillingInterval | undefined {

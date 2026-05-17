@@ -61,7 +61,7 @@ npx @foldspace-fe/casdoor-next-auth-kit@latest check
 - `useBillingSubscription` / `useBillingSubscriptionHistory` / `useBillingSubscriptionProduct` — 查看当前订阅、订阅历史和当前订阅对应产品
 - `useBillingProducts` / `useBillingProduct` / `useBillingOrderHistory` / `useBillingPaymentHistory` — 查看商品状态、订单历史和支付历史
 - `useBillingCredits` / `useBillingEntitlements` / `useBillingPurchaseStatus` — 查看额度、权益和归一化购买状态
-- `useSubscribePlan` / `usePurchaseProduct` / `usePurchaseCredits` — 发起订阅、虚拟商品购买和积分购买动作
+- `useSubscribePlan` / `usePurchaseProduct` — 发起订阅和商品购买动作
 - `useBillingRefresh` / `useBillingPipeline` — 刷新 billing 状态和编排动作执行链路
 
 ## 路由模型
@@ -141,11 +141,39 @@ Billing headless 能力的方案、接口草案和设计图已经放在仓库文
 Billing 的宿主接入方式是：
 
 1. 在宿主应用里通过 `BillingProvider` 注入 `runtimeConfig` 或显式的 `availablePlans` / `availableProducts`
-2. 使用 `useSubscribePlan`、`usePurchaseProduct`、`usePurchaseCredits` 发起动作
+2. 使用 `useSubscribePlan`、`usePurchaseProduct` 发起动作
 3. 使用 `useBillingSubscription`、`useBillingOrderHistory`、`useBillingPaymentHistory`、`useBillingCredits` 查看状态
 4. 使用 `useBillingPipeline` 或 `actionExecutor` 接入宿主自己的支付、跳转和后端编排逻辑
 
+购买动作只保留两类：
+
+- `useSubscribePlan` 处理订阅购买
+- `usePurchaseProduct` 处理一次性商品购买
+
+`usePurchaseCredits` 已经移除，积分包也不再作为独立 kind 存在；如果宿主需要积分语义，应在 `product` 上通过 `creditGrant`、`metadata` 或宿主回调处理。
+
 Billing 只面向数字商品和 SaaS 订阅，不包含 UI 组件，也不包含物流、地址、发货或其他非商品功能。
+
+### 支付回调约定
+
+Billing 支付成功后，Casdoor 会回跳到宿主站内的两个固定回调路径：
+
+- `/auth/payment/success`：支付成功接收路由
+- `/auth/payment/finished`：支付完成后的固定回调路径
+
+这两个路径都不是页面，都是宿主自己的回调壳。宿主通过 `.env` 配置对应处理器模块路径：
+
+- `BILLING_PAYMENT_SUCCESS_HANDLER`
+- `BILLING_PAYMENT_FINISHED_HANDLER`
+
+处理器会接收完整的 `Request`、`paymentId`、`orderId`、`params`、`searchParams` 和 `body`，由宿主自己完成订单补全、Webhook 钩子、积分发放和最终跳转。
+
+如果没有配置 handler，路由会打印日志并回退到默认落点：
+
+- success 路由默认回退到 `/auth/payment/finished`
+- finished 路由默认回退到 `/`
+
+`BILLING_PAYMENT_SUCCESS_DEBUG=true` 时，会额外打印请求路径、query 和 body，方便排查回跳参数。
 
 ## 宿主项目集成要点
 

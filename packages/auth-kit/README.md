@@ -63,7 +63,6 @@ import { BillingProvider } from '@foldspace-fe/casdoor-next-auth-kit/react';
 import {
   useSubscribePlan,
   usePurchaseProduct,
-  usePurchaseCredits,
 } from '@foldspace-fe/casdoor-next-auth-kit/react';
 ```
 

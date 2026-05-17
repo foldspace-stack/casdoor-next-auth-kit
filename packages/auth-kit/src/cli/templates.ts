@@ -1,6 +1,25 @@
-    import { customBegin, customEnd } from './fs';
-    import { buildAuthPrismaSchemaTemplate } from '../prisma/schema-template';
-    import { AUTH_KIT_ENV_FILES, buildManagedEnvTemplate } from '../core/env';
+import fs from 'node:fs';
+import path from 'node:path';
+
+import { customBegin, customEnd } from './fs';
+import { buildAuthPrismaSchemaTemplate } from '../prisma/schema-template';
+import { AUTH_KIT_ENV_FILES, buildManagedEnvTemplate, readManagedEnvValue } from '../core/env';
+
+function getManagedEnvValue(key: string): string | null {
+  for (const file of ['.env.local', '.env', '.env.production', '.env.example'] as const) {
+    const filePath = path.join(process.cwd(), file);
+    if (!fs.existsSync(filePath)) {
+      continue;
+    }
+
+    const value = readManagedEnvValue(fs.readFileSync(filePath, 'utf8'), key);
+    if (value !== null) {
+      return value;
+    }
+  }
+
+  return null;
+}
 
 export function authLoginRouteTemplate() {
   return `import { loginHandler } from '../../auth-config';
@@ -57,6 +76,15 @@ export const GET = logoutHandler;
 }
 
 export function authConfigTemplate() {
+  const billingPaymentSuccessHandlerImport = getManagedEnvValue('BILLING_PAYMENT_SUCCESS_HANDLER');
+  const billingPaymentFinishedHandlerImport = getManagedEnvValue('BILLING_PAYMENT_FINISHED_HANDLER');
+  const billingPaymentSuccessHandlerImportLine = billingPaymentSuccessHandlerImport
+    ? `import { paymentSuccessHandler as billingPaymentSuccessHandler } from ${JSON.stringify(billingPaymentSuccessHandlerImport)};\n`
+    : '';
+  const billingPaymentFinishedHandlerImportLine = billingPaymentFinishedHandlerImport
+    ? `import { paymentFinishedHandler as billingPaymentFinishedHandler } from ${JSON.stringify(billingPaymentFinishedHandlerImport)};\n`
+    : '';
+
   return `import {
   createCallbackHandler,
   createCasdoorApiProxyHandler,
@@ -71,13 +99,13 @@ export function authConfigTemplate() {
   type AuthPersistenceAdapter,
   type AuthUser,
 } from '@foldspace-fe/casdoor-next-auth-kit';
-import { db } from '@/lib/db';
+${billingPaymentSuccessHandlerImportLine}${billingPaymentFinishedHandlerImportLine}import { db } from '@/lib/db';
 import { isGlobalAdminEmail } from '@/lib/auth-roles';
 import { syncUserRecord } from '@/lib/user-record';
 
 export function createAuthKitConfig(): AuthKitConfig {
   return {
-    appUrl: process.env.APP_URL || process.env.NEXTAUTH_URL || '',
+    appUrl: process.env.APP_URL || '',
     nextauthSecret: process.env.NEXTAUTH_SECRET || 'dev-nextauth-secret',
     casdoor: {
       serverUrl: process.env.NEXT_PUBLIC_CASDOOR_SERVER_URL || process.env.CASDOOR_SERVER_URL || '',
@@ -146,6 +174,9 @@ const persistence: AuthPersistenceAdapter = {
   },
 };
 
+export const paymentSuccessHandler = ${billingPaymentSuccessHandlerImport ? 'billingPaymentSuccessHandler' : 'undefined'};
+export const paymentFinishedHandler = ${billingPaymentFinishedHandlerImport ? 'billingPaymentFinishedHandler' : 'undefined'};
+
 export const loginHandler = createLoginRouteHandler(authKitConfig);
 export const signupHandler = createSignupRouteHandler(authKitConfig);
 export const authorizeHandler = createAuthorizeRouteHandler(authKitConfig);
@@ -183,6 +214,36 @@ const handler = NextAuth(
 
 export const GET = handler;
 export const POST = handler;
+`;
+}
+
+export function paymentSuccessRouteTemplate() {
+  return `import { createBillingPaymentSuccessRouteHandler } from '@foldspace-fe/casdoor-next-auth-kit';
+import { authKitConfig, paymentSuccessHandler } from '../../../auth-config';
+
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
+export const GET = createBillingPaymentSuccessRouteHandler({
+  appUrl: authKitConfig.appUrl,
+  fallbackRedirect: '/auth/payment/finished',
+  handler: paymentSuccessHandler,
+});
+`;
+}
+
+export function paymentFinishedRouteTemplate() {
+  return `import { createBillingPaymentFinishedRouteHandler } from '@foldspace-fe/casdoor-next-auth-kit';
+import { authKitConfig, paymentFinishedHandler } from '../../../auth-config';
+
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
+export const GET = createBillingPaymentFinishedRouteHandler({
+  appUrl: authKitConfig.appUrl,
+  fallbackRedirect: '/',
+  handler: paymentFinishedHandler,
+});
 `;
 }
 

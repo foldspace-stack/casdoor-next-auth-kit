@@ -1,0 +1,134 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1760" height="1080" viewBox="0 0 1760 1080" role="img" aria-labelledby="title desc">
+  <title id="title">Billing to Casdoor Integration Timeline</title>
+  <desc id="desc">Sequence diagram showing how billing catalog configuration maps to Casdoor payloads and how the payment-success and payment-finished routes delegate to host handlers.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#344054"/>
+    </marker>
+    <style>
+      .bg { fill: #f8fafc; }
+      .title { font: 700 32px sans-serif; fill: #101828; }
+      .subtitle { font: 400 16px sans-serif; fill: #475467; }
+      .lane { fill: #ffffff; stroke: #d0d5dd; stroke-width: 1.2; rx: 18; }
+      .lane-title { font: 700 18px sans-serif; fill: #101828; }
+      .participant { fill: #eff8ff; stroke: #84caff; stroke-width: 1.4; rx: 12; }
+      .participant-strong { fill: #ecfdf3; stroke: #75e0a7; stroke-width: 1.4; rx: 12; }
+      .participant-warn { fill: #fffaeb; stroke: #fdb022; stroke-width: 1.4; rx: 12; }
+      .participant-gray { fill: #f2f4f7; stroke: #d0d5dd; stroke-width: 1.4; rx: 12; }
+      .label { font: 600 14px sans-serif; fill: #101828; }
+      .small { font: 400 12px sans-serif; fill: #475467; }
+      .tiny { font: 400 11px sans-serif; fill: #667085; }
+      .line { stroke: #344054; stroke-width: 1.7; fill: none; marker-end: url(#arrow); }
+      .note { fill: #ffffff; stroke: #d0d5dd; stroke-width: 1.2; rx: 12; }
+      .note-title { font: 700 13px sans-serif; fill: #101828; }
+      .note-text { font: 400 12px sans-serif; fill: #475467; }
+      .step { fill: #ffffff; stroke: #d0d5dd; stroke-width: 1.2; rx: 12; }
+    </style>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1760" height="1080"/>
+  <text class="title" x="56" y="58">Billing to Casdoor Integration Timeline</text>
+  <text class="subtitle" x="56" y="86">Standalone SVG sequence diagram. Open directly in browser or preview pane.</text>
+
+  <rect class="lane" x="40" y="120" width="1680" height="900"/>
+
+  <g transform="translate(70,150)">
+    <rect class="participant-gray" x="0" y="0" width="200" height="56"/>
+    <text class="label" x="100" y="24" text-anchor="middle">Admin / Backend</text>
+    <text class="tiny" x="100" y="42" text-anchor="middle">Creates catalog config</text>
+    <line x1="100" y1="56" x2="100" y2="780" stroke="#98a2b3" stroke-dasharray="6 6"/>
+  </g>
+
+  <g transform="translate(320,150)">
+    <rect class="participant" x="0" y="0" width="220" height="56"/>
+    <text class="label" x="110" y="24" text-anchor="middle">billing-catalog.example.ts</text>
+    <text class="tiny" x="110" y="42" text-anchor="middle">BillingCatalogConfig</text>
+    <line x1="110" y1="56" x2="110" y2="780" stroke="#98a2b3" stroke-dasharray="6 6"/>
+  </g>
+
+  <g transform="translate(590,150)">
+    <rect class="participant-strong" x="0" y="0" width="210" height="56"/>
+    <text class="label" x="105" y="24" text-anchor="middle">BillingProvider</text>
+    <text class="tiny" x="105" y="42" text-anchor="middle">Hooks + runtime state</text>
+    <line x1="105" y1="56" x2="105" y2="780" stroke="#98a2b3" stroke-dasharray="6 6"/>
+  </g>
+
+  <g transform="translate(845,150)">
+    <rect class="participant" x="0" y="0" width="220" height="56"/>
+    <text class="label" x="110" y="24" text-anchor="middle">Host Action / API</text>
+    <text class="tiny" x="110" y="42" text-anchor="middle">Maps payload to Casdoor</text>
+    <line x1="110" y1="56" x2="110" y2="780" stroke="#98a2b3" stroke-dasharray="6 6"/>
+  </g>
+
+  <g transform="translate(1120,150)">
+    <rect class="participant-warn" x="0" y="0" width="210" height="56"/>
+    <text class="label" x="105" y="24" text-anchor="middle">Casdoor</text>
+    <text class="tiny" x="105" y="42" text-anchor="middle">Product / Plan / Price</text>
+    <line x1="105" y1="56" x2="105" y2="780" stroke="#98a2b3" stroke-dasharray="6 6"/>
+  </g>
+
+  <g transform="translate(1385,150)">
+    <rect class="participant-strong" x="0" y="0" width="220" height="56"/>
+  <text class="label" x="110" y="24" text-anchor="middle">/auth/payment/success</text>
+    <text class="tiny" x="110" y="42" text-anchor="middle">Query params + redirect</text>
+    <line x1="110" y1="56" x2="110" y2="780" stroke="#98a2b3" stroke-dasharray="6 6"/>
+  </g>
+
+  <g transform="translate(1600,150)">
+    <rect class="participant-gray" x="-20" y="0" width="170" height="56"/>
+    <text class="label" x="65" y="24" text-anchor="middle">Host Handlers</text>
+    <text class="tiny" x="65" y="42" text-anchor="middle">success / finished from .env</text>
+    <line x1="65" y1="56" x2="65" y2="780" stroke="#98a2b3" stroke-dasharray="6 6"/>
+  </g>
+
+  <g transform="translate(70,250)">
+    <rect class="step" x="0" y="0" width="1530" height="86"/>
+    <text class="note-title" x="22" y="26">1. Configure catalog</text>
+    <text class="note-text" x="22" y="50">Admin defines BillingRuntimeConfig and BillingItem list. kind is a runtime category, backendRef holds the Casdoor mapping.</text>
+    <text class="note-text" x="22" y="70">subscription -> plan/price path, product -> one-time product path, creditGrant marks a credits pack.</text>
+  </g>
+
+  <path class="line" d="M 170 380 C 260 380, 280 380, 370 380"/>
+  <text class="small" x="210" y="366">catalog config</text>
+
+  <g transform="translate(70,460)">
+    <rect class="step" x="0" y="0" width="1530" height="96"/>
+    <text class="note-title" x="22" y="26">2. Inject into runtime</text>
+    <text class="note-text" x="22" y="50">BillingProvider receives runtimeConfig or derived availablePlans / availableProducts and exposes hooks like useSubscribePlan, usePurchaseProduct.</text>
+    <text class="note-text" x="22" y="72">The UI is headless; the host renders any page it wants.</text>
+  </g>
+
+  <path class="line" d="M 700 574 C 780 574, 800 574, 880 574"/>
+  <text class="small" x="730" y="560">purchase action</text>
+
+  <g transform="translate(70,590)">
+    <rect class="step" x="0" y="0" width="1530" height="100"/>
+    <text class="note-title" x="22" y="26">3. Translate to Casdoor payload</text>
+    <text class="note-text" x="22" y="50">Host action layer maps the item into productId / planId / priceId / metadata. It does not send kind directly to Casdoor.</text>
+    <text class="note-text" x="22" y="72">This is where a credits pack is treated as a product and one-time purchase or subscription can diverge.</text>
+  </g>
+
+  <path class="line" d="M 960 616 C 1040 616, 1060 616, 1140 616"/>
+  <text class="small" x="988" y="602">productId / planId / priceId</text>
+
+  <g transform="translate(70,720)">
+    <rect class="step" x="0" y="0" width="1530" height="88"/>
+    <text class="note-title" x="22" y="26">4. Casdoor processes payment</text>
+    <text class="note-text" x="22" y="50">Casdoor creates order / payment / transaction and then redirects the browser back to the configured Success URL.</text>
+    <text class="note-text" x="22" y="70">The redirect carries paymentId, orderId, and any extra query parameters Casdoor appends.</text>
+  </g>
+
+  <path class="line" d="M 1300 760 C 1370 760, 1390 760, 1460 760"/>
+  <text class="small" x="1332" y="746">302 redirect</text>
+
+  <g transform="translate(70,830)">
+    <rect class="step" x="0" y="0" width="1530" height="116"/>
+    <text class="note-title" x="22" y="26">5. Payment callbacks</text>
+    <text class="note-text" x="22" y="50">The route at /auth/payment/success collects the full query string and loads paymentSuccessHandler from BILLING_PAYMENT_SUCCESS_HANDLER in .env.</text>
+    <text class="note-text" x="22" y="72">The route at /auth/payment/finished collects the same parameters and loads paymentFinishedHandler from BILLING_PAYMENT_FINISHED_HANDLER in .env.</text>
+    <text class="note-text" x="22" y="94">Each handler can parse paymentId / orderId / params, write to DB, trigger webhook hooks, and return redirectTo / Response / void.</text>
+  </g>
+
+  <path class="line" d="M 1495 886 C 1560 886, 1580 886, 1645 886"/>
+  <text class="small" x="1518" y="872">import + invoke</text>
+</svg>

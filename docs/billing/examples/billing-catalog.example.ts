@@ -39,7 +39,7 @@ export const billingCatalogExample: BillingCatalogConfig = {
     },
     {
       key: 'credits-1000',
-      kind: 'credits',
+      kind: 'product',
       title: '1000 Credits',
       description: 'Buy credits for usage based actions.',
       credits: 1000,

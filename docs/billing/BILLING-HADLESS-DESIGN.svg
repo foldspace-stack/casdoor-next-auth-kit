@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1440" height="980" viewBox="0 0 1440 980" role="img" aria-labelledby="title desc">
   <title id="title">Billing Headless Runtime Design</title>
-  <desc id="desc">Headless billing architecture for subscriptions, products, credits, injected configuration, providers, hooks, pipeline, and Casdoor personal billing API subset.</desc>
+  <desc id="desc">Headless billing architecture for subscriptions, products, injected configuration, providers, hooks, pipeline, and Casdoor personal billing API subset.</desc>
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
       <path d="M 0 0 L 10 5 L 0 10 z" fill="#344054"/>
@@ -33,7 +33,7 @@
 
   <rect class="bg" x="0" y="0" width="1440" height="980"/>
   <text class="title" x="54" y="58">Billing Headless Runtime</text>
-  <text class="subtitle" x="54" y="84">Only product purchase, subscription, credits, entitlement, order, payment, and transaction flows. No UI. No management API at runtime.</text>
+  <text class="subtitle" x="54" y="84">Only product purchase, subscription, credit packs, entitlement, order, payment, and transaction flows. No UI. No management API at runtime.</text>
 
   <rect class="lane" x="38" y="118" width="360" height="790"/>
   <text class="section-title" x="62" y="154">Injected Configuration</text>
@@ -48,10 +48,10 @@
 
   <rect class="box" x="62" y="380" width="312" height="154"/>
   <text class="label" x="86" y="410">BillingItem</text>
-  <text class="small" x="86" y="438">kind: subscription | product | credits</text>
+  <text class="small" x="86" y="438">kind: subscription | product</text>
   <text class="small" x="86" y="462">backendRef: productId / planId / priceId</text>
   <text class="small" x="86" y="486">creditGrant / creditRedeem</text>
-  <text class="tiny" x="86" y="512">credits is a product extension</text>
+  <text class="tiny" x="86" y="512">credit packs are products with creditGrant</text>
 
   <rect class="box-amber" x="62" y="564" width="312" height="142"/>
   <text class="label" x="86" y="594">Conversion Rules</text>
@@ -97,7 +97,7 @@
   <text class="small" x="492" y="766">useBillingSubscription, useBillingSubscriptionHistory</text>
   <text class="small" x="492" y="790">useSubscribePlan, useManageSubscription</text>
   <text class="small" x="492" y="814">useBillingProduct, usePurchaseProduct, useBillingOrderHistory</text>
-  <text class="small" x="492" y="838">useBillingCredits, usePurchaseCredits, useBillingRefresh</text>
+  <text class="small" x="492" y="838">useBillingCredits, usePurchaseProduct, useBillingRefresh</text>
 
   <rect class="lane" x="986" y="118" width="416" height="790"/>
   <text class="section-title" x="1010" y="154">Personal API Subset</text>
@@ -142,7 +142,7 @@
   <path class="line" d="M 692 322 L 822 366"/>
   <path class="line" d="M 822 492 L 822 528"/>
   <path class="soft-line" d="M 744 584 C 690 584, 696 584, 688 584"/>
-  <text class="tiny" x="650" y="572">credits extends product</text>
+  <text class="tiny" x="650" y="572">creditGrant marks a credits pack</text>
 
   <path class="line" d="M 702 744 C 758 744, 778 658, 688 606"/>
   <path class="line" d="M 688 586 C 824 586, 890 431, 1010 431"/>
@@ -154,5 +154,5 @@
   <text class="tiny" x="1008" y="862">refresh reads state after payment/subscription changes</text>
 
   <rect class="badge" x="54" y="928" width="1330" height="34"/>
-  <text class="tiny" x="78" y="950">Runtime depends on injected management configuration plus Casdoor personal billing APIs. Product, subscription, and credits share one billing runtime; credits are modeled as a product extension.</text>
+  <text class="tiny" x="78" y="950">Runtime depends on injected management configuration plus Casdoor personal billing APIs. Product and subscription share one billing runtime; credits are modeled as products with creditGrant.</text>
 </svg>

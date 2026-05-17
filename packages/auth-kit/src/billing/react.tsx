@@ -15,7 +15,6 @@ import {
   buildBillingActionPayload,
   deriveBillingCreditsState,
   deriveBillingEntitlements,
-  filterProductsByKind,
   normalizeBillingPurchaseStatus,
   normalizeBillingCatalogConfig,
   normalizeBillingRuntimeConfig,
@@ -546,7 +545,7 @@ export function ProductProvider({
   const core = useOptionalContext(BillingCoreContext);
   const value = useMemo<BillingProductContextValue>(
     () => ({
-      availableProducts: choose(availableProducts, core?.runtimeConfig?.items?.filter((item) => item.kind === 'product' || item.kind === 'credits')),
+      availableProducts: choose(availableProducts, core?.runtimeConfig?.items?.filter((item) => item.kind === 'product')),
       products: choose(products, core?.products),
       orderHistory: choose(orderHistory, core?.orderHistory),
       paymentHistory: choose(paymentHistory, core?.paymentHistory),
@@ -622,18 +621,18 @@ export interface BillingProductsState {
   refresh: () => Promise<void>;
 }
 
-export function useBillingProducts(options: { userId?: string; catalogKey?: string; kind?: 'product' | 'credits' } = {}): BillingProductsState {
+export function useBillingProducts(): BillingProductsState {
   const core = useRequiredCoreContext();
   const productContext = useOptionalContext(BillingProductContext);
   const products = choose(productContext?.products, core.products) ?? [];
   return useMemo(
     () => ({
-      products: filterProductsByKind(products, options.kind),
+      products,
       loading: core.runtimeConfigLoading || core.status.loading,
       error: core.runtimeConfigError ?? core.status.error,
       refresh: core.refresh,
     }),
-    [core.refresh, core.runtimeConfigError, core.runtimeConfigLoading, core.status.error, core.status.loading, options.kind, products],
+    [core.refresh, core.runtimeConfigError, core.runtimeConfigLoading, core.status.error, core.status.loading, products],
   );
 }
 
@@ -669,7 +668,7 @@ export interface BillingAvailableProductsState {
 export function useBillingAvailableProducts(): BillingAvailableProductsState {
   const core = useRequiredCoreContext();
   const productContext = useOptionalContext(BillingProductContext);
-  const items = choose(productContext?.availableProducts, core.runtimeConfig?.items?.filter((item) => item.kind === 'product' || item.kind === 'credits')) ?? [];
+  const items = choose(productContext?.availableProducts, core.runtimeConfig?.items?.filter((item) => item.kind === 'product')) ?? [];
   return useMemo(
     () => ({
       items,
@@ -963,10 +962,6 @@ export function useUpgradePlan(): BillingActionHookResult {
 
 export function useCancelSubscription(): BillingActionHookResult {
   return useBillingActionRunner('cancel');
-}
-
-export function usePurchaseCredits(): BillingActionHookResult {
-  return useBillingActionRunner('purchase');
 }
 
 export function usePurchaseProduct(): BillingActionHookResult {

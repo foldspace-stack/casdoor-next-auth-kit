@@ -31,7 +31,7 @@
 
 - `runtimeConfig`: full catalog configuration
 - `availablePlans`: subscription items only
-- `availableProducts`: product and credits items
+- `availableProducts`: product items
 
 runtime 也可以从 `runtimeConfig.items` 推导 `availablePlans` 和 `availableProducts`，但显式注入更利于宿主侧控制。
 
@@ -53,7 +53,6 @@ runtime 也可以从 `runtimeConfig.items` 推导 `availablePlans` 和 `availabl
 - `useBillingRefresh`
 - `useSubscribePlan`
 - `usePurchaseProduct`
-- `usePurchaseCredits`
 
 ## 示例文件
 
@@ -61,3 +60,14 @@ runtime 也可以从 `runtimeConfig.items` 推导 `availablePlans` 和 `availabl
 - [Pricing section 示例](./examples/pricing-section.example.tsx)
 - [订单历史页面示例](./examples/order-history-page.example.tsx)
 - [Mock api client 示例](./examples/mock-billing-api-client.example.ts)
+
+## 对接时序
+
+- [Billing 到 Casdoor 的对接时序图](./CASDOOR-INTEGRATION-TIMELINE.svg)
+- 支付回跳分成 `/auth/payment/success` 和 `/auth/payment/finished` 两个固定回调路径，分别由宿主处理器接管
+
+## 回调约定
+
+- `BILLING_PAYMENT_SUCCESS_HANDLER` 用于 `/auth/payment/success`
+- `BILLING_PAYMENT_FINISHED_HANDLER` 用于 `/auth/payment/finished`
+- 两个回调都能接收 `paymentId`、`orderId`、query 参数和 body，由宿主自己完成落库、Webhook 钩子和最终跳转

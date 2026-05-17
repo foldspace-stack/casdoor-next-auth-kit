@@ -8,7 +8,6 @@ import {
   useBillingPurchaseStatus,
   useBillingSubscription,
   useBillingSubscriptionHistory,
-  usePurchaseCredits,
   usePurchaseProduct,
   useSubscribePlan,
 } from '@foldspace-fe/casdoor-next-auth-kit/react';
@@ -22,7 +21,6 @@ export function PricingSectionExample() {
   const { payments } = useBillingPaymentHistory();
   const { purchaseStatus } = useBillingPurchaseStatus();
   const subscribePlan = useSubscribePlan();
-  const purchaseCredits = usePurchaseCredits();
   const purchaseProduct = usePurchaseProduct();
 
   return (
@@ -44,9 +42,8 @@ export function PricingSectionExample() {
       <div>
         <h3>Products</h3>
         {items.map((item) => {
-          const run = item.kind === 'credits' ? purchaseCredits : purchaseProduct;
           return (
-            <button key={item.key} onClick={() => run.run({ key: item.key })} disabled={run.loading}>
+            <button key={item.key} onClick={() => purchaseProduct.run({ key: item.key })} disabled={purchaseProduct.loading}>
               Buy {item.title}
             </button>
           );

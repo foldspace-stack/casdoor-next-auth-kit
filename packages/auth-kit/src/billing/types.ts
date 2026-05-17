@@ -1,4 +1,4 @@
-export type BillingItemKind = 'subscription' | 'product' | 'credits';
+export type BillingItemKind = 'subscription' | 'product';
 export type BillingInterval = 'month' | 'year';
 
 export interface BillingConversionRule {
@@ -58,6 +58,40 @@ export interface BillingCatalogConfig extends BillingRuntimeConfig {
   cancelPath?: string;
 }
 
+export interface BillingPaymentSuccessContext {
+  request: Request;
+  url: URL;
+  searchParams: URLSearchParams;
+  params: Record<string, string>;
+  body: unknown;
+  paymentId: string | null;
+  orderId: string | null;
+  redirectTo: string | null;
+}
+
+export type BillingPaymentSuccessHandlerResult =
+  | void
+  | null
+  | string
+  | Response
+  | {
+      redirectTo?: string | null;
+    };
+
+export type BillingPaymentSuccessHandler = (
+  context: BillingPaymentSuccessContext,
+) => BillingPaymentSuccessHandlerResult | Promise<BillingPaymentSuccessHandlerResult>;
+
+export type BillingPaymentFinishedHandler = BillingPaymentSuccessHandler;
+
+export interface BillingPaymentSuccessRouteOptions {
+  appUrl?: string;
+  fallbackRedirect?: string;
+  handler?: BillingPaymentSuccessHandler;
+}
+
+export type BillingPaymentFinishedRouteOptions = BillingPaymentSuccessRouteOptions;
+
 export type BillingActionKind = 'purchase' | 'subscribe' | 'manage' | 'upgrade' | 'cancel';
 
 export interface BillingSubscriptionPurchaseConfig {
@@ -102,6 +136,8 @@ export interface BillingProductSnapshot {
   planId?: string;
   priceId?: string;
   interval?: BillingInterval;
+  creditGrant?: BillingItem['creditGrant'];
+  creditRedeem?: BillingItem['creditRedeem'];
   metadata?: Record<string, string>;
 }
 
@@ -131,11 +167,13 @@ export interface BillingProductState {
   productKey: string;
   productId?: string;
   title?: string;
-  kind: 'product' | 'credits';
+  kind: 'product';
   status?: 'active' | 'inactive' | 'archived';
   quantity?: number;
   owned?: boolean;
   creditsBalance?: number;
+  creditGrant?: BillingItem['creditGrant'];
+  creditRedeem?: BillingItem['creditRedeem'];
   updatedAt?: string;
 }
 
@@ -144,7 +182,7 @@ export interface BillingOrderHistoryItem {
   productKey?: string;
   productId?: string;
   productTitle?: string;
-  kind?: 'subscription' | 'product' | 'credits';
+  kind?: 'subscription' | 'product';
   quantity?: number;
   amount?: number;
   currency?: string;

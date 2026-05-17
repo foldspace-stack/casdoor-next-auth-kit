@@ -104,7 +104,6 @@
 - `useBillingPurchaseStatus`
 - `useSubscribePlan`
 - `usePurchaseProduct`
-- `usePurchaseCredits`
 
 ## CLI
 
@@ -125,7 +124,6 @@ npx @foldspace-fe/casdoor-next-auth-kit check
 Billing headless 只覆盖标准数字商品场景：
 
 - SaaS 订阅
-- 积分商品
 - 虚拟商品
 - 订单历史
 - 支付历史
@@ -142,9 +140,20 @@ Billing headless 只覆盖标准数字商品场景：
 
 - `subscription`
 - `product`
-- `credits`
 
-其中 `credits` 是 `product` 的扩展。
+### 支付回调
+
+Billing 的支付回调统一使用两个固定路径：
+
+- `/auth/payment/success`
+- `/auth/payment/finished`
+
+这两个路径都不是页面，而是宿主自己的回调壳。宿主通过 `.env` 注入：
+
+- `BILLING_PAYMENT_SUCCESS_HANDLER`
+- `BILLING_PAYMENT_FINISHED_HANDLER`
+
+回调处理器负责根据 `paymentId`、`orderId`、query 参数和 body 做订单补全、Webhook 钩子、积分发放和最终跳转。没有配置 handler 时，success 默认回退到 `/auth/payment/finished`，finished 默认回退到 `/`。
 
 ## 路由 shell 约定
 
