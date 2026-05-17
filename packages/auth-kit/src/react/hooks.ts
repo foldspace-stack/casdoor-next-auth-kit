@@ -73,7 +73,7 @@ export function useAuthActions(options: AuthActionsOptions = {}): AuthActions {
     loginHref: buildAuthJumpHref('login', redirect ?? undefined),
     signupHref: buildAuthJumpHref('signup', redirect ?? undefined),
     logoutHref: '/logout',
-    accountHref: user.isAdmin ? '/admin' : '/user/account',
+    accountHref: '/user/account',
     adminHref: '/admin',
   };
 }

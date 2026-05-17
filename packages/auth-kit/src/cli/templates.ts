@@ -65,7 +65,6 @@ export function authConfigTemplate() {
   createLoginRouteHandler,
   createLogoutHandler,
   createNextAuthOptions,
-  createNextAuthRouteHandler,
   createSignupRouteHandler,
   type AuthBusinessAdapter,
   type AuthKitConfig,
@@ -161,23 +160,29 @@ export const authOptions = createNextAuthOptions({
   adapter,
   persistence,
 });
-export const nextAuthHandlers = createNextAuthRouteHandler({
-  config: authKitConfig,
-  adapter,
-  persistence,
-});
 export const apiProxyHandler = createCasdoorApiProxyHandler(authKitConfig, '/auth/api', '/api');
 export const commerceProxyHandler = createCasdoorCommerceProxyHandler(authKitConfig, '/auth/api/commerce', '/api/commerce');
 `;
 }
 
 export function nextAuthRouteTemplate() {
-  return `import { nextAuthHandlers } from '../../../auth-config';
+  return `import NextAuth from 'next-auth';
+import { createNextAuthOptions } from '@foldspace-fe/casdoor-next-auth-kit';
+import { adapter, authKitConfig, persistence } from '../../../auth-config';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
-export const GET = nextAuthHandlers.GET;
-export const POST = nextAuthHandlers.POST;
+const handler = NextAuth(
+  createNextAuthOptions({
+    config: authKitConfig,
+    adapter,
+    persistence,
+  }),
+);
+
+export const GET = handler;
+export const POST = handler;
 `;
 }
 
