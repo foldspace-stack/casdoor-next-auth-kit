@@ -62,6 +62,7 @@ export interface AuthPersistenceAdapter {
 export interface AuthKitConfig {
   appUrl?: string;
   nextauthSecret: string;
+  logoutRedirectPath?: string;
   casdoor: {
     serverUrl: string;
     clientId: string;

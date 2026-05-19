@@ -69,18 +69,96 @@ export default async function CallbackErrorPage({
   const params = await searchParams;
 
   return (
-    <main style={{ background: '#fff', borderRadius: 24, padding: 28, boxShadow: '0 18px 40px rgba(15, 23, 42, 0.08)' }}>
-      <h2 style={{ marginTop: 0 }}>{params.title ?? 'Callback Error'}</h2>
-      <p>{params.message ?? 'Unknown callback failure.'}</p>
-      {params.details ? <pre style={{ whiteSpace: 'pre-wrap' }}>{params.details}</pre> : null}
+    <main
+      style={{
+        minHeight: '100dvh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '20px 16px',
+        background:
+          'radial-gradient(circle at top, rgba(99, 102, 241, 0.12) 0, rgba(99, 102, 241, 0) 38%), linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%)',
+      }}
+    >
+      <section
+        style={{
+          width: 'min(100%, 400px)',
+          borderRadius: 28,
+          padding: '24px 20px',
+          boxSizing: 'border-box',
+          background: 'rgba(255, 255, 255, 0.96)',
+          border: '1px solid rgba(148, 163, 184, 0.2)',
+          boxShadow: '0 22px 52px rgba(15, 23, 42, 0.12)',
+          textAlign: 'center',
+          backdropFilter: 'blur(10px)',
+        }}
+      >
+        <div
+          style={{
+            width: 52,
+            height: 52,
+            margin: '0 auto 14px',
+            display: 'grid',
+            placeItems: 'center',
+            borderRadius: 18,
+            background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(249, 115, 22, 0.1))',
+            color: '#b91c1c',
+            fontSize: 28,
+            lineHeight: 1,
+          }}
+          aria-hidden="true"
+        >
+          !
+        </div>
+        <div
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: 12,
+            padding: '6px 12px',
+            borderRadius: 9999,
+            background: 'rgba(254, 226, 226, 0.9)',
+            color: '#b91c1c',
+            fontSize: 13,
+            fontWeight: 600,
+            letterSpacing: '0.04em',
+          }}
+        >
+          认证失败
+        </div>
+        <h2 style={{ margin: 0, fontSize: 24, lineHeight: 1.2, color: '#0f172a' }}>{params.title ?? 'Callback Error'}</h2>
+        <p style={{ margin: '12px 0 0', color: '#334155', lineHeight: 1.6 }}>{params.message ?? 'Unknown callback failure.'}</p>
+        {params.details ? (
+          <pre
+            style={{
+              margin: '14px 0 0',
+              maxHeight: 140,
+              overflow: 'auto',
+              padding: 14,
+              borderRadius: 18,
+              textAlign: 'left',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+              background: '#f8fafc',
+              color: '#0f172a',
+              border: '1px solid rgba(148, 163, 184, 0.18)',
+              fontSize: 13,
+              lineHeight: 1.6,
+            }}
+          >
+            {params.details}
+          </pre>
+        ) : null}
 ${customBegin}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginTop: 24 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 20 }}>
         <ClearDomainCookiesButton />
-        <a href="/" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minHeight: 44, padding: '0 16px', borderRadius: 9999, border: '1px solid rgba(148, 163, 184, 0.35)', color: '#0f172a', textDecoration: 'none', background: 'rgba(248, 250, 252, 0.9)' }}>返回首页</a>
-        <a href="/auth/login" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minHeight: 44, padding: '0 16px', borderRadius: 9999, border: '1px solid rgba(148, 163, 184, 0.35)', color: '#0f172a', textDecoration: 'none', background: 'rgba(248, 250, 252, 0.9)' }}>重新登录</a>
-        <a href="/auth/signup" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minHeight: 44, padding: '0 16px', borderRadius: 9999, border: '1px solid rgba(148, 163, 184, 0.35)', color: '#0f172a', textDecoration: 'none', background: 'rgba(248, 250, 252, 0.9)' }}>去注册</a>
-      </div>
+          <a href="/" style={{ display: 'inline-flex', width: '100%', alignItems: 'center', justifyContent: 'center', minHeight: 44, padding: '0 16px', boxSizing: 'border-box', borderRadius: 9999, border: '1px solid rgba(148, 163, 184, 0.35)', color: '#0f172a', textDecoration: 'none', background: 'rgba(248, 250, 252, 0.9)' }}>返回首页</a>
+          <a href="/auth/login" style={{ display: 'inline-flex', width: '100%', alignItems: 'center', justifyContent: 'center', minHeight: 44, padding: '0 16px', boxSizing: 'border-box', borderRadius: 9999, border: '1px solid rgba(148, 163, 184, 0.35)', color: '#0f172a', textDecoration: 'none', background: 'rgba(248, 250, 252, 0.9)' }}>重新登录</a>
+          <a href="/auth/signup" style={{ display: 'inline-flex', width: '100%', alignItems: 'center', justifyContent: 'center', minHeight: 44, padding: '0 16px', boxSizing: 'border-box', borderRadius: 9999, border: '1px solid rgba(148, 163, 184, 0.35)', color: '#0f172a', textDecoration: 'none', background: 'rgba(248, 250, 252, 0.9)' }}>去注册</a>
+        </div>
 ${customEnd}
+      </section>
     </main>
   );
 }
@@ -203,10 +281,12 @@ export function ClearDomainCookiesButton() {
       disabled={cleared}
       style={{
         display: 'inline-flex',
+        width: '100%',
         alignItems: 'center',
         justifyContent: 'center',
         minHeight: 44,
         padding: '0 16px',
+        boxSizing: 'border-box',
         borderRadius: 9999,
         border: '1px solid rgba(148, 163, 184, 0.35)',
         color: '#0f172a',
@@ -244,6 +324,7 @@ export function createAuthKitConfig(): AuthKitConfig {
   return {
     appUrl: process.env.APP_URL || '',
     nextauthSecret: process.env.NEXTAUTH_SECRET || 'dev-nextauth-secret',
+    logoutRedirectPath: process.env.NEXT_PUBLIC_AUTH_LOGOUT_REDIRECT_PATH || '/',
     casdoor: {
       serverUrl: process.env.NEXT_PUBLIC_CASDOOR_SERVER_URL || process.env.CASDOOR_SERVER_URL || '',
       clientId: process.env.NEXT_PUBLIC_CASDOOR_CLIENT_ID || process.env.CASDOOR_CLIENT_ID || '',

@@ -81,6 +81,13 @@ export const AUTH_KIT_ENV_VARIABLES: ManagedEnvVariableDefinition[] = [
     production: '/login/oauth/authorize',
   },
   {
+    key: 'NEXT_PUBLIC_AUTH_LOGOUT_REDIRECT_PATH',
+    description: '注销后跳转路径，默认首页',
+    example: '/',
+    local: '/',
+    production: '/',
+  },
+  {
     key: 'NEXT_PUBLIC_CASDOOR_STATIC_ORIGIN',
     description: 'Casdoor 静态资源 origin',
     example: 'https://casdoor-static.foldspace.cn',

@@ -92,11 +92,14 @@ npx @foldspace-fe/casdoor-next-auth-kit@latest check
 - `/login/oauth/authorize` — 同源登录授权壳，宿主项目渲染 Casdoor 的登录表单界面
 - `/signup/oauth/authorize` — 同源注册授权壳，宿主项目渲染 Casdoor 的注册表单界面
 - `/callback` — OAuth 回调路由，处理 Casdoor 认证成功后的回调
-- `/callback/error` — 回调错误提示页，默认会提供“清空当前域 Cookie”按钮，帮助用户清理残留认证 cookie 后重新登录
-- `/logout` — 注销路由，清除会话并跳转
+- `/callback/error` — 回调错误提示页，默认以视口居中、小尺寸卡片呈现错误信息，包含明显的错误状态视觉锚点，并提供“清空当前域 Cookie”按钮，帮助用户清理残留认证 cookie 后重新登录
+- `/logout` — 注销路由，优先用 `Clear-Site-Data: "cookies"` 清空当前域 cookie，再补一轮 `Set-Cookie` 删除兜底，并跳转到首页或 `AuthKitConfig.logoutRedirectPath`；如果目标路径和当前页相同，则按刷新处理
 - `/auth/api/*` — Casdoor API 代理，所有个人操作的 API 请求通过此路径转发
 
 入口路由（login/signup）负责将用户引导至授权壳，授权壳在同源 iframe 或内嵌组件中渲染 Casdoor 界面，避免用户感知到离开宿主应用。
+
+如果宿主希望注销后回到自定义配置页，可以在 `AuthKitConfig` 中设置 `logoutRedirectPath`，默认值为 `/`。
+若想通过环境变量控制默认值，可设置 `NEXT_PUBLIC_AUTH_LOGOUT_REDIRECT_PATH=/` 或其他同源路径。
 
 ## 宿主工程 `proxy.ts` 配置要求
 
