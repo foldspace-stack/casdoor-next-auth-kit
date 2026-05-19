@@ -80,76 +80,173 @@ npx @foldspace-fe/casdoor-next-auth-kit@latest check
 
 ## 宿主工程 `proxy.ts` 配置要求
 
-`proxy.ts` 是宿主工程自己的边缘请求控制层，不属于 `@foldspace-fe/casdoor-next-auth-kit` 的受管文件。它的职责是把认证相关请求统一规范到宿主工程的公网 origin，避免因为反向代理、FRP、Ingress 或容器内部 HTTP 地址导致 Casdoor 授权失败。
+`proxy.ts` 是宿主工程的 Next.js middleware（通常放在项目根目录，在 `next.config.ts` 中通过 `middleware` 字段指向），不属于 `@foldspace-fe/casdoor-next-auth-kit` 的受管文件。它的核心职责是**认证守卫**——拦截未登录用户对业务页面的访问，将其重定向到登录页；同时放行所有公开路径和认证流程路径。
 
-### 为什么需要 `proxy.ts`
+### `proxy.ts` 的核心职责
 
-Casdoor 授权链路对 `redirect_uri` 非常敏感。
+1. **放行公开路径** — 无需认证即可访问的页面和资源
+2. **认证守卫** — 对非公开路径验证会话 token，未登录时重定向到 `/auth/login`
+3. **不在认证路径上做 origin 重写** — origin 规范由宿主的边缘层（FRP / Ingress / 网关）和套件内部的 API 代理头部清理共同完成
 
-如果浏览器访问的是：
+### 公开路径清单
 
-- `https://dev-chuangxiaoju.agent-lattice.cn`
+以下路径必须放行，不做认证检查：
 
-但容器内部、反向代理或网关让 Next.js 看到的是：
+```ts
+const PUBLIC_PATH_PREFIXES = [
+  '/_next',            // Next.js 静态资源
+  '/api',              // 宿主自有 API（不含认证守卫）
+  '/auth/api',         // Casdoor API 代理（套件内部转发已做头部清理）
+  '/auth/login',       // 登录入口
+  '/auth/signup',      // 注册入口
+  '/login/oauth/authorize',   // 登录授权壳
+  '/signup/oauth/authorize',  // 注册授权壳
+  '/logout',           // 注销
+  '/callback',         // OAuth 回调
+];
+```
 
-- `http://dev-chuangxiaoju.agent-lattice.cn`
-- `http://0.0.0.0:7273`
-- 或者其它非公网 origin
+以下精确路径也应放行：
 
-那么授权页和回调页就可能生成错误的 `redirect_uri`，例如：
+```ts
+const PUBLIC_EXACT_PATHS = new Set([
+  '/',
+  '/favicon.ico',
+  '/robots.txt',
+  '/sitemap.xml',
+  '/manifest.json',
+  // 以及宿主业务需要的公开页面
+]);
+```
 
-- `http://dev-chuangxiaoju.agent-lattice.cn/callback`
+静态资源文件（`.png`、`.jpg`、`.svg`、`.css`、`.js` 等）也应放行。
 
-这会导致：
+### 会话 token 提取
 
-- Casdoor `/auth/api/login` 返回 403
-- 回调拿不到正确的 PKCE / state
-- 登录链路看起来能打开页面，但最终无法完成授权
+`proxy.ts` 需要从 cookie 中提取 NextAuth 会话 token。套件导出了 `decodeSessionToken` 供宿主使用：
 
-### `proxy.ts` 的核心规则
+```ts
+import { decodeSessionToken } from '@foldspace-fe/casdoor-next-auth-kit';
 
-宿主工程必须在 `proxy.ts` 里对以下路径做 origin 规范化：
+const token = getSessionTokenFromCookies(request);
+if (!token) {
+  // 重定向到登录页
+}
 
-- `/auth/login`
-- `/auth/signup`
-- `/login/oauth/authorize`
-- `/signup/oauth/authorize`
-- `/callback`
-- `/logout`
-- `/auth/api/*`
+const decoded = await decodeSessionToken({
+  token,
+  secret: process.env.NEXTAUTH_SECRET || 'dev-nextauth-secret',
+});
+if (!decoded) {
+  // token 无效或过期，重定向到登录页
+}
+```
 
-具体要求：
+cookie 名称按优先级提取：
 
-- 这些路径的请求 origin 必须优先强制使用 `APP_URL`
-- 不要信任浏览器或反向代理传入的 `referer` / `origin` / `x-forwarded-*` 来决定认证回调 origin
-- 如果请求到达时的 origin 不是 `APP_URL`，应直接 307 重定向到 `APP_URL` 对应的同一路径
-- 非认证路径不要做任何重写，避免影响正常业务路由
+1. `__Secure-next-auth.session-token`（生产环境，cookie secure 模式）
+2. `next-auth.session-token`（开发环境）
+3. 分片 cookie（`next-auth.session-token.0`、`.1`、…，按数字排序拼接）
 
-### 推荐的行为
+### 推荐的完整实现
 
-当 `APP_URL=https://dev-chuangxiaoju.agent-lattice.cn` 时：
+```ts
+import { NextRequest, NextResponse } from 'next/server';
+import { decodeSessionToken } from '@foldspace-fe/casdoor-next-auth-kit';
 
-- 请求 `http://dev-chuangxiaoju.agent-lattice.cn/auth/login`
-  - 应规范到 `https://dev-chuangxiaoju.agent-lattice.cn/auth/login`
+function getAppOrigin() {
+  const appUrl = process.env.APP_URL || process.env.NEXTAUTH_URL || '';
+  if (!appUrl) return null;
+  try { return new URL(appUrl).origin; } catch { return null; }
+}
 
-- 请求 `http://dev-chuangxiaoju.agent-lattice.cn/login/oauth/authorize?...`
-  - 应规范到 `https://dev-chuangxiaoju.agent-lattice.cn/login/oauth/authorize?...`
+const PUBLIC_PATH_PREFIXES = [
+  '/_next',
+  '/api',
+  '/auth/api',
+  '/auth/login',
+  '/auth/signup',
+  '/login/oauth/authorize',
+  '/signup/oauth/authorize',
+  '/logout',
+  '/callback',
+];
 
-- 请求 `http://dev-chuangxiaoju.agent-lattice.cn/callback?...`
-  - 应规范到 `https://dev-chuangxiaoju.agent-lattice.cn/callback?...`
+const PUBLIC_EXACT_PATHS = new Set([
+  '/favicon.ico',
+  '/robots.txt',
+  '/sitemap.xml',
+  '/manifest.json',
+]);
+
+function isPublicPath(pathname: string) {
+  if (pathname === '/') return true;
+  if (PUBLIC_EXACT_PATHS.has(pathname)) return true;
+  if (/\.(png|jpg|jpeg|svg|gif|webp|ico|css|js)$/.test(pathname)) return true;
+  if (pathname === '/static' || pathname.startsWith('/static/')) return true;
+  return PUBLIC_PATH_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+}
+
+function getSessionTokenFromCookies(request: NextRequest): string | null {
+  const secureBaseName = '__Secure-next-auth.session-token';
+  const baseName = 'next-auth.session-token';
+
+  const direct =
+    request.cookies.get(secureBaseName)?.value ||
+    request.cookies.get(baseName)?.value;
+  if (direct) return direct;
+
+  const chunkCandidates = request.cookies
+    .getAll()
+    .filter((c) => c.name.startsWith(`${secureBaseName}.`) || c.name.startsWith(`${baseName}.`))
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+
+  if (chunkCandidates.length === 0) return null;
+  return chunkCandidates.map((c) => c.value).join('');
+}
+
+export async function proxy(request: NextRequest) {
+  const { pathname, search } = request.nextUrl;
+
+  if (isPublicPath(pathname)) {
+    return NextResponse.next();
+  }
+
+  const token = getSessionTokenFromCookies(request);
+  if (!token) {
+    const loginUrl = new URL('/auth/login', request.url);
+    loginUrl.searchParams.set('redirect', `${pathname}${search}`);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  const decoded = await decodeSessionToken({
+    token,
+    secret: process.env.NEXTAUTH_SECRET || 'dev-nextauth-secret',
+  });
+  if (!decoded) {
+    const loginUrl = new URL('/auth/login', request.url);
+    loginUrl.searchParams.set('redirect', `${pathname}${search}`);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  return NextResponse.next();
+}
+
+export const config = { matcher: '/:path*' };
+```
+
+> `/auth/api/*` 路径不需要宿主额外处理头部清理。套件的 `proxyRequest` 在转发给 Casdoor 时会自动删除 `origin`、`referer`、`x-forwarded-host`、`x-forwarded-port`、`x-forwarded-proto` 和 `forwarded`，确保上游只看到干净的请求头。
 
 ### 实现要求
 
-`proxy.ts` 应满足以下原则：
-
-- 优先使用 `APP_URL`
-- `APP_URL` 不可为空
-- 生产环境必须是完整公网地址，例如 `https://your-domain.com`
-- 仅在认证路径上做强制 origin 规范
-- 重定向必须保留原始 `pathname` 和 `search`
+- 公开路径必须完整放行，不做认证检查也不做任何重写
+- 认证守卫只在非公开路径生效，未登录时重定向到 `/auth/login` 并保留原始路径作为 `redirect` 参数
+- 使用套件导出的 `decodeSessionToken` 验证会话，不要自己实现 JWT 解码
 - 不要修改 `app/(auth-kit)` 下的受管路由壳
 - 不要在 `proxy.ts` 里硬编码 Casdoor 域名
-- 不要把 `http` 原样透传给认证流程
+- 不要在认证路径上做 origin 307 重写——origin 规范由边缘层和套件代理头部清理共同完成
 
 ### 与环境变量的关系
 
@@ -186,9 +283,9 @@ NEXTAUTH_URL=http://localhost:5177
 
 1. `APP_URL` 是否为真实公网 HTTPS
 2. `NEXTAUTH_URL` 是否与 `APP_URL` 保持一致
-3. `proxy.ts` 是否对认证路径做了 `APP_URL` 强制规范
-4. FRP / Ingress / 网关是否把外部 HTTPS 请求错误地暴露成了内部 HTTP
-5. 浏览器实际访问地址是否和授权回调地址一致
+3. FRP / Ingress / 网关是否把外部 HTTPS 请求错误地暴露成了内部 HTTP
+4. 浏览器实际访问地址是否和授权回调地址一致
+5. 宿主边缘层是否对认证路径做了 origin 规范（HTTPS → 公网 origin）
 
 ## UX 边界
 
