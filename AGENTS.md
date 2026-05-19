@@ -53,6 +53,7 @@
 - `scripts/install-skill.mjs`：把 skill 安装到目标项目 `.agents/skills`。
 - 受管的 auth route shells 统一放在 `app/(auth-kit)` route group 下，URL 不变但文件更集中。
 - `app/auth/index-html.ts`、`.env*` 和 `prisma/auth-kit.prisma` 由 CLI 受管并可生成到宿主工程。
+- `app/(auth-kit)/callback/error/page.tsx` 和 `app/(auth-kit)/callback/error/clear-domain-cookies-button.tsx` 也是受管内容，默认错误页必须带“清空当前域 Cookie”按钮，不要让宿主手工补这个能力。
 - `app/(auth-kit)/auth-config.ts` 必须显式导出 `authKitConfig`、`adapter`、`persistence`、`paymentSuccessHandler` 和 `paymentFinishedHandler`，不要只保留局部变量让 route 再去间接取值。
 - billing 默认就是受管内容，CLI 必须同时生成 `lib/billing/payment-success.ts` 和 `lib/billing/payment-finished.ts`，`auth-config.ts` 直接导入这两个默认文件，不要要求宿主手工创建 `@/lib/billing/*`。
 - 默认生成的 `lib/billing/payment-success.ts` 和 `lib/billing/payment-finished.ts` 是宿主定制 billing 收尾逻辑的唯一入口，后续如果要改订单补全、Webhook 或跳转逻辑，优先改这两个默认文件的 custom block，不要把业务塞回路由壳。
@@ -85,6 +86,7 @@
 - 不要再把 `lib/billing/*` 当成宿主可选文件；这两个文件属于套件必须生成并维护的宿主接入层，缺失就意味着 `update` 不完整。
 - 不要再在 billing 模板里引入宿主工程不存在的 `@/lib/*`，除了默认生成的 `@/lib/billing/payment-success` 和 `@/lib/billing/payment-finished` 之外，不允许再加新的宿主硬依赖。
 - 不要再把 `app/(auth-kit)/auth-config.ts` 做成依赖多层间接导出的形式，route 文件必须能直接从这个文件拿到所需 handler 和配置对象。
+- 不要再把 `app/(auth-kit)/callback/error/page.tsx` 做成纯文本错误页，默认错误页必须提供本地清 cookie 按钮，帮助用户清掉当前域下残留的 auth cookie。
 - 不要再把 billing 的默认生成文件改成“只在文档里提到、代码里不生成”的状态；文档、skill、AGENTS 和 CLI 生成结果必须同时存在。
 - 不要再用 `request.cookies.getAll()` 作为 logout 唯一依据，退出必须按原始 `Cookie` 头和 cookie 前缀清理分片 session。
 - 不要再在宿主工程手工 copy 生成文件到别的目录，受管文件只能通过 `npx @foldspace-fe/casdoor-next-auth-kit init|update|check` 维护。
