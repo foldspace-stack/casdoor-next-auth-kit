@@ -45,6 +45,7 @@
   "files": ["dist", "README.md"],
   "scripts": {
     "build": "tsup && node ./scripts/copy-skill.mjs",
+    "test": "pnpm build && node --test --experimental-strip-types ./scripts/verify-casdoor-proxy.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "dev": "tsup --watch"
   },

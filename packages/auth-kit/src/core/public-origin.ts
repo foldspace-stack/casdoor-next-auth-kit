@@ -1,6 +1,14 @@
 export const PUBLIC_ORIGIN_COOKIE_NAME = 'auth_origin';
 
 export function getRequestOrigin(request: Request, appUrl?: string): string {
+  if (appUrl) {
+    try {
+      return new URL(appUrl).origin;
+    } catch {
+      // ignore and fall back to request headers
+    }
+  }
+
   const referer = request.headers.get('referer');
   if (referer) {
     try {
@@ -14,14 +22,6 @@ export function getRequestOrigin(request: Request, appUrl?: string): string {
   if (origin) {
     try {
       return new URL(origin).origin;
-    } catch {
-      // ignore
-    }
-  }
-
-  if (appUrl) {
-    try {
-      return new URL(appUrl).origin;
     } catch {
       // ignore
     }
