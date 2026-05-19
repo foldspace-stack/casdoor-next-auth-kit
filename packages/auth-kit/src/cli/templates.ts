@@ -1,25 +1,6 @@
-import fs from 'node:fs';
-import path from 'node:path';
-
 import { customBegin, customEnd } from './fs';
 import { buildAuthPrismaSchemaTemplate } from '../prisma/schema-template';
-import { AUTH_KIT_ENV_FILES, buildManagedEnvTemplate, readManagedEnvValue } from '../core/env';
-
-function getManagedEnvValue(key: string): string | null {
-  for (const file of ['.env.local', '.env', '.env.production', '.env.example'] as const) {
-    const filePath = path.join(process.cwd(), file);
-    if (!fs.existsSync(filePath)) {
-      continue;
-    }
-
-    const value = readManagedEnvValue(fs.readFileSync(filePath, 'utf8'), key);
-    if (value !== null) {
-      return value;
-    }
-  }
-
-  return null;
-}
+import { AUTH_KIT_ENV_FILES, buildManagedEnvTemplate } from '../core/env';
 
 export function authLoginRouteTemplate() {
   return `import { loginHandler } from '../../auth-config';
@@ -76,15 +57,6 @@ export const GET = logoutHandler;
 }
 
 export function authConfigTemplate() {
-  const billingPaymentSuccessHandlerImport = getManagedEnvValue('BILLING_PAYMENT_SUCCESS_HANDLER');
-  const billingPaymentFinishedHandlerImport = getManagedEnvValue('BILLING_PAYMENT_FINISHED_HANDLER');
-  const billingPaymentSuccessHandlerImportLine = billingPaymentSuccessHandlerImport
-    ? `import { paymentSuccessHandler as billingPaymentSuccessHandler } from ${JSON.stringify(billingPaymentSuccessHandlerImport)};\n`
-    : '';
-  const billingPaymentFinishedHandlerImportLine = billingPaymentFinishedHandlerImport
-    ? `import { paymentFinishedHandler as billingPaymentFinishedHandler } from ${JSON.stringify(billingPaymentFinishedHandlerImport)};\n`
-    : '';
-
   return `import {
   createCallbackHandler,
   createCasdoorApiProxyHandler,
@@ -99,7 +71,8 @@ export function authConfigTemplate() {
   type AuthPersistenceAdapter,
 } from '@foldspace-fe/casdoor-next-auth-kit';
 import { isGlobalAdminEmail } from '@foldspace-fe/casdoor-next-auth-kit';
-${billingPaymentSuccessHandlerImportLine}${billingPaymentFinishedHandlerImportLine}
+import { paymentSuccessHandler as billingPaymentSuccessHandler } from '@/lib/billing/payment-success';
+import { paymentFinishedHandler as billingPaymentFinishedHandler } from '@/lib/billing/payment-finished';
 
 export function createAuthKitConfig(): AuthKitConfig {
   return {
@@ -117,14 +90,13 @@ export function createAuthKitConfig(): AuthKitConfig {
   };
 }
 
-const authKitConfig = createAuthKitConfig();
+export const authKitConfig = createAuthKitConfig();
 
-${customBegin}
-const adapter: AuthBusinessAdapter = {
+export const adapter: AuthBusinessAdapter = {
   isAdminEmail: isGlobalAdminEmail,
 };
 
-const persistence: AuthPersistenceAdapter = {
+export const persistence: AuthPersistenceAdapter = {
   async syncAuthUser() {
     return;
   },
@@ -132,10 +104,9 @@ const persistence: AuthPersistenceAdapter = {
     return null;
   },
 };
-${customEnd}
 
-export const paymentSuccessHandler = ${billingPaymentSuccessHandlerImport ? 'billingPaymentSuccessHandler' : 'undefined'};
-export const paymentFinishedHandler = ${billingPaymentFinishedHandlerImport ? 'billingPaymentFinishedHandler' : 'undefined'};
+export const paymentSuccessHandler = billingPaymentSuccessHandler;
+export const paymentFinishedHandler = billingPaymentFinishedHandler;
 
 export const loginHandler = createLoginRouteHandler(authKitConfig);
 export const signupHandler = createSignupRouteHandler(authKitConfig);
@@ -204,6 +175,32 @@ export const GET = createBillingPaymentFinishedRouteHandler({
   fallbackRedirect: '/',
   handler: paymentFinishedHandler,
 });
+`;
+}
+
+export function billingPaymentSuccessHandlerTemplate() {
+  return `import type { BillingPaymentSuccessHandler } from '@foldspace-fe/casdoor-next-auth-kit/billing';
+
+${customBegin}
+const paymentSuccessHandlerImpl: BillingPaymentSuccessHandler = async () => {
+  return;
+};
+${customEnd}
+
+export const paymentSuccessHandler: BillingPaymentSuccessHandler = paymentSuccessHandlerImpl;
+`;
+}
+
+export function billingPaymentFinishedHandlerTemplate() {
+  return `import type { BillingPaymentFinishedHandler } from '@foldspace-fe/casdoor-next-auth-kit/billing';
+
+${customBegin}
+const paymentFinishedHandlerImpl: BillingPaymentFinishedHandler = async () => {
+  return;
+};
+${customEnd}
+
+export const paymentFinishedHandler: BillingPaymentFinishedHandler = paymentFinishedHandlerImpl;
 `;
 }
 

@@ -12,6 +12,8 @@ import {
   authSignupRouteTemplate,
   authorizeRouteTemplate,
   callbackRouteTemplate,
+  billingPaymentFinishedHandlerTemplate,
+  billingPaymentSuccessHandlerTemplate,
   commerceProxyRouteTemplate,
   envTemplate,
   logoutRouteTemplate,
@@ -43,6 +45,8 @@ const targets = [
   ['app/(auth-kit)/callback/route.ts', callbackRouteTemplate],
   ['app/(auth-kit)/logout/route.ts', logoutRouteTemplate],
   ['app/(auth-kit)/auth/api/commerce/[...path]/route.ts', commerceProxyRouteTemplate],
+  ['lib/billing/payment-success.ts', billingPaymentSuccessHandlerTemplate],
+  ['lib/billing/payment-finished.ts', billingPaymentFinishedHandlerTemplate],
   ['app/(auth-kit)/index-html.ts', authIndexHtmlTemplate],
   ['prisma/auth-kit.prisma', prismaSchemaTemplate],
 ] as const;
@@ -162,6 +166,15 @@ export async function updateProject() {
     if (!exists(filePath)) {
       writeGeneratedFile(filePath, factory());
       logCreated(filePath);
+      continue;
+    }
+
+    if (rel === 'app/(auth-kit)/auth-config.ts') {
+      const current = read(filePath);
+      if (current !== next) {
+        writeTextFile(filePath, next);
+        logUpdated(filePath);
+      }
       continue;
     }
 

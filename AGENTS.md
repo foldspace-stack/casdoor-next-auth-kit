@@ -19,7 +19,8 @@
 - 变更只聚焦在当前需求范围内。
 - 不要覆盖用户的其他改动。
 - 有明显代码变更后，执行 `pnpm type-check` 和 `pnpm build`。
-- 每次代码修改和调整 需要更新 `skills/casdoor-next-auth-kit/SKILL.md`
+- 每次代码修改和调整，都需要同步更新 `skills/casdoor-next-auth-kit/SKILL.md`，让 skill 和实现保持一致。
+- 当修改 `packages/auth-kit` 的模板、路由壳、billing 流程或生成文件契约时，必须同时检查 `docs/billing/*`、`AGENTS.md` 和生成结果是否一致，避免文档、skill 和代码三者分叉。
 
 ## 目录职责
 
@@ -29,6 +30,9 @@
 - `scripts/install-skill.mjs`：把 skill 安装到目标项目 `.agents/skills`。
 - 受管的 auth route shells 统一放在 `app/(auth-kit)` route group 下，URL 不变但文件更集中。
 - `app/auth/index-html.ts`、`.env*` 和 `prisma/auth-kit.prisma` 由 CLI 受管并可生成到宿主工程。
+- `app/(auth-kit)/auth-config.ts` 必须显式导出 `authKitConfig`、`adapter`、`persistence`、`paymentSuccessHandler` 和 `paymentFinishedHandler`，不要只保留局部变量让 route 再去间接取值。
+- billing 默认就是受管内容，CLI 必须同时生成 `lib/billing/payment-success.ts` 和 `lib/billing/payment-finished.ts`，`auth-config.ts` 直接导入这两个默认文件，不要要求宿主手工创建 `@/lib/billing/*`。
+- 默认生成的 `lib/billing/payment-success.ts` 和 `lib/billing/payment-finished.ts` 是宿主定制 billing 收尾逻辑的唯一入口，后续如果要改订单补全、Webhook 或跳转逻辑，优先改这两个默认文件的 custom block，不要把业务塞回路由壳。
 - 登录入口是 `app/(auth-kit)/auth/login` 和 `app/(auth-kit)/auth/signup`，授权壳子是 `app/(auth-kit)/login/oauth/authorize`。
 
 ## 对外约定
@@ -50,6 +54,8 @@
 - 不要再把 Casdoor API 改回 `/api/casdoor/*` 或其他与主框架冲突的前缀，宿主统一使用 `/auth/api/*`。
 - 不要再恢复旧的 `/login`、`/signup`、`/logout` 兼容入口，宿主只保留 `app/(auth-kit)` 下的新路由。
 - 不要再把 `NEXTAUTH_URL` 当成公共站点 origin 的来源，公共 origin 由请求头或 `APP_URL` 识别。
+- 不要再把 billing 回调设计成依赖 `.env` 里的 handler 模块路径；默认生成的 `lib/billing/payment-success.ts` 和 `lib/billing/payment-finished.ts` 就是宿主侧接入点，`auth-config.ts` 负责直接导入并导出对应 handler。
+- 不要再把 `/auth/payment/success` 和 `/auth/payment/finished` 退回成页面文件，它们必须保持为固定回调路径，由默认生成的 billing handler 文件承接业务逻辑和跳转。
 - 不要再用 `request.cookies.getAll()` 作为 logout 唯一依据，退出必须按原始 `Cookie` 头和 cookie 前缀清理分片 session。
 - 不要再在宿主工程手工 copy 生成文件到别的目录，受管文件只能通过 `npx @foldspace-fe/casdoor-next-auth-kit init|update|check` 维护。
 - 不要再尝试向宿主工程的 `.agents/skills` 目录直接写入文件；宿主只通过仓库内 skill 分发脚本安装 skill，写入失败时应跳过并提示，而不是改造宿主仓库权限。
@@ -58,6 +64,6 @@
 
 ## 文档关系
 
-- `AUTH-KIT-PLAN.md` 是本仓库的主方案文档。
 - 当前宿主工程的 AGENTS.md 和 skill 文件都引用本仓库作为源头。
+- 以 `AGENTS.md`、`skills/casdoor-next-auth-kit/SKILL.md` 和 `docs/billing/*` 作为当前有效的对外约定来源；不要再依赖已删除的方案草案文件。
 - 对外 README、docs 和 skill 源文件默认使用中文描述，保留英文内容时只写必要的包名、命令、API 名称和代码标识符。

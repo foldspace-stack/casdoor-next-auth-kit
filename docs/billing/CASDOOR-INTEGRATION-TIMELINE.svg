@@ -124,8 +124,8 @@
   <g transform="translate(70,830)">
     <rect class="step" x="0" y="0" width="1530" height="116"/>
     <text class="note-title" x="22" y="26">5. Payment callbacks</text>
-    <text class="note-text" x="22" y="50">The route at /auth/payment/success collects the full query string and loads paymentSuccessHandler from BILLING_PAYMENT_SUCCESS_HANDLER in .env.</text>
-    <text class="note-text" x="22" y="72">The route at /auth/payment/finished collects the same parameters and loads paymentFinishedHandler from BILLING_PAYMENT_FINISHED_HANDLER in .env.</text>
+    <text class="note-text" x="22" y="50">The route at /auth/payment/success collects the full query string and loads the default generated paymentSuccessHandler from lib/billing/payment-success.ts.</text>
+    <text class="note-text" x="22" y="72">The route at /auth/payment/finished collects the same parameters and loads the default generated paymentFinishedHandler from lib/billing/payment-finished.ts.</text>
     <text class="note-text" x="22" y="94">Each handler can parse paymentId / orderId / params, write to DB, trigger webhook hooks, and return redirectTo / Response / void.</text>
   </g>
 

@@ -91,13 +91,7 @@ https://your-website.com/auth/payment/success?paymentId=payment_xxx&orderId=orde
 
 本仓库把这个落点统一收敛到宿主站内的 `/auth/payment/success`，路由壳会把请求参数交给宿主自己实现的处理器，再由处理器决定是否跳转到 `/auth/payment/finished`。
 
-宿主通过 `.env` 配置处理器模块路径：
-
-```env
-BILLING_PAYMENT_SUCCESS_HANDLER=@/lib/billing/payment-success
-```
-
-处理器建议导出同名函数 `paymentSuccessHandler`，签名如下：
+套件会默认生成宿主侧处理器文件 `lib/billing/payment-success.ts`，`app/(auth-kit)/auth-config.ts` 会直接导入它并导出为 `paymentSuccessHandler`。默认处理器的签名如下：
 
 ```ts
 export async function paymentSuccessHandler(input: {
@@ -116,14 +110,8 @@ export async function paymentSuccessHandler(input: {
 
 本仓库把这个固定回调路径统一收敛到宿主站内的 `/auth/payment/finished`，路由壳会把请求参数交给宿主自己实现的处理器，再由处理器决定最终跳转。
 
-宿主通过 `.env` 配置处理器模块路径：
+套件会默认生成宿主侧处理器文件 `lib/billing/payment-finished.ts`，`app/(auth-kit)/auth-config.ts` 会直接导入它并导出为 `paymentFinishedHandler`。签名与 success 处理器一致。
 
-```env
-BILLING_PAYMENT_FINISHED_HANDLER=@/lib/billing/payment-finished
-```
-
-处理器建议导出同名函数 `paymentFinishedHandler`，签名与 success 处理器一致。
-
-如果没有配置 `BILLING_PAYMENT_FINISHED_HANDLER`，路由会打印日志并回落到首页 `/`。
+如果默认处理器没有写入业务逻辑，路由会打印日志并回落到首页 `/`。
 
 💡 已知问题提醒

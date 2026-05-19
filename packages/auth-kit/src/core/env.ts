@@ -95,20 +95,6 @@ export const AUTH_KIT_ENV_VARIABLES: ManagedEnvVariableDefinition[] = [
     production: 'your-casdoor-client-secret',
   },
   {
-    key: 'BILLING_PAYMENT_SUCCESS_HANDLER',
-    description: '支付成功回跳处理器模块路径',
-    example: '@/lib/billing/payment-success',
-    local: '@/lib/billing/payment-success',
-    production: '@/lib/billing/payment-success',
-  },
-  {
-    key: 'BILLING_PAYMENT_FINISHED_HANDLER',
-    description: '支付完成回调处理器模块路径',
-    example: '@/lib/billing/payment-finished',
-    local: '@/lib/billing/payment-finished',
-    production: '@/lib/billing/payment-finished',
-  },
-  {
     key: 'BILLING_PAYMENT_SUCCESS_DEBUG',
     description: '是否打印 payment-success 调试日志',
     example: 'false',

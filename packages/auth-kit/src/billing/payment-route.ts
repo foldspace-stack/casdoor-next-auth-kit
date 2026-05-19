@@ -9,7 +9,7 @@ import type {
 
 export interface BillingPaymentRouteOptions extends BillingPaymentSuccessRouteOptions {
   routePath: string;
-  missingHandlerName: string;
+  missingHandlerFile: string;
 }
 
 function sanitizeRedirectPath(value: string | null | undefined, fallback: string): string {
@@ -98,12 +98,12 @@ function resolveFallbackTarget(fallbackRedirect: string): string {
 function logMissingPaymentHandler(
   context: BillingPaymentSuccessContext,
   fallbackRedirect: string,
-  missingHandlerName: string,
+  missingHandlerFile: string,
   routePath: string,
 ): void {
   console.warn(
-    `[casdoor-next-auth-kit] ${missingHandlerName} is not configured. ` +
-      `Set it in .env to handle ${routePath} with order/payment enrichment before redirecting. ` +
+    `[casdoor-next-auth-kit] default billing handler at ${missingHandlerFile} has no business logic. ` +
+      `Edit this file to handle ${routePath} with order/payment enrichment before redirecting. ` +
       `Falling back to ${fallbackRedirect}.`,
     {
       paymentId: context.paymentId,
@@ -141,7 +141,7 @@ export async function createBillingPaymentRouteResponse(
       return NextResponse.redirect(new URL(target, origin), 307);
     }
 
-    logMissingPaymentHandler(context, fallbackRedirect, options.missingHandlerName, options.routePath);
+    logMissingPaymentHandler(context, fallbackRedirect, options.missingHandlerFile, options.routePath);
     const target = resolveFallbackTarget(fallbackRedirect);
     return NextResponse.redirect(new URL(target, origin), 307);
   } catch (error) {

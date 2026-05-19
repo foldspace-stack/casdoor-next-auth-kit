@@ -8,7 +8,7 @@ export async function createBillingPaymentSuccessResponse(
   return createBillingPaymentRouteResponse(request, {
     ...options,
     routePath: '/auth/payment/success',
-    missingHandlerName: 'BILLING_PAYMENT_SUCCESS_HANDLER',
+    missingHandlerFile: 'lib/billing/payment-success.ts',
     fallbackRedirect: options.fallbackRedirect ?? '/auth/payment/finished',
   });
 }

@@ -68,6 +68,6 @@ runtime 也可以从 `runtimeConfig.items` 推导 `availablePlans` 和 `availabl
 
 ## 回调约定
 
-- `BILLING_PAYMENT_SUCCESS_HANDLER` 用于 `/auth/payment/success`
-- `BILLING_PAYMENT_FINISHED_HANDLER` 用于 `/auth/payment/finished`
-- 两个回调都能接收 `paymentId`、`orderId`、query 参数和 body，由宿主自己完成落库、Webhook 钩子和最终跳转
+- 套件默认生成 `lib/billing/payment-success.ts` 和 `lib/billing/payment-finished.ts`
+- `app/(auth-kit)/auth-config.ts` 会直接导入这两个默认文件，并暴露为 `paymentSuccessHandler` / `paymentFinishedHandler`
+- 两个回调都能接收 `paymentId`、`orderId`、query 参数和 body，由宿主自己在默认生成文件里完成落库、Webhook 钩子和最终跳转
