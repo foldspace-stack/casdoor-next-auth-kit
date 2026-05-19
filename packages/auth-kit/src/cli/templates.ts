@@ -97,11 +97,9 @@ export function authConfigTemplate() {
   type AuthBusinessAdapter,
   type AuthKitConfig,
   type AuthPersistenceAdapter,
-  type AuthUser,
 } from '@foldspace-fe/casdoor-next-auth-kit';
-${billingPaymentSuccessHandlerImportLine}${billingPaymentFinishedHandlerImportLine}import { db } from '@/lib/db';
-import { isGlobalAdminEmail } from '@/lib/auth-roles';
-import { syncUserRecord } from '@/lib/user-record';
+import { isGlobalAdminEmail } from '@foldspace-fe/casdoor-next-auth-kit';
+${billingPaymentSuccessHandlerImportLine}${billingPaymentFinishedHandlerImportLine}
 
 export function createAuthKitConfig(): AuthKitConfig {
   return {
@@ -121,58 +119,20 @@ export function createAuthKitConfig(): AuthKitConfig {
 
 const authKitConfig = createAuthKitConfig();
 
+${customBegin}
 const adapter: AuthBusinessAdapter = {
   isAdminEmail: isGlobalAdminEmail,
 };
 
 const persistence: AuthPersistenceAdapter = {
-  async syncAuthUser(user) {
-    await syncUserRecord(user);
+  async syncAuthUser() {
+    return;
   },
-  async findAuthUser({ id, email }) {
-    const user = id
-      ? await db.user.findUnique({
-          where: { id },
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            image: true,
-            tokenBalance: true,
-            isVip: true,
-            isAdmin: true,
-          },
-        })
-      : email
-        ? await db.user.findFirst({
-            where: { email },
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              image: true,
-              tokenBalance: true,
-              isVip: true,
-              isAdmin: true,
-            },
-          })
-        : null;
-
-    if (!user) {
-      return null;
-    }
-
-    return {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      image: user.image,
-      tokenBalance: Number(user.tokenBalance ?? 2580),
-      isVip: Boolean(user.isVip ?? true),
-      isAdmin: Boolean(user.isAdmin) || isGlobalAdminEmail(user.email),
-    } satisfies AuthUser;
+  async findAuthUser() {
+    return null;
   },
 };
+${customEnd}
 
 export const paymentSuccessHandler = ${billingPaymentSuccessHandlerImport ? 'billingPaymentSuccessHandler' : 'undefined'};
 export const paymentFinishedHandler = ${billingPaymentFinishedHandlerImport ? 'billingPaymentFinishedHandler' : 'undefined'};

@@ -19,6 +19,7 @@
 - 变更只聚焦在当前需求范围内。
 - 不要覆盖用户的其他改动。
 - 有明显代码变更后，执行 `pnpm type-check` 和 `pnpm build`。
+- 每次代码修改和调整 需要更新 `skills/casdoor-next-auth-kit/SKILL.md`
 
 ## 目录职责
 
