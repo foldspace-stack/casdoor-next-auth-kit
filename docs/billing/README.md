@@ -2,6 +2,16 @@
 
 这一部分说明面向 SaaS 订阅、积分商品和虚拟商品的 headless billing runtime。
 
+## 修改前必读
+
+在改 `packages/auth-kit/src/cli/templates.ts`、`packages/auth-kit/src/cli/operations.ts`、`packages/auth-kit/src/billing/*`、`docs/billing/*` 或 `skills/casdoor-next-auth-kit/SKILL.md` 之前，先确认三件事：
+
+1. `npx @foldspace-fe/casdoor-next-auth-kit@latest init` 还能生成完整文件
+2. `npx @foldspace-fe/casdoor-next-auth-kit@latest update` 会补齐受管文件并保持可编译
+3. `pnpm build` 后宿主可以直接 `next build`
+
+如果会影响生成文件，优先把 `app/(auth-kit)/auth-config.ts`、`lib/billing/payment-success.ts` 和 `lib/billing/payment-finished.ts` 一起对齐，再改文档。
+
 ## 覆盖范围
 
 - 订阅购买

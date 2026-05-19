@@ -21,6 +21,29 @@
 - 有明显代码变更后，执行 `pnpm type-check` 和 `pnpm build`。
 - 每次代码修改和调整，都需要同步更新 `skills/casdoor-next-auth-kit/SKILL.md`，让 skill 和实现保持一致。
 - 当修改 `packages/auth-kit` 的模板、路由壳、billing 流程或生成文件契约时，必须同时检查 `docs/billing/*`、`AGENTS.md` 和生成结果是否一致，避免文档、skill 和代码三者分叉。
+- 当修改 `packages/auth-kit/src/cli/templates.ts`、`packages/auth-kit/src/cli/operations.ts`、`packages/auth-kit/src/billing/*` 或 `packages/auth-kit/src/core/env.ts` 时，要同步确认 `init`、`update`、`check` 三个命令的行为都仍然一致，不能只修单个入口。
+- 改动 billing 相关模板时，必须同时验证 `app/(auth-kit)/auth-config.ts`、`lib/billing/payment-success.ts`、`lib/billing/payment-finished.ts` 三者的导入关系，没有一个文件能单独缺失。
+- 改动 billing 文档时，`docs/billing/README.md`、`docs/billing/INFRO.md`、`docs/billing/CASDOOR-INTEGRATION-TIMELINE.md` 和 `docs/billing/CASDOOR-INTEGRATION-TIMELINE.svg` 要一起更新，不能只改其中一份。
+- 改动受管路由壳时，要同时检查 `deprecatedTargets`、`targets`、生成模板和宿主运行结果，确保更新命令不会残留旧文件或生成半套文件。
+
+### 高风险修改前必读
+
+在改下面这些内容之前，先确认当前行为、生成结果和文档说明都已对齐：
+
+- `packages/auth-kit/src/cli/templates.ts`
+- `packages/auth-kit/src/cli/operations.ts`
+- `packages/auth-kit/src/billing/*`
+- `packages/auth-kit/src/core/env.ts`
+- `docs/billing/*`
+- `skills/casdoor-next-auth-kit/SKILL.md`
+
+如果修改会影响生成文件，必须优先回答这三个问题：
+
+1. `npx @foldspace-fe/casdoor-next-auth-kit init` 还能不能生成完整文件
+2. `npx @foldspace-fe/casdoor-next-auth-kit update` 会不会删除旧文件、补齐新文件并保持可编译
+3. `pnpm build` 后宿主能不能直接 `next build`
+
+如果任一答案不确定，先停下来补齐实现和文档，再继续改需求。
 
 ## 目录职责
 
@@ -33,6 +56,8 @@
 - `app/(auth-kit)/auth-config.ts` 必须显式导出 `authKitConfig`、`adapter`、`persistence`、`paymentSuccessHandler` 和 `paymentFinishedHandler`，不要只保留局部变量让 route 再去间接取值。
 - billing 默认就是受管内容，CLI 必须同时生成 `lib/billing/payment-success.ts` 和 `lib/billing/payment-finished.ts`，`auth-config.ts` 直接导入这两个默认文件，不要要求宿主手工创建 `@/lib/billing/*`。
 - 默认生成的 `lib/billing/payment-success.ts` 和 `lib/billing/payment-finished.ts` 是宿主定制 billing 收尾逻辑的唯一入口，后续如果要改订单补全、Webhook 或跳转逻辑，优先改这两个默认文件的 custom block，不要把业务塞回路由壳。
+- 默认生成的 billing handler 文件必须保持“拿来就能编译”，文件里如果没有业务逻辑，也要保留可运行的空实现和明确日志，不允许生成只写注释或只留导入的半成品。
+- 生成的 `auth-config.ts` 必须同时兼容 `npx ... init` 和 `npx ... update`，不要让第一次生成能过、更新时却因为保留块或导入变化而编译失败。
 - 登录入口是 `app/(auth-kit)/auth/login` 和 `app/(auth-kit)/auth/signup`，授权壳子是 `app/(auth-kit)/login/oauth/authorize`。
 
 ## 对外约定
@@ -56,6 +81,11 @@
 - 不要再把 `NEXTAUTH_URL` 当成公共站点 origin 的来源，公共 origin 由请求头或 `APP_URL` 识别。
 - 不要再把 billing 回调设计成依赖 `.env` 里的 handler 模块路径；默认生成的 `lib/billing/payment-success.ts` 和 `lib/billing/payment-finished.ts` 就是宿主侧接入点，`auth-config.ts` 负责直接导入并导出对应 handler。
 - 不要再把 `/auth/payment/success` 和 `/auth/payment/finished` 退回成页面文件，它们必须保持为固定回调路径，由默认生成的 billing handler 文件承接业务逻辑和跳转。
+- 不要再让 billing 回调缺省成“静默空操作”；如果没有宿主业务逻辑，至少要保留日志和默认回退，方便排查 Casdoor 回跳链路是否真的走到了宿主。
+- 不要再把 `lib/billing/*` 当成宿主可选文件；这两个文件属于套件必须生成并维护的宿主接入层，缺失就意味着 `update` 不完整。
+- 不要再在 billing 模板里引入宿主工程不存在的 `@/lib/*`，除了默认生成的 `@/lib/billing/payment-success` 和 `@/lib/billing/payment-finished` 之外，不允许再加新的宿主硬依赖。
+- 不要再把 `app/(auth-kit)/auth-config.ts` 做成依赖多层间接导出的形式，route 文件必须能直接从这个文件拿到所需 handler 和配置对象。
+- 不要再把 billing 的默认生成文件改成“只在文档里提到、代码里不生成”的状态；文档、skill、AGENTS 和 CLI 生成结果必须同时存在。
 - 不要再用 `request.cookies.getAll()` 作为 logout 唯一依据，退出必须按原始 `Cookie` 头和 cookie 前缀清理分片 session。
 - 不要再在宿主工程手工 copy 生成文件到别的目录，受管文件只能通过 `npx @foldspace-fe/casdoor-next-auth-kit init|update|check` 维护。
 - 不要再尝试向宿主工程的 `.agents/skills` 目录直接写入文件；宿主只通过仓库内 skill 分发脚本安装 skill，写入失败时应跳过并提示，而不是改造宿主仓库权限。
