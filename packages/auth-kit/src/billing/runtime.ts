@@ -5,6 +5,9 @@ import type {
   BillingEntitlementState,
   BillingInterval,
   BillingItem,
+  BillingPurchasableEntry,
+  BillingPaymentCallbackContext,
+  BillingPurchaseRequest,
   BillingOrderHistoryItem,
   BillingPaymentHistoryItem,
   BillingProductSnapshot,
@@ -15,10 +18,23 @@ import type {
   BillingSubscriptionState,
 } from './types';
 
+function normalizeCasdoorProductId(id: string): { owner: string; name: string } {
+  const [owner, ...rest] = id.split('/');
+  const name = rest.join('/');
+
+  if (!owner || !name) {
+    throw new Error(`Invalid Casdoor product id: ${id}`);
+  }
+
+  return { owner, name };
+}
+
 export function normalizeBillingRuntimeConfig(config?: Partial<BillingRuntimeConfig> | null): BillingRuntimeConfig {
   return {
     catalogKey: config?.catalogKey ?? 'default',
     items: config?.items ?? [],
+    purchasableIds: config?.purchasableIds ?? [],
+    purchasables: config?.purchasables ?? [],
     conversionRules: config?.conversionRules ?? [],
     defaults: config?.defaults ?? {},
   };
@@ -38,6 +54,200 @@ export function normalizeBillingCatalogConfig(config?: Partial<BillingCatalogCon
 export function resolveBillingItem(items: BillingItem[] | undefined, key?: string | null): BillingItem | undefined {
   if (!key) return undefined;
   return items?.find((item) => item.key === key || item.backendRef.productId === key || item.backendRef.planId === key);
+}
+
+function isBillingPurchasableIdMatch(id: string, item: BillingItem | BillingPurchasableEntry): boolean {
+  return id === item.key || id === item.backendRef.productId || ('planId' in item.backendRef && id === item.backendRef.planId);
+}
+
+export function resolveBillingPurchasable(
+  runtimeConfig: BillingRuntimeConfig | undefined,
+  key?: string | null,
+): BillingPurchasableEntry | undefined {
+  if (!runtimeConfig || !key) {
+    return undefined;
+  }
+
+  const explicit = runtimeConfig.purchasables?.find(
+    (item) => item.key === key || item.backendRef.productId === key || ('planId' in item.backendRef && item.backendRef.planId === key),
+  );
+  if (explicit) {
+    return explicit;
+  }
+
+  if (runtimeConfig.purchasableIds?.length) {
+    const matchingItem = resolveBillingItem(runtimeConfig.items, key);
+    if (!matchingItem) {
+      return undefined;
+    }
+
+    const allowed = runtimeConfig.purchasableIds.some((itemKey) => isBillingPurchasableIdMatch(itemKey, matchingItem));
+    if (!allowed) {
+      return undefined;
+    }
+  }
+
+  const item = resolveBillingItem(runtimeConfig.items, key);
+  if (!item) {
+    return undefined;
+  }
+
+  if (item.kind === 'subscription') {
+    return {
+      key: item.key,
+      kind: 'subscription',
+      title: item.title,
+      description: item.description,
+      enabled: true,
+      backendRef: {
+        productId: item.backendRef.productId,
+        planId: item.backendRef.planId,
+        priceId: item.backendRef.priceId,
+      },
+      interval: item.interval,
+      hooks: undefined,
+    };
+  }
+
+  return {
+    key: item.key,
+    kind: 'product',
+    title: item.title,
+    description: item.description,
+    enabled: true,
+    backendRef: {
+      productId: item.backendRef.productId,
+      priceId: item.backendRef.priceId,
+    },
+    quantity: undefined,
+    creditGrant: item.creditGrant,
+    creditRedeem: item.creditRedeem,
+    hooks: undefined,
+  };
+}
+
+export function buildBillingPurchaseRequest(
+  payload: BillingActionPayload,
+  runtimeConfig?: BillingRuntimeConfig | null,
+): BillingPurchaseRequest | null {
+  const config = normalizeBillingRuntimeConfig(runtimeConfig);
+  const purchasable = resolveBillingPurchasable(config, payload.key) ?? resolveBillingPurchasable(config, payload.productId);
+  if (!purchasable) {
+    return null;
+  }
+
+  let productOwner: string | undefined;
+  let productName: string | undefined;
+  try {
+    const normalized = normalizeCasdoorProductId(purchasable.backendRef.productId);
+    productOwner = normalized.owner;
+    productName = normalized.name;
+  } catch {
+    productOwner = undefined;
+    productName = undefined;
+  }
+
+  return {
+    kind: purchasable.kind,
+    key: purchasable.key,
+    productId: purchasable.backendRef.productId,
+    productOwner,
+    productName,
+    providerName: payload.providerName,
+    pricingName: payload.pricingName,
+    planName: payload.planName,
+    userName: payload.userName,
+    paymentEnv: payload.paymentEnv,
+    customPrice: payload.customPrice,
+    quantity: payload.quantity ?? 1,
+    returnTo: payload.returnTo,
+    metadata: payload.metadata,
+  };
+}
+
+export function filterBillingPurchasableItems(
+  items: BillingItem[] | undefined,
+  runtimeConfig?: BillingRuntimeConfig | null,
+): BillingItem[] {
+  if (!runtimeConfig) {
+    return items ?? [];
+  }
+
+  const config = normalizeBillingRuntimeConfig(runtimeConfig);
+  if (!config.purchasableIds?.length && !config.purchasables?.length) {
+    return items ?? [];
+  }
+
+  return (items ?? []).filter((item) => {
+    const purchasable = resolveBillingPurchasable(config, item.key);
+    return Boolean(purchasable);
+  });
+}
+
+async function readRequestBody(request: Request): Promise<unknown> {
+  if (request.method === 'GET' || request.method === 'HEAD') {
+    return null;
+  }
+
+  const rawBody = await request.clone().text();
+  if (!rawBody) {
+    return null;
+  }
+
+  const contentType = request.headers.get('content-type') ?? '';
+  if (contentType.includes('application/json')) {
+    try {
+      return JSON.parse(rawBody);
+    } catch {
+      return rawBody;
+    }
+  }
+
+  if (contentType.includes('application/x-www-form-urlencoded')) {
+    return Object.fromEntries(new URLSearchParams(rawBody).entries());
+  }
+
+  return rawBody;
+}
+
+export async function buildBillingPaymentCallbackContext(
+  request: Request,
+  phase?: 'success' | 'failure' | 'finished',
+): Promise<BillingPaymentCallbackContext> {
+  const url = new URL(request.url);
+  const params: Record<string, string> = {};
+
+  for (const [key, value] of url.searchParams.entries()) {
+    params[key] = value;
+  }
+
+  const paymentOwner = url.searchParams.get('paymentOwner') ?? url.searchParams.get('owner');
+  const paymentName = url.searchParams.get('paymentName') ?? url.searchParams.get('name');
+  const paymentId = url.searchParams.get('paymentId');
+  const orderId = url.searchParams.get('orderId');
+  const redirectTo = url.searchParams.get('redirect') ?? url.searchParams.get('returnTo');
+  const failureSignal = url.searchParams.get('error') || url.searchParams.get('status') === 'failed';
+  const status: BillingPaymentCallbackContext['status'] = failureSignal
+    ? 'failure'
+    : phase === 'finished'
+      ? 'finished'
+      : phase === 'failure'
+        ? 'failure'
+        : 'success';
+
+  return {
+    request,
+    url,
+    searchParams: url.searchParams,
+    params,
+    paymentOwner,
+    paymentName,
+    paymentId,
+    orderId,
+    redirectTo,
+    status,
+    body: await readRequestBody(request),
+  };
 }
 
 export function resolveBillingSubscriptionProduct(

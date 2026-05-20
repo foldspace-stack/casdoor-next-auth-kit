@@ -10,6 +10,7 @@ export async function createBillingPaymentFinishedResponse(
     routePath: '/auth/payment/finished',
     missingHandlerFile: 'lib/billing/payment-finished.ts',
     fallbackRedirect: options.fallbackRedirect ?? '/',
+    phase: options.phase ?? 'finished',
   });
 }
 

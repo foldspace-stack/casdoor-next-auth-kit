@@ -1,5 +1,258 @@
 export type BillingItemKind = 'subscription' | 'product';
 export type BillingInterval = 'month' | 'year';
+export type BillingPurchasableKind = BillingItemKind;
+
+export interface BillingPurchasableEntryBase {
+  key: string;
+  kind: BillingPurchasableKind;
+  title: string;
+  description?: string;
+  enabled?: boolean;
+  hooks?: BillingPurchaseHooks;
+}
+
+export interface BillingSubscriptionPurchasableEntry extends BillingPurchasableEntryBase {
+  kind: 'subscription';
+  backendRef: {
+    productId: string;
+    planId?: string;
+    priceId?: string;
+  };
+  interval?: BillingInterval;
+}
+
+export interface BillingProductPurchasableEntry extends BillingPurchasableEntryBase {
+  kind: 'product';
+  backendRef: {
+    productId: string;
+    priceId?: string;
+  };
+  quantity?: number;
+  creditGrant?: {
+    creditsPerUnit: number;
+    unitName?: string;
+  };
+  creditRedeem?: {
+    productKey: string;
+    creditsPerUnit: number;
+  };
+}
+
+export type BillingPurchasableEntry =
+  | BillingSubscriptionPurchasableEntry
+  | BillingProductPurchasableEntry;
+
+export interface BillingPurchasableWhitelist {
+  purchasableIds?: string[];
+  purchasables?: BillingPurchasableEntry[];
+}
+
+export interface BillingPurchaseRequest {
+  kind: BillingPurchasableKind;
+  key: string;
+  productId: string;
+  productOwner?: string;
+  productName?: string;
+  providerName?: string;
+  pricingName?: string;
+  planName?: string;
+  userName?: string;
+  paymentEnv?: string;
+  customPrice?: number;
+  quantity?: number;
+  returnTo?: string;
+  metadata?: Record<string, string>;
+}
+
+export interface BillingCasdoorProviderOption {
+  name: string;
+  owner?: string;
+  title?: string;
+  description?: string;
+}
+
+export interface BillingCasdoorProviderDetail extends BillingCasdoorProviderOption {
+  createdTime?: string;
+  displayName?: string;
+  category?: string;
+  type?: string;
+  subType?: string;
+  method?: string;
+  clientId?: string;
+  clientSecret?: string;
+  clientId2?: string;
+  clientSecret2?: string;
+  cert?: string;
+  customAuthUrl?: string;
+  customTokenUrl?: string;
+  customUserInfoUrl?: string;
+  customLogo?: string;
+  scopes?: string;
+  userMapping?: Record<string, string>;
+  httpHeaders?: Record<string, string> | null;
+  host?: string;
+  port?: number;
+  disableSsl?: boolean;
+  content?: string;
+  receiver?: string;
+  regionId?: string;
+  signName?: string;
+  templateCode?: string;
+  appId?: string;
+  endpoint?: string;
+  intranetEndpoint?: string;
+  domain?: string;
+  bucket?: string;
+  pathPrefix?: string;
+  metadata?: string;
+  idP?: string;
+  issuerUrl?: string;
+  enableSignAuthnRequest?: boolean;
+  emailRegex?: string;
+  providerUrl?: string;
+  enableProxy?: boolean;
+}
+
+export interface BillingCasdoorOrganizationOption {
+  name: string;
+  displayName?: string;
+}
+
+export interface BillingCasdoorOrganizationDetail extends BillingCasdoorOrganizationOption {
+  owner?: string;
+  createdTime?: string;
+  websiteUrl?: string;
+  logo?: string;
+  logoDark?: string;
+  favicon?: string;
+  hasPrivilegeConsent?: boolean;
+  passwordType?: string;
+  passwordSalt?: string;
+  passwordOptions?: unknown;
+  passwordObfuscatorType?: string;
+  passwordObfuscatorKey?: string;
+  passwordExpireDays?: number;
+  countryCodes?: string[] | null;
+  defaultAvatar?: string;
+  defaultApplication?: string;
+  userTypes?: unknown;
+  tags?: unknown;
+  languages?: string[] | null;
+  themeData?: unknown;
+  masterPassword?: string;
+  defaultPassword?: string;
+  masterVerificationCode?: string;
+  ipWhitelist?: string;
+  initScore?: number;
+  enableSoftDeletion?: boolean;
+  isProfilePublic?: boolean;
+  useEmailAsUsername?: boolean;
+  enableTour?: boolean;
+  disableSignin?: boolean;
+  ipRestriction?: string;
+  navItems?: string[] | null;
+  userNavItems?: unknown;
+  widgetItems?: unknown;
+  mfaItems?: unknown;
+  mfaRememberInHours?: number;
+  accountItems?: unknown;
+  orgBalance?: number;
+  userBalance?: number;
+  balanceCredit?: number;
+  balanceCurrency?: string;
+}
+
+export interface BillingCasdoorProductDetail {
+  owner: string;
+  name: string;
+  createdTime?: string;
+  displayName?: string;
+  image?: string;
+  detail?: string;
+  description?: string;
+  tag?: string;
+  providers?: string[];
+  providerObjs?: BillingCasdoorProviderDetail[];
+  successUrl?: string;
+  returnUrl?: string;
+  price?: number;
+  currency?: string;
+  quantity?: number;
+  sold?: number;
+  isRecharge?: boolean;
+  state?: string;
+}
+
+export interface BillingCasdoorApiResponse<TData = unknown> {
+  status: string;
+  msg: string;
+  sub: string;
+  name: string;
+  data: TData;
+  data2: unknown | null;
+  data3: unknown | null;
+}
+
+export type BillingCasdoorProductResponse = BillingCasdoorApiResponse<BillingCasdoorProductDetail>;
+export type BillingCasdoorOrganizationNamesResponse = BillingCasdoorApiResponse<BillingCasdoorOrganizationDetail[]>;
+
+export interface BillingCasdoorBuyProductRequest {
+  id: string;
+  providerName: string;
+  pricingName?: string;
+  planName?: string;
+  userName?: string;
+  paymentEnv?: string;
+  customPrice?: number;
+}
+
+export type BillingCasdoorBuyProductResponse = BillingCasdoorApiResponse<unknown>;
+
+export interface BillingOrderCreatedContext {
+  request: BillingPurchaseRequest;
+  purchasable: BillingPurchasableEntry;
+  orderId: string | null;
+  paymentId: string | null;
+  redirectTo: string | null;
+  rawResult: unknown;
+}
+
+export interface BillingPaymentCallbackContext {
+  request: Request;
+  url: URL;
+  searchParams: URLSearchParams;
+  params: Record<string, string>;
+  body: unknown;
+  paymentOwner: string | null;
+  paymentName: string | null;
+  paymentId: string | null;
+  orderId: string | null;
+  redirectTo: string | null;
+  status: 'success' | 'failure' | 'finished';
+}
+
+export type BillingPaymentSuccessContext = BillingPaymentCallbackContext;
+
+export interface BillingPaymentFinishedContext extends BillingPaymentCallbackContext {
+  status: 'finished';
+}
+
+export interface BillingPurchaseCompleteContext {
+  request: BillingPurchaseRequest;
+  orderId: string | null;
+  paymentId: string | null;
+  status: 'succeeded' | 'failed' | 'canceled';
+  redirectTo: string | null;
+}
+
+export interface BillingPurchaseHooks {
+  onPurchaseStart?: (context: BillingPurchaseRequest) => void | Promise<void>;
+  onOrderCreated?: (context: BillingOrderCreatedContext) => void | Promise<void>;
+  onPaymentSuccess?: (context: BillingPaymentCallbackContext) => void | Promise<void>;
+  onPaymentFailure?: (context: BillingPaymentCallbackContext) => void | Promise<void>;
+  onPaymentFinished?: (context: BillingPaymentFinishedContext) => void | Promise<void>;
+  onPurchaseComplete?: (context: BillingPurchaseCompleteContext) => void | Promise<void>;
+}
 
 export interface BillingConversionRule {
   productKey: string;
@@ -46,6 +299,8 @@ export interface BillingItem {
 export interface BillingRuntimeConfig {
   catalogKey: string;
   items: BillingItem[];
+  purchasableIds?: string[];
+  purchasables?: BillingPurchasableEntry[];
   conversionRules?: BillingConversionRule[];
   defaults?: BillingDefaults;
 }
@@ -56,17 +311,6 @@ export interface BillingCatalogConfig extends BillingRuntimeConfig {
   portalPath?: string;
   successPath?: string;
   cancelPath?: string;
-}
-
-export interface BillingPaymentSuccessContext {
-  request: Request;
-  url: URL;
-  searchParams: URLSearchParams;
-  params: Record<string, string>;
-  body: unknown;
-  paymentId: string | null;
-  orderId: string | null;
-  redirectTo: string | null;
 }
 
 export type BillingPaymentSuccessHandlerResult =
@@ -82,15 +326,24 @@ export type BillingPaymentSuccessHandler = (
   context: BillingPaymentSuccessContext,
 ) => BillingPaymentSuccessHandlerResult | Promise<BillingPaymentSuccessHandlerResult>;
 
-export type BillingPaymentFinishedHandler = BillingPaymentSuccessHandler;
+export type BillingPaymentFinishedHandler = (
+  context: BillingPaymentFinishedContext,
+) => BillingPaymentSuccessHandlerResult | Promise<BillingPaymentSuccessHandlerResult>;
 
-export interface BillingPaymentSuccessRouteOptions {
+export interface BillingPaymentRouteBaseOptions {
   appUrl?: string;
   fallbackRedirect?: string;
-  handler?: BillingPaymentSuccessHandler;
 }
 
-export type BillingPaymentFinishedRouteOptions = BillingPaymentSuccessRouteOptions;
+export interface BillingPaymentSuccessRouteOptions extends BillingPaymentRouteBaseOptions {
+  handler?: BillingPaymentSuccessHandler;
+  phase?: 'success' | 'failure';
+}
+
+export interface BillingPaymentFinishedRouteOptions extends BillingPaymentRouteBaseOptions {
+  handler?: BillingPaymentFinishedHandler;
+  phase?: 'finished';
+}
 
 export type BillingActionKind = 'purchase' | 'subscribe' | 'manage' | 'upgrade' | 'cancel';
 
@@ -120,6 +373,12 @@ export interface BillingActionPayload {
   productId?: string;
   planId?: string;
   priceId?: string;
+  providerName?: string;
+  pricingName?: string;
+  planName?: string;
+  userName?: string;
+  paymentEnv?: string;
+  customPrice?: number;
   quantity?: number;
   interval?: BillingInterval;
   subscriptionConfig?: BillingSubscriptionPurchaseConfig;
@@ -138,6 +397,8 @@ export interface BillingProductSnapshot {
   interval?: BillingInterval;
   creditGrant?: BillingItem['creditGrant'];
   creditRedeem?: BillingItem['creditRedeem'];
+  providers?: string[];
+  providerObjs?: BillingCasdoorProviderDetail[];
   metadata?: Record<string, string>;
 }
 
@@ -174,6 +435,8 @@ export interface BillingProductState {
   creditsBalance?: number;
   creditGrant?: BillingItem['creditGrant'];
   creditRedeem?: BillingItem['creditRedeem'];
+  providers?: string[];
+  providerObjs?: BillingCasdoorProviderDetail[];
   updatedAt?: string;
 }
 
@@ -255,12 +518,21 @@ export interface BillingApiClient {
   fetchPurchaseStatus: (args: { orderId?: string; paymentId?: string; transactionId?: string }) => Promise<BillingPurchaseStatus>;
   fetchCredits: (args: { userId?: string; catalogKey?: string }) => Promise<BillingCreditsState>;
   fetchEntitlements: (args: { userId?: string; catalogKey?: string }) => Promise<BillingEntitlementState>;
-  createAction: (payload: BillingActionPayload) => Promise<{
-    redirectTo?: string;
-    nextAction?: string;
-    status?: 'pending' | 'succeeded' | 'failed';
-  }>;
+  fetchProduct?: (args: { id: string }) => Promise<BillingCasdoorProductResponse>;
+  fetchOrganizationNames?: (args: { owner: string }) => Promise<BillingCasdoorOrganizationNamesResponse>;
+  buyProduct?: (args: BillingCasdoorBuyProductRequest) => Promise<BillingCasdoorBuyProductResponse>;
+  createAction: (payload: BillingActionPayload) => Promise<BillingActionExecutionResult>;
   refresh: (args: { userId?: string; catalogKey?: string }) => Promise<void>;
+}
+
+export interface BillingActionExecutionResult {
+  redirectTo?: string;
+  nextAction?: string;
+  status?: 'pending' | 'succeeded' | 'failed';
+  orderId?: string;
+  paymentId?: string;
+  transactionId?: string;
+  rawResult?: unknown;
 }
 
 export interface BillingLoaders {
@@ -273,14 +545,13 @@ export interface BillingLoaders {
   purchaseStatusLoader?: (args: { orderId?: string; paymentId?: string; transactionId?: string }) => Promise<BillingPurchaseStatus>;
   creditsLoader?: (args: { userId?: string; catalogKey?: string }) => Promise<BillingCreditsState>;
   entitlementsLoader?: (args: { userId?: string; catalogKey?: string }) => Promise<BillingEntitlementState>;
+  productLoader?: (args: { id: string }) => Promise<BillingCasdoorProductResponse>;
+  organizationNamesLoader?: (args: { owner: string }) => Promise<BillingCasdoorOrganizationNamesResponse>;
+  buyProductLoader?: (args: BillingCasdoorBuyProductRequest) => Promise<BillingCasdoorBuyProductResponse>;
 }
 
 export interface BillingActionExecutor {
-  (payload: BillingActionPayload): Promise<{
-    redirectTo?: string;
-    nextAction?: string;
-    status?: 'pending' | 'succeeded' | 'failed';
-  }>;
+  (payload: BillingActionPayload): Promise<BillingActionExecutionResult>;
 }
 
 export interface BillingSubscriptionContextValue {
@@ -299,6 +570,13 @@ export interface BillingProductContextValue {
   status?: BillingStatusState;
 }
 
+export interface BillingProductDetailState {
+  product?: BillingCasdoorProductDetail;
+  loading: boolean;
+  error: string | null;
+  refresh: () => Promise<void>;
+}
+
 export interface BillingCreditsContextValue {
   credits?: BillingCreditsState;
   status?: BillingStatusState;
@@ -310,6 +588,7 @@ export interface BillingCoreContextValue {
   loaders?: BillingLoaders;
   actionExecutor?: BillingActionExecutor;
   defaults?: BillingDefaults;
+  purchaseHooks?: BillingPurchaseHooks;
   runtimeConfig?: BillingRuntimeConfig;
   runtimeCatalog?: BillingCatalogConfig;
   runtimeConfigLoading: boolean;
@@ -326,11 +605,7 @@ export interface BillingCoreContextValue {
   purchaseStatus?: BillingPurchaseStatus;
   status: BillingStatusState;
   refresh: () => Promise<void>;
-  runAction: (payload: BillingActionPayload) => Promise<{
-    redirectTo?: string;
-    nextAction?: string;
-    status?: 'pending' | 'succeeded' | 'failed';
-  }>;
+  runAction: (payload: BillingActionPayload) => Promise<BillingActionExecutionResult>;
   setRuntimeConfig: (config?: BillingRuntimeConfig) => void;
   setSubscription: (value?: BillingSubscriptionState) => void;
   setSubscriptionHistory: (value?: BillingSubscriptionHistoryItem[]) => void;

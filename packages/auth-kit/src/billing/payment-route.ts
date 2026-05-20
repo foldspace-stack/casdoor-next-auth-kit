@@ -1,15 +1,22 @@
 import { NextResponse } from 'next/server';
 
 import { resolvePublicOrigin } from '../core/origin';
+import { buildBillingPaymentCallbackContext } from './runtime';
 import type {
+  BillingPaymentRouteBaseOptions,
+  BillingPaymentFinishedRouteOptions,
+  BillingPaymentFinishedContext,
+  BillingPaymentFinishedHandler,
   BillingPaymentSuccessContext,
   BillingPaymentSuccessHandlerResult,
   BillingPaymentSuccessRouteOptions,
 } from './types';
 
-export interface BillingPaymentRouteOptions extends BillingPaymentSuccessRouteOptions {
+export interface BillingPaymentRouteOptions extends BillingPaymentRouteBaseOptions {
   routePath: string;
   missingHandlerFile: string;
+  handler?: BillingPaymentSuccessRouteOptions['handler'] | BillingPaymentFinishedRouteOptions['handler'];
+  phase?: 'success' | 'failure' | 'finished';
 }
 
 function sanitizeRedirectPath(value: string | null | undefined, fallback: string): string {
@@ -27,52 +34,6 @@ function isDebugEnabled(): boolean {
   }
 
   return ['1', 'true', 'yes', 'on'].includes(value.toLowerCase());
-}
-
-async function readRequestBody(request: Request): Promise<unknown> {
-  if (request.method === 'GET' || request.method === 'HEAD') {
-    return null;
-  }
-
-  const rawBody = await request.clone().text();
-  if (!rawBody) {
-    return null;
-  }
-
-  const contentType = request.headers.get('content-type') ?? '';
-  if (contentType.includes('application/json')) {
-    try {
-      return JSON.parse(rawBody);
-    } catch {
-      return rawBody;
-    }
-  }
-
-  if (contentType.includes('application/x-www-form-urlencoded')) {
-    return Object.fromEntries(new URLSearchParams(rawBody).entries());
-  }
-
-  return rawBody;
-}
-
-async function buildContext(request: Request): Promise<BillingPaymentSuccessContext> {
-  const url = new URL(request.url);
-  const params: Record<string, string> = {};
-
-  for (const [key, value] of url.searchParams.entries()) {
-    params[key] = value;
-  }
-
-  return {
-    request,
-    url,
-    searchParams: url.searchParams,
-    params,
-    paymentId: url.searchParams.get('paymentId'),
-    orderId: url.searchParams.get('orderId'),
-    redirectTo: url.searchParams.get('redirect') ?? url.searchParams.get('returnTo'),
-    body: await readRequestBody(request),
-  };
 }
 
 function resolveRedirectTarget(
@@ -106,6 +67,8 @@ function logMissingPaymentHandler(
       `Edit this file to handle ${routePath} with order/payment enrichment before redirecting. ` +
       `Falling back to ${fallbackRedirect}.`,
     {
+      paymentOwner: context.paymentOwner,
+      paymentName: context.paymentName,
       paymentId: context.paymentId,
       orderId: context.orderId,
       params: context.params,
@@ -119,7 +82,7 @@ export async function createBillingPaymentRouteResponse(
 ) {
   const origin = resolvePublicOrigin(request, options.appUrl);
   const fallbackRedirect = options.fallbackRedirect ?? '/';
-  const context = await buildContext(request);
+  const context = await buildBillingPaymentCallbackContext(request, options.phase);
 
   if (isDebugEnabled()) {
     console.info(`[casdoor-next-auth-kit] ${options.routePath} request`, {
@@ -132,7 +95,11 @@ export async function createBillingPaymentRouteResponse(
 
   try {
     if (options.handler) {
-      const result = await options.handler(context);
+      const handler = options.handler;
+      const result =
+        options.phase === 'finished'
+          ? await (handler as BillingPaymentFinishedHandler)(context as BillingPaymentFinishedContext)
+          : await (handler as NonNullable<BillingPaymentSuccessRouteOptions['handler']>)(context);
       if (result instanceof Response) {
         return result;
       }

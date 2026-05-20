@@ -13,21 +13,32 @@ import {
 
 import {
   buildBillingActionPayload,
+  buildBillingPurchaseRequest,
   deriveBillingCreditsState,
   deriveBillingEntitlements,
+  filterBillingPurchasableItems,
   normalizeBillingPurchaseStatus,
   normalizeBillingCatalogConfig,
   normalizeBillingRuntimeConfig,
   resolveBillingItem,
+  resolveBillingPurchasable,
   resolveBillingProductSnapshot,
   resolveBillingSubscriptionProduct,
 } from './runtime';
+import {
+  buildCasdoorBuyProductRequest,
+  normalizeCasdoorProductId,
+} from './casdoor-purchase.js';
 import type {
   BillingActionExecutor,
   BillingActionKind,
+  BillingActionExecutionResult,
   BillingActionPayload,
   BillingApiClient,
   BillingCatalogConfig,
+  BillingCasdoorBuyProductRequest,
+  BillingCasdoorBuyProductResponse,
+  BillingCasdoorProductDetail,
   BillingCoreContextValue,
   BillingCreditsContextValue,
   BillingCreditsState,
@@ -40,14 +51,13 @@ import type {
   BillingProductState,
   BillingProductContextValue,
   BillingProductSnapshot,
+  BillingPurchaseHooks,
   BillingPurchaseStatus,
   BillingRuntimeConfig,
   BillingStatusState,
   BillingSubscriptionContextValue,
   BillingSubscriptionHistoryItem,
-  BillingSubscriptionPurchaseConfig,
   BillingSubscriptionState,
-  BillingProductPurchaseConfig,
 } from './types';
 
 export interface BillingProviderProps {
@@ -67,6 +77,7 @@ export interface BillingProviderProps {
   entitlements?: BillingEntitlementState;
   status?: BillingStatusState;
   purchaseStatus?: BillingPurchaseStatus;
+  purchaseHooks?: BillingPurchaseHooks;
   autoRefresh?: boolean;
 }
 
@@ -122,6 +133,22 @@ function choose<T>(primary: T | undefined, fallback: T | undefined): T | undefin
   return primary ?? fallback;
 }
 
+async function runPurchaseHook<T>(
+  name: string,
+  hook: ((context: T) => void | Promise<void>) | undefined,
+  context: T | undefined,
+): Promise<void> {
+  if (!hook || context === undefined) {
+    return;
+  }
+
+  try {
+    await hook(context);
+  } catch (error) {
+    console.error(`[casdoor-next-auth-kit] billing ${name} hook failed`, error);
+  }
+}
+
 function getLatestOrder(orders: BillingOrderHistoryItem[] | undefined): BillingOrderHistoryItem | undefined {
   return [...(orders ?? [])].sort((a, b) => {
     const left = Date.parse(b.updatedAt ?? b.createdAt ?? '') || 0;
@@ -136,6 +163,108 @@ function getLatestPayment(payments: BillingPaymentHistoryItem[] | undefined): Bi
     const right = Date.parse(a.updatedAt ?? a.createdAt ?? '') || 0;
     return left - right;
   })[0];
+}
+
+function extractCasdoorResponseData<TData>(response: { data?: TData } | TData | undefined): TData | undefined {
+  if (!response) return undefined;
+  if (typeof response === 'object' && response !== null && 'data' in response) {
+    return (response as { data?: TData }).data;
+  }
+  return response as TData;
+}
+
+function readBuyProductRedirectTo(value: unknown): string | undefined {
+  if (typeof value === 'string' && value.trim()) {
+    return value;
+  }
+  if (!value || typeof value !== 'object') {
+    return undefined;
+  }
+
+  const record = value as Record<string, unknown>;
+  for (const key of ['redirectTo', 'redirectUrl', 'redirect_url', 'url', 'href', 'location']) {
+    const candidate = record[key];
+    if (typeof candidate === 'string' && candidate.trim()) {
+      return candidate;
+    }
+  }
+
+  return undefined;
+}
+
+function normalizeBuyProductExecutionResult(response: BillingCasdoorBuyProductResponse, fallbackRedirectTo?: string) {
+  const statusText = typeof response.status === 'string' ? response.status.toLowerCase() : '';
+  const status = statusText.includes('fail') || statusText.includes('error') || statusText.includes('cancel')
+    ? 'failed'
+    : statusText.includes('pend') || statusText.includes('require')
+      ? 'pending'
+      : 'succeeded';
+
+  return {
+    status,
+    redirectTo:
+      readBuyProductRedirectTo(response.data) ??
+      readBuyProductRedirectTo(response.data2) ??
+      readBuyProductRedirectTo(response.data3) ??
+      fallbackRedirectTo,
+    rawResult: response,
+  } satisfies BillingActionExecutionResult;
+}
+
+async function runCasdoorProductPurchase(
+  purchaseRequest: NonNullable<ReturnType<typeof buildBillingPurchaseRequest>>,
+  apiClient: BillingApiClient,
+  loaders: BillingLoaders | undefined,
+): Promise<BillingActionExecutionResult | null> {
+  const buyProductLoader = loaders?.buyProductLoader ?? apiClient.buyProduct;
+  if (!buyProductLoader) {
+    return null;
+  }
+
+  const productLoader = loaders?.productLoader ?? apiClient.fetchProduct;
+  const organizationNamesLoader = loaders?.organizationNamesLoader ?? apiClient.fetchOrganizationNames;
+
+  let productDetail: BillingCasdoorProductDetail | undefined;
+  if (productLoader) {
+    const productResponse = await productLoader({ id: purchaseRequest.productId }).catch(() => undefined);
+    productDetail = extractCasdoorResponseData<BillingCasdoorProductDetail>(productResponse);
+  }
+
+  if (!productDetail) {
+    if (purchaseRequest.productOwner && purchaseRequest.productName) {
+      productDetail = {
+        owner: purchaseRequest.productOwner,
+        name: purchaseRequest.productName,
+      };
+    } else {
+      try {
+        const normalized = normalizeCasdoorProductId(purchaseRequest.productId);
+        productDetail = {
+          owner: normalized.owner,
+          name: normalized.name,
+        };
+      } catch {
+        return null;
+      }
+    }
+  }
+
+  if (organizationNamesLoader && productDetail.owner) {
+    const organizationResponse = await organizationNamesLoader({ owner: productDetail.owner }).catch(() => undefined);
+    void extractCasdoorResponseData(organizationResponse);
+  }
+
+  const buyRequest: BillingCasdoorBuyProductRequest = buildCasdoorBuyProductRequest(
+    purchaseRequest,
+    productDetail,
+    purchaseRequest.providerName,
+  );
+
+  const response = await buyProductLoader(buyRequest);
+  return normalizeBuyProductExecutionResult(
+    response,
+    purchaseRequest.returnTo ?? productDetail.returnUrl ?? productDetail.successUrl,
+  );
 }
 
 function normalizeRuntimeConfigInput(config?: BillingRuntimeConfig | BillingCatalogConfig | null): BillingRuntimeConfig | undefined {
@@ -166,13 +295,10 @@ function buildCoreValue(input: {
   credits?: BillingCreditsState;
   entitlements?: BillingEntitlementState;
   purchaseStatus?: BillingPurchaseStatus;
+  purchaseHooks?: BillingPurchaseHooks;
   status: BillingStatusState;
   refresh: () => Promise<void>;
-  runAction: (payload: BillingActionPayload) => Promise<{
-    redirectTo?: string;
-    nextAction?: string;
-    status?: 'pending' | 'succeeded' | 'failed';
-  }>;
+  runAction: (payload: BillingActionPayload) => Promise<BillingActionExecutionResult>;
   setRuntimeConfig: (config?: BillingRuntimeConfig) => void;
   setSubscription: (value?: BillingSubscriptionState) => void;
   setSubscriptionHistory: (value?: BillingSubscriptionHistoryItem[]) => void;
@@ -199,9 +325,18 @@ function buildCoreValue(input: {
     products: input.products,
     orderHistory: input.orderHistory,
     paymentHistory: input.paymentHistory,
+    availablePlans: filterBillingPurchasableItems(
+      input.runtimeConfig?.items?.filter((item) => item.kind === 'subscription'),
+      input.runtimeConfig ?? input.runtimeCatalog,
+    ),
+    availableProducts: filterBillingPurchasableItems(
+      input.runtimeConfig?.items?.filter((item) => item.kind === 'product'),
+      input.runtimeConfig ?? input.runtimeCatalog,
+    ),
     credits: input.credits,
     entitlements: input.entitlements,
     purchaseStatus: input.purchaseStatus,
+    purchaseHooks: input.purchaseHooks,
     status: input.status,
     refresh: input.refresh,
     runAction: input.runAction,
@@ -235,6 +370,7 @@ export function BillingProvider({
   entitlements: entitlementsProp,
   status: statusProp,
   purchaseStatus: purchaseStatusProp,
+  purchaseHooks,
   autoRefresh = true,
 }: BillingProviderProps) {
   const [runtimeConfig, setRuntimeConfig] = useState<BillingRuntimeConfig | undefined>(normalizeRuntimeConfigInput(runtimeConfigProp));
@@ -384,6 +520,17 @@ export function BillingProvider({
     async (payload: BillingActionPayload) => {
       const prepared = buildBillingActionPayload(payload, runtimeConfig);
       const executor = actionExecutor ?? ((input: BillingActionPayload) => apiClient.createAction(input));
+      const isPurchaseFlow = prepared.kind === 'purchase' || prepared.kind === 'subscribe';
+      const purchasable = isPurchaseFlow
+        ? resolveBillingPurchasable(runtimeConfig, prepared.key) ?? resolveBillingPurchasable(runtimeConfig, prepared.productId)
+        : undefined;
+      const purchaseRequest = isPurchaseFlow ? buildBillingPurchaseRequest(prepared, runtimeConfig) : null;
+
+      if (isPurchaseFlow && !purchasable) {
+        throw new Error(`Billing item "${prepared.key}" is not purchasable in the current runtime config.`);
+      }
+
+      await runPurchaseHook('onPurchaseStart', purchaseHooks?.onPurchaseStart, purchaseRequest ?? undefined);
 
       setPurchaseStatus((current) => ({
         actionKey: prepared.key,
@@ -397,23 +544,89 @@ export function BillingProvider({
       setStatus((current) => ({ ...current, loading: true, refreshing: true, error: null }));
 
       try {
-        const result = await executor(prepared);
+        let result: BillingActionExecutionResult;
+        let usedCasdoorPurchaseFlow = false;
+        if (isPurchaseFlow && purchaseRequest) {
+          const casdoorResult = await runCasdoorProductPurchase(
+            purchaseRequest as NonNullable<ReturnType<typeof buildBillingPurchaseRequest>>,
+            apiClient,
+            loaders,
+          );
+          if (casdoorResult) {
+            result = casdoorResult;
+            usedCasdoorPurchaseFlow = true;
+          } else {
+            result = await executor(prepared);
+          }
+        } else {
+          result = await executor(prepared);
+        }
+        await runPurchaseHook(
+          'onOrderCreated',
+          purchaseHooks?.onOrderCreated,
+          purchaseRequest && purchasable
+            ? {
+                request: purchaseRequest,
+                purchasable,
+                orderId: result.orderId ?? null,
+                paymentId: result.paymentId ?? null,
+                redirectTo: result.redirectTo ?? null,
+                rawResult: result.rawResult ?? result,
+              }
+            : undefined,
+        );
+
         setPurchaseStatus((current) => ({
           actionKey: prepared.key,
           orderId: current?.orderId,
           paymentId: current?.paymentId,
           transactionId: current?.transactionId,
-          status: result.status === 'failed' ? 'failed' : result.status === 'succeeded' ? 'paid' : 'pending',
+          status:
+            usedCasdoorPurchaseFlow && result.status !== 'failed'
+              ? 'requires_payment'
+              : result.status === 'failed'
+                ? 'failed'
+                : result.status === 'succeeded'
+                  ? 'paid'
+                  : 'pending',
           redirectTo: result.redirectTo ?? current?.redirectTo,
           updatedAt: new Date().toISOString(),
         }));
         if (result.redirectTo || result.nextAction) {
           // host handles the redirect/next action, we only persist the result
         }
+
+        await runPurchaseHook(
+          'onPurchaseComplete',
+          purchaseHooks?.onPurchaseComplete,
+          purchaseRequest
+            ? {
+                request: purchaseRequest,
+                orderId: result.orderId ?? null,
+                paymentId: result.paymentId ?? null,
+                status: result.status === 'failed' ? 'failed' : 'succeeded',
+                redirectTo: result.redirectTo ?? null,
+              }
+            : undefined,
+        );
+
         await refresh();
         return result;
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
+        await runPurchaseHook(
+          'onPurchaseComplete',
+          purchaseHooks?.onPurchaseComplete,
+          purchaseRequest
+            ? {
+                request: purchaseRequest,
+                orderId: null,
+                paymentId: null,
+                status: 'failed',
+                redirectTo: null,
+              }
+            : undefined,
+        );
         setPurchaseStatus((current) => ({
           actionKey: prepared.key,
           orderId: current?.orderId,
@@ -427,7 +640,7 @@ export function BillingProvider({
         throw error;
       }
     },
-    [actionExecutor, apiClient, refresh, runtimeConfig],
+    [actionExecutor, apiClient, loaders, purchaseHooks, refresh, runtimeConfig],
   );
 
   useEffect(() => {
@@ -458,6 +671,7 @@ export function BillingProvider({
         credits,
         entitlements,
         purchaseStatus,
+        purchaseHooks,
         status,
         refresh,
         runAction,
@@ -482,6 +696,7 @@ export function BillingProvider({
       paymentHistory,
       products,
       purchaseStatus,
+      purchaseHooks,
       refresh,
       runAction,
       runtimeConfig,
@@ -520,15 +735,20 @@ export function SubscriptionProvider({
   status,
 }: BillingSubscriptionProviderProps) {
   const core = useOptionalContext(BillingCoreContext);
+  const runtimeConfig = core?.runtimeConfig ?? core?.runtimeCatalog;
+  const visiblePlans = choose(availablePlans, core?.availablePlans);
   const value = useMemo<BillingSubscriptionContextValue>(
     () => ({
-      availablePlans: choose(availablePlans, core?.runtimeConfig?.items?.filter((item) => item.kind === 'subscription')),
+      availablePlans: choose(
+        visiblePlans ? filterBillingPurchasableItems(visiblePlans, runtimeConfig) : undefined,
+        filterBillingPurchasableItems(core?.runtimeConfig?.items?.filter((item) => item.kind === 'subscription'), runtimeConfig),
+      ),
       subscription: choose(subscription, core?.subscription),
       subscriptionHistory: choose(subscriptionHistory, core?.subscriptionHistory),
       entitlements: choose(entitlements, core?.entitlements),
       status: choose(status, core?.status),
     }),
-    [availablePlans, core?.entitlements, core?.runtimeConfig?.items, core?.status, core?.subscription, core?.subscriptionHistory, entitlements, status, subscription, subscriptionHistory],
+    [availablePlans, core?.availablePlans, core?.entitlements, core?.runtimeCatalog, core?.runtimeConfig, core?.status, core?.subscription, core?.subscriptionHistory, entitlements, runtimeConfig, status, subscription, subscriptionHistory, visiblePlans],
   );
 
   return <BillingSubscriptionContext.Provider value={value}>{children}</BillingSubscriptionContext.Provider>;
@@ -543,15 +763,20 @@ export function ProductProvider({
   status,
 }: BillingProductProviderProps) {
   const core = useOptionalContext(BillingCoreContext);
+  const runtimeConfig = core?.runtimeConfig ?? core?.runtimeCatalog;
+  const visibleProducts = choose(availableProducts, core?.availableProducts);
   const value = useMemo<BillingProductContextValue>(
     () => ({
-      availableProducts: choose(availableProducts, core?.runtimeConfig?.items?.filter((item) => item.kind === 'product')),
+      availableProducts: choose(
+        visibleProducts ? filterBillingPurchasableItems(visibleProducts, runtimeConfig) : undefined,
+        filterBillingPurchasableItems(core?.runtimeConfig?.items?.filter((item) => item.kind === 'product'), runtimeConfig),
+      ),
       products: choose(products, core?.products),
       orderHistory: choose(orderHistory, core?.orderHistory),
       paymentHistory: choose(paymentHistory, core?.paymentHistory),
       status: choose(status, core?.status),
     }),
-    [availableProducts, core?.orderHistory, core?.paymentHistory, core?.products, core?.runtimeConfig?.items, core?.status, orderHistory, paymentHistory, products, status],
+    [availableProducts, core?.availableProducts, core?.orderHistory, core?.paymentHistory, core?.products, core?.runtimeCatalog, core?.runtimeConfig, core?.status, orderHistory, paymentHistory, products, runtimeConfig, status, visibleProducts],
   );
 
   return <BillingProductContext.Provider value={value}>{children}</BillingProductContext.Provider>;
@@ -614,6 +839,104 @@ export function useBillingItem(itemKey: string): BillingItemState {
   }, [core.refresh, core.runtimeConfig?.items, core.runtimeConfigError, core.runtimeConfigLoading, itemKey]);
 }
 
+export interface BillingProductDetailState {
+  product?: BillingCasdoorProductDetail;
+  loading: boolean;
+  error: string | null;
+  refresh: () => Promise<void>;
+}
+
+export function useBillingProductDetail(productId: string): BillingProductDetailState {
+  const core = useRequiredCoreContext();
+  const productLoader = core.loaders?.productLoader ?? core.apiClient.fetchProduct;
+  const [product, setProduct] = useState<BillingCasdoorProductDetail | undefined>();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    if (!productLoader || !productId) {
+      setProduct(undefined);
+      setError(productId ? 'Missing Casdoor product loader.' : null);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await productLoader({ id: productId });
+      const detail = extractCasdoorResponseData<BillingCasdoorProductDetail>(response);
+      setProduct(detail);
+      setError(null);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setProduct(undefined);
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  }, [productId, productLoader]);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  return useMemo(
+    () => ({
+      product,
+      loading: loading || core.runtimeConfigLoading || core.status.loading,
+      error: error ?? core.runtimeConfigError ?? core.status.error,
+      refresh,
+    }),
+    [core.runtimeConfigError, core.runtimeConfigLoading, core.status.error, core.status.loading, error, loading, product, refresh],
+  );
+}
+
+export interface BillingProductPurchaseOptionsState {
+  product?: BillingCasdoorProductDetail;
+  providers: BillingCasdoorProductDetail['providers'];
+  providerObjs: BillingCasdoorProductDetail['providerObjs'];
+  providerName?: string;
+  selectedProvider?: NonNullable<BillingCasdoorProductDetail['providerObjs']>[number];
+  setProviderName: (providerName?: string) => void;
+  loading: boolean;
+  error: string | null;
+  refresh: () => Promise<void>;
+}
+
+export function useBillingProductPurchaseOptions(productId: string, preferredProviderName?: string): BillingProductPurchaseOptionsState {
+  const detailState = useBillingProductDetail(productId);
+  const [providerName, setProviderName] = useState<string | undefined>(preferredProviderName);
+
+  useEffect(() => {
+    if (preferredProviderName) {
+      setProviderName(preferredProviderName);
+      return;
+    }
+
+    const product = detailState.product;
+    const fallbackProvider = product?.providers?.[0] ?? product?.providerObjs?.[0]?.name;
+    if (!providerName || (product && !product.providers?.includes(providerName) && !product.providerObjs?.some((item) => item.name === providerName))) {
+      setProviderName(fallbackProvider);
+    }
+  }, [detailState.product, preferredProviderName, providerName]);
+
+  return useMemo(
+    () => ({
+      product: detailState.product,
+      providers: detailState.product?.providers ?? [],
+      providerObjs: detailState.product?.providerObjs ?? [],
+      providerName,
+      selectedProvider: detailState.product?.providerObjs?.find((item) => item.name === providerName),
+      setProviderName,
+      loading: detailState.loading,
+      error: detailState.error,
+      refresh: detailState.refresh,
+    }),
+    [detailState.error, detailState.loading, detailState.product, detailState.refresh, providerName],
+  );
+}
+
 export interface BillingProductsState {
   products: BillingProductState[];
   loading: boolean;
@@ -646,7 +969,7 @@ export interface BillingAvailablePlansState {
 export function useBillingAvailablePlans(): BillingAvailablePlansState {
   const core = useRequiredCoreContext();
   const subscriptionContext = useOptionalContext(BillingSubscriptionContext);
-  const plans = choose(subscriptionContext?.availablePlans, core.runtimeConfig?.items?.filter((item) => item.kind === 'subscription')) ?? [];
+  const plans = choose(subscriptionContext?.availablePlans, core.availablePlans) ?? [];
   return useMemo(
     () => ({
       plans,
@@ -654,7 +977,7 @@ export function useBillingAvailablePlans(): BillingAvailablePlansState {
       error: core.runtimeConfigError ?? core.status.error,
       refresh: core.refresh,
     }),
-    [core.refresh, core.runtimeConfig?.items, core.runtimeConfigError, core.runtimeConfigLoading, core.status.error, core.status.loading, plans],
+    [core.availablePlans, core.refresh, core.runtimeConfigError, core.runtimeConfigLoading, core.status.error, core.status.loading, plans],
   );
 }
 
@@ -668,7 +991,7 @@ export interface BillingAvailableProductsState {
 export function useBillingAvailableProducts(): BillingAvailableProductsState {
   const core = useRequiredCoreContext();
   const productContext = useOptionalContext(BillingProductContext);
-  const items = choose(productContext?.availableProducts, core.runtimeConfig?.items?.filter((item) => item.kind === 'product')) ?? [];
+  const items = choose(productContext?.availableProducts, core.availableProducts) ?? [];
   return useMemo(
     () => ({
       items,
@@ -676,7 +999,7 @@ export function useBillingAvailableProducts(): BillingAvailableProductsState {
       error: core.runtimeConfigError ?? core.status.error,
       refresh: core.refresh,
     }),
-    [core.refresh, core.runtimeConfig?.items, core.runtimeConfigError, core.runtimeConfigLoading, core.status.error, core.status.loading, items],
+    [core.availableProducts, core.refresh, core.runtimeConfigError, core.runtimeConfigLoading, core.status.error, core.status.loading, items],
   );
 }
 
