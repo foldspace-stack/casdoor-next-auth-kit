@@ -42,8 +42,23 @@
 - `runtimeConfig`: full catalog configuration
 - `availablePlans`: subscription items only
 - `availableProducts`: product items
+- `purchasableIds`: 当前工程允许购买的 item key / productId / planId 白名单
+- `purchasables`: 当前工程允许购买的显式条目定义，适合需要补充 hooks 或额外字段的场景
+
+当宿主需要直接对接 Casdoor 商品购买时，还可以提供 `fetchProduct`、`fetchOrganizationNames` 和 `buyProduct` 这类 loader，让包内购买适配器按 `owner/name` 解析商品 ID 并自动选择 provider。这里 loader 约定拿到的是 Casdoor 的标准响应 envelope，再从 `data` 里取出商品或组织列表。这样宿主只需要配置少量允许购买的 product id，Casdoor 里可以继续保留更大的商品集合。
+
+建议宿主侧的 `productId` 直接使用 `owner/name` 格式，例如 `qixiaoju/创小剧积分包-50`，它要和 `GET /api/get-product?id=qixiaoju/创小剧积分包-50` 里的查询值保持一致；如果只配置 Casdoor 原始的内部 ID，包内适配器在缺少商品详情 loader 时会回退到旧的通用 action 流程。
+
+`useBillingProductDetail(productId)` 可以直接拿到 Casdoor 商品详情，包括 `providers` 和 `providerObjs`，适合商品详情页展示支持的支付方式，以及按 provider 生成不同的购买参数。
+
+当宿主选择了某个支付方式后，可以把对应的 `providerName` 直接传给 `usePurchaseProduct().run({ key, providerName })`，让包内适配器用这个 provider 发起 Casdoor 下单。
+
+如果宿主想少写一些样板代码，可以直接用 `useBillingProductPurchaseOptions(productId)`，它会同时返回商品详情、`providers`、`providerObjs`、当前选中的 `providerName`，并带一个 `setProviderName`。
+
+这个 hook 只是给单选场景提供默认态；如果宿主想同时渲染两个不同的支付入口，直接遍历 `providerObjs` 就行，`selectedProvider` 只是一个方便的当前选中项引用，不会限制宿主的 UI 结构。
 
 runtime 也可以从 `runtimeConfig.items` 推导 `availablePlans` 和 `availableProducts`，但显式注入更利于宿主侧控制。
+当 `purchasableIds` 非空时，`BillingProvider` 只会对名单内的商品做购买动作和可购买列表暴露。
 
 ## 主要 Hooks
 
@@ -55,6 +70,8 @@ runtime 也可以从 `runtimeConfig.items` 推导 `availablePlans` 和 `availabl
 - `useBillingSubscriptionProduct`
 - `useBillingProducts`
 - `useBillingProduct`
+- `useBillingProductDetail`
+- `useBillingProductPurchaseOptions`
 - `useBillingOrderHistory`
 - `useBillingPaymentHistory`
 - `useBillingCredits`
@@ -63,6 +80,7 @@ runtime 也可以从 `runtimeConfig.items` 推导 `availablePlans` 和 `availabl
 - `useBillingRefresh`
 - `useSubscribePlan`
 - `usePurchaseProduct`
+- `useBillingPipeline`
 
 ## 示例文件
 

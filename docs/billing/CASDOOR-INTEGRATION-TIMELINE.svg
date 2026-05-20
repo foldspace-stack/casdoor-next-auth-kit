@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1760" height="1080" viewBox="0 0 1760 1080" role="img" aria-labelledby="title desc">
   <title id="title">Billing to Casdoor Integration Timeline</title>
-  <desc id="desc">Sequence diagram showing how billing catalog configuration maps to Casdoor payloads and how the payment-success and payment-finished routes delegate to host handlers.</desc>
+  <desc id="desc">Sequence diagram showing how billing catalog configuration, purchasableIds, Casdoor product detail lookup, and buy-product compatibility flow map to the payment-success and payment-finished host handlers.</desc>
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
       <path d="M 0 0 L 10 5 L 0 10 z" fill="#344054"/>
@@ -84,7 +84,7 @@
   <g transform="translate(70,250)">
     <rect class="step" x="0" y="0" width="1530" height="86"/>
     <text class="note-title" x="22" y="26">1. Configure catalog</text>
-    <text class="note-text" x="22" y="50">Admin defines BillingRuntimeConfig and BillingItem list. kind is a runtime category, backendRef holds the Casdoor mapping.</text>
+    <text class="note-text" x="22" y="50">Admin defines BillingRuntimeConfig, BillingItem list, and purchasableIds whitelist. kind is a runtime category, backendRef holds the Casdoor mapping.</text>
     <text class="note-text" x="22" y="70">subscription -> plan/price path, product -> one-time product path, creditGrant marks a credits pack.</text>
   </g>
 
@@ -94,8 +94,8 @@
   <g transform="translate(70,460)">
     <rect class="step" x="0" y="0" width="1530" height="96"/>
     <text class="note-title" x="22" y="26">2. Inject into runtime</text>
-    <text class="note-text" x="22" y="50">BillingProvider receives runtimeConfig or derived availablePlans / availableProducts and exposes hooks like useSubscribePlan, usePurchaseProduct.</text>
-    <text class="note-text" x="22" y="72">The UI is headless; the host renders any page it wants.</text>
+    <text class="note-text" x="22" y="50">BillingProvider receives runtimeConfig or derived availablePlans / availableProducts, filters purchasableIds, and exposes hooks like useSubscribePlan, usePurchaseProduct.</text>
+    <text class="note-text" x="22" y="72">The UI is headless; the host renders any page it wants and handles post-purchase hooks in its own code.</text>
   </g>
 
   <path class="line" d="M 700 574 C 780 574, 800 574, 880 574"/>
@@ -104,7 +104,7 @@
   <g transform="translate(70,590)">
     <rect class="step" x="0" y="0" width="1530" height="100"/>
     <text class="note-title" x="22" y="26">3. Translate to Casdoor payload</text>
-    <text class="note-text" x="22" y="50">Host action layer maps the item into productId / planId / priceId / metadata. It does not send kind directly to Casdoor.</text>
+    <text class="note-text" x="22" y="50">Host action layer maps the item into owner/name, productId / planId / priceId / metadata, then fetches product details before invoking Casdoor.</text>
     <text class="note-text" x="22" y="72">This is where a credits pack is treated as a product and one-time purchase or subscription can diverge.</text>
   </g>
 
@@ -114,7 +114,7 @@
   <g transform="translate(70,720)">
     <rect class="step" x="0" y="0" width="1530" height="88"/>
     <text class="note-title" x="22" y="26">4. Casdoor processes payment</text>
-    <text class="note-text" x="22" y="50">Casdoor creates order / payment / transaction and then redirects the browser back to the configured Success URL.</text>
+    <text class="note-text" x="22" y="50">Casdoor creates order / payment / transaction and then redirects the browser back to the configured Success URL or Return URL.</text>
     <text class="note-text" x="22" y="70">The redirect carries paymentId, orderId, and any extra query parameters Casdoor appends.</text>
   </g>
 
@@ -126,7 +126,7 @@
     <text class="note-title" x="22" y="26">5. Payment callbacks</text>
     <text class="note-text" x="22" y="50">The route at /auth/payment/success collects the full query string and loads the default generated paymentSuccessHandler from lib/billing/payment-success.ts.</text>
     <text class="note-text" x="22" y="72">The route at /auth/payment/finished collects the same parameters and loads the default generated paymentFinishedHandler from lib/billing/payment-finished.ts.</text>
-    <text class="note-text" x="22" y="94">Each handler can parse paymentId / orderId / params, write to DB, trigger webhook hooks, and return redirectTo / Response / void.</text>
+    <text class="note-text" x="22" y="94">Each handler can parse paymentOwner / paymentName / paymentId / orderId / params, write to DB, and return redirectTo / Response / void.</text>
   </g>
 
   <path class="line" d="M 1495 886 C 1560 886, 1580 886, 1645 886"/>

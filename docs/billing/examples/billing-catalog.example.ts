@@ -4,6 +4,7 @@ export const billingCatalogExample: BillingCatalogConfig = {
   catalogKey: 'main',
   title: 'Billing Catalog',
   description: 'SaaS plans, credits, and virtual goods',
+  purchasableIds: ['starter-month', 'credits-1000'],
   defaults: {
     defaultQuantity: 1,
     defaultInterval: 'month',

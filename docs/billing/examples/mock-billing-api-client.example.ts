@@ -1,5 +1,9 @@
 import type {
   BillingApiClient,
+  BillingCasdoorBuyProductRequest,
+  BillingCasdoorBuyProductResponse,
+  BillingCasdoorOrganizationNamesResponse,
+  BillingCasdoorProductResponse,
   BillingActionPayload,
   BillingCreditsState,
   BillingEntitlementState,
@@ -154,6 +158,66 @@ export const mockBillingApiClient: BillingApiClient = {
       limits: { credits: 1000 },
       flags: { subscribed: true, hasCredits: true },
     } satisfies BillingEntitlementState;
+  },
+  async fetchProduct({ id }) {
+    await delay(60);
+    const [owner, ...rest] = id.split('/');
+    return {
+      status: 'ok',
+      msg: '',
+      sub: '',
+      name: '',
+      data: {
+        owner,
+        name: rest.join('/'),
+        displayName: '创小剧积分包-50',
+        description: 'Mock Casdoor product detail for purchase flow',
+        providers: ['创建小剧-微信支付'],
+        providerObjs: [
+          {
+            name: '创建小剧-微信支付',
+            owner: 'qixiaoju',
+            title: 'WeChat Pay',
+          },
+        ],
+        returnUrl: '/auth/payment/finished',
+        successUrl: '/auth/payment/success',
+        price: 50,
+        currency: 'CNY',
+        quantity: 1,
+        isRecharge: true,
+        state: 'Published',
+      },
+      data2: null,
+      data3: null,
+    } satisfies BillingCasdoorProductResponse;
+  },
+  async fetchOrganizationNames({ owner }) {
+    await delay(40);
+    return {
+      status: 'ok',
+      msg: '',
+      sub: '',
+      name: '',
+      data: [
+        { owner: '', name: owner, displayName: 'Qixiaoju' },
+        { owner: '', name: `${owner}-store`, displayName: 'Store' },
+      ],
+      data2: null,
+      data3: null,
+    } satisfies BillingCasdoorOrganizationNamesResponse;
+  },
+  async buyProduct(input: BillingCasdoorBuyProductRequest) {
+    await delay(120);
+    return {
+      status: 'ok',
+      msg: 'purchase started',
+      name: `${input.id}:payment`,
+      sub: `${input.id}:order`,
+      data: {
+        redirectTo: '/auth/payment/success?paymentOwner=qixiaoju&paymentName=mock-payment',
+      },
+    } satisfies BillingCasdoorBuyProductResponse;
   },
   async createAction(payload: BillingActionPayload) {
     await delay(120);
