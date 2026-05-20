@@ -406,6 +406,7 @@ export const GET = createBillingPaymentSuccessRouteHandler({
   appUrl: authKitConfig.appUrl,
   fallbackRedirect: '/auth/payment/finished',
   handler: paymentSuccessHandler,
+  phase: 'success',
 });
 `;
 }
@@ -421,6 +422,7 @@ export const GET = createBillingPaymentFinishedRouteHandler({
   appUrl: authKitConfig.appUrl,
   fallbackRedirect: '/',
   handler: paymentFinishedHandler,
+  phase: 'finished',
 });
 `;
 }
@@ -429,7 +431,13 @@ export function billingPaymentSuccessHandlerTemplate() {
   return `import type { BillingPaymentSuccessHandler } from '@foldspace-fe/casdoor-next-auth-kit/billing';
 
 ${customBegin}
-const paymentSuccessHandlerImpl: BillingPaymentSuccessHandler = async () => {
+const paymentSuccessHandlerImpl: BillingPaymentSuccessHandler = async (context) => {
+  console.info('[casdoor-next-auth-kit] payment success callback received', {
+    paymentId: context.paymentId,
+    orderId: context.orderId,
+    status: context.status,
+    redirectTo: context.redirectTo,
+  });
   return;
 };
 ${customEnd}
@@ -442,7 +450,13 @@ export function billingPaymentFinishedHandlerTemplate() {
   return `import type { BillingPaymentFinishedHandler } from '@foldspace-fe/casdoor-next-auth-kit/billing';
 
 ${customBegin}
-const paymentFinishedHandlerImpl: BillingPaymentFinishedHandler = async () => {
+const paymentFinishedHandlerImpl: BillingPaymentFinishedHandler = async (context) => {
+  console.info('[casdoor-next-auth-kit] payment finished callback received', {
+    paymentId: context.paymentId,
+    orderId: context.orderId,
+    status: context.status,
+    redirectTo: context.redirectTo,
+  });
   return;
 };
 ${customEnd}
