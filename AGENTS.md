@@ -58,6 +58,8 @@
 - billing 默认就是受管内容，CLI 必须同时生成 `lib/billing/payment-success.ts` 和 `lib/billing/payment-finished.ts`，`auth-config.ts` 直接导入这两个默认文件，不要要求宿主手工创建 `@/lib/billing/*`。
 - 默认生成的 `lib/billing/payment-success.ts` 和 `lib/billing/payment-finished.ts` 是宿主定制 billing 收尾逻辑的唯一入口，后续如果要改订单补全、Webhook 或跳转逻辑，优先改这两个默认文件的 custom block，不要把业务塞回路由壳。
 - 默认生成的 billing handler 文件必须保持“拿来就能编译”，文件里如果没有业务逻辑，也要保留可运行的空实现和明确日志，不允许生成只写注释或只留导入的半成品。
+- billing 的购买页、二维码扫描区和支付状态面板都属于宿主工程自己的 UI，套件只提供 headless hooks、Casdoor 适配器、支付回调 handler 和纯数据模型，不要再把 `/qrcode` 或 `/payments/.../result` 当成套件内置页面能力。
+- `BillingCasdoorAccountResponse`、`BillingCasdoorApplicationResponse`、`BillingCasdoorPaymentResponse` 是宿主对接 `get-account`、`get-application`、`get-payment` 的标准类型，loader 同时要兼容 `/auth/api/*` 同域代理和直接连 `NEXT_PUBLIC_CASDOOR_SERVER_URL` origin 的 `/api/*` 路径。
 - 生成的 `auth-config.ts` 必须同时兼容 `npx ... init` 和 `npx ... update`，不要让第一次生成能过、更新时却因为保留块或导入变化而编译失败。
 - 登录入口是 `app/(auth-kit)/auth/login` 和 `app/(auth-kit)/auth/signup`，授权壳子是 `app/(auth-kit)/login/oauth/authorize`。
 
@@ -88,6 +90,8 @@
 - 不要再把 `app/(auth-kit)/auth-config.ts` 做成依赖多层间接导出的形式，route 文件必须能直接从这个文件拿到所需 handler 和配置对象。
 - 不要再把 `app/(auth-kit)/callback/error/page.tsx` 做成纯文本错误页，默认错误页必须提供本地清 cookie 按钮，帮助用户清掉当前域下残留的 auth cookie。
 - 不要再把 billing 的默认生成文件改成“只在文档里提到、代码里不生成”的状态；文档、skill、AGENTS 和 CLI 生成结果必须同时存在。
+- 不要再把 billing 页面层补回套件内置路由壳，`/qrcode`、`/payments/.../result` 和其他购买结果页面都应该由宿主自己实现。
+- 不要再把 Casdoor 的 `get-account`、`get-application`、`get-payment` 响应类型写成宽泛的 `unknown` 或裸对象，宿主侧 loader 和测试都要使用明确的响应 envelope。
 - 不要再用 `request.cookies.getAll()` 作为 logout 唯一依据，退出必须按原始 `Cookie` 头和 cookie 前缀清理分片 session。
 - 不要再在宿主工程手工 copy 生成文件到别的目录，受管文件只能通过 `npx @foldspace-fe/casdoor-next-auth-kit init|update|check` 维护。
 - 不要再尝试向宿主工程的 `.agents/skills` 目录直接写入文件；宿主只通过仓库内 skill 分发脚本安装 skill，写入失败时应跳过并提示，而不是改造宿主仓库权限。
