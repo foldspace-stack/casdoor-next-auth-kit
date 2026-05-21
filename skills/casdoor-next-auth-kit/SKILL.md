@@ -74,6 +74,7 @@ npx @foldspace-fe/casdoor-next-auth-kit@latest check
 - `useAuthSession` — 获取当前 NextAuth 会话对象
 - `useAuthUser` — 获取当前登录用户信息（含 Casdoor 用户字段）
 - `useAuthRole` — 获取当前用户的角色信息，用于权限判断
+- `role` 是一等认证字段，Casdoor profile、callback、JWT/session、`useAuthUser`、`useAuthRole` 和生成的 `auth-config.ts` 会一起维护它；`isAdmin` 仍然保留兼容推导，但不要只依赖它
 - `useAuthActions` — 提供登录、注册、注销等认证操作方法
 - Casdoor 登录 / 注册入口处理器 — 处理用户进入认证流程的初始交互
 - callback / logout / nextauth 路由处理器 — 处理 OAuth 回调、注销和 NextAuth 路由请求
