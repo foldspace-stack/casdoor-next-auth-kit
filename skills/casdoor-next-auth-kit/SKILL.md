@@ -28,6 +28,8 @@ metadata:
 
 如果任一答案不确定，先补齐实现和文档，再继续改需求。
 
+在完成明显代码改动后，建议先跑 `pnpm lint`、`pnpm type-check` 和 `pnpm build`，再考虑提交或发布；这样可以尽早发现格式、类型和打包层面的回归。
+
 ## 源码仓库
 
 - 仓库路径：`/root/projects/foldspace-stack/casdoor-next-auth-kit`
