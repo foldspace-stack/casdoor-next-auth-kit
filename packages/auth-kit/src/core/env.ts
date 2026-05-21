@@ -90,9 +90,9 @@ export const AUTH_KIT_ENV_VARIABLES: ManagedEnvVariableDefinition[] = [
   {
     key: 'NEXT_PUBLIC_BILLING_PURCHASABLE_IDS',
     description: 'Billing 可购买项白名单，逗号分隔',
-    example: 'starter-month,credits-1000',
-    local: 'starter-month,credits-1000',
-    production: 'starter-month,credits-1000',
+    example: 'membership-monthly,credits-50',
+    local: 'membership-monthly,credits-50',
+    production: 'membership-monthly,credits-50',
   },
   {
     key: 'NEXT_PUBLIC_CASDOOR_STATIC_ORIGIN',
