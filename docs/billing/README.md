@@ -10,6 +10,79 @@
 - 套件只提供 headless hooks、Casdoor 适配器、回调 handler 和标准响应类型
 - 如果宿主已经有自己的会员计划 rows，可以先用 `buildBillingSubscriptionCatalog()` 把计划数组转成 subscription catalog，再交给 `BillingProvider` 和 `useSubscribePlan`
 
+### 订阅定价模板
+
+订阅的 `pricing / plan` 不是放在 `.env` 里配置的，而是放在 billing catalog 里。一个可以直接复制的模板如下：
+
+```ts
+const membershipPlans = [
+  {
+    id: 'plan-basic',
+    code: 'membership-monthly',
+    name: 'Membership Monthly',
+    level: 'BASIC',
+    priceCents: 99900,
+    giftPoints: 10000,
+    billingCycle: 'MONTH',
+    benefits: {
+      faceLibrary: true,
+      monthlyReports: true,
+    },
+  },
+];
+
+const subscriptionCatalog = buildBillingSubscriptionCatalog(membershipPlans, {
+  catalogKey: 'main',
+  title: 'Billing Catalog',
+  mapPlan: (plan) => ({
+    source: plan,
+    key: plan.code,
+    title: plan.name,
+    description: `${plan.level} membership`,
+    productId: 'qixiaoju/创小剧会员订阅',
+    planId: plan.id,
+    priceId: `pricing_${plan.code}`,
+    interval: 'month',
+    priceValue: plan.priceCents,
+    metadata: {
+      level: plan.level,
+      giftPoints: String(plan.giftPoints),
+      billingCycle: plan.billingCycle,
+    },
+  }),
+});
+
+const billingCatalog = {
+  ...subscriptionCatalog,
+  purchasableIds: [...subscriptionCatalog.purchasableIds, 'credits-50'],
+  items: [
+    ...subscriptionCatalog.items,
+    {
+      key: 'credits-50',
+      kind: 'product',
+      title: '50 Credits',
+      description: 'One-time product used for credits or other non-recurring goods.',
+      credits: 50,
+      backendRef: {
+        productId: 'qixiaoju/创小剧积分包-50',
+        priceId: 'price_credits_50',
+      },
+      creditGrant: {
+        creditsPerUnit: 50,
+        unitName: 'credits',
+      },
+    },
+  ],
+};
+```
+
+上面这个模板表达的是：
+
+- `membershipPlans` 负责订阅定价
+- `buildBillingSubscriptionCatalog()` 把会员计划映射成 subscription catalog
+- `purchasableIds` 只放当前项目允许买的条目
+- `items` 里可以再并入一次性商品，但订阅和商品仍然是两条分开的链路
+
 ## 修改前必读
 
 在改 `packages/auth-kit/src/cli/templates.ts`、`packages/auth-kit/src/cli/operations.ts`、`packages/auth-kit/src/billing/*`、`docs/billing/*` 或 `skills/casdoor-next-auth-kit/SKILL.md` 之前，先确认三件事：

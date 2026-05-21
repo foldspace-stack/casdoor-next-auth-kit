@@ -113,7 +113,53 @@ npx @foldspace-fe/casdoor-next-auth-kit@latest check
 如果宿主希望注销后回到自定义配置页，可以在 `AuthKitConfig` 中设置 `logoutRedirectPath`，默认值为 `/`。
 若想通过环境变量控制默认值，可设置 `NEXT_PUBLIC_AUTH_LOGOUT_REDIRECT_PATH=/` 或其他同源路径。
 
-Billing 的购买白名单可以通过 `BillingCatalogConfig.purchasableIds` 或宿主注入的 `purchasables` 显式配置。宿主只需要在自己的项目里维护允许购买的少量条目，Casdoor 里可以继续保留更大的商品集合。
+Billing 的购买白名单可以通过 `BillingCatalogConfig.purchasableIds` 或宿主注入的 `purchasables` 显式配置。宿主只需要在自己的项目里维护允许购买的少量条目，Casdoor 里可以继续保留更大的商品集合。订阅的 `pricing / plan` 不是 env 配置项，而是通过 `buildBillingSubscriptionCatalog()` 的 `mapPlan` 映射成 catalog 数据；env 模板里放的是白名单示例，不是定价本身。
+
+如果宿主要同时配订阅和商品，推荐直接按这个结构写：
+
+```ts
+const membershipPlans = [
+  {
+    id: 'plan-basic',
+    code: 'membership-monthly',
+    name: 'Membership Monthly',
+    level: 'BASIC',
+    priceCents: 99900,
+    giftPoints: 10000,
+    billingCycle: 'MONTH',
+    benefits: {
+      faceLibrary: true,
+      monthlyReports: true,
+    },
+  },
+];
+
+const subscriptionCatalog = buildBillingSubscriptionCatalog(membershipPlans, {
+  catalogKey: 'main',
+  title: 'Billing Catalog',
+  mapPlan: (plan) => ({
+    source: plan,
+    key: plan.code,
+    title: plan.name,
+    description: `${plan.level} membership`,
+    productId: 'qixiaoju/创小剧会员订阅',
+    planId: plan.id,
+    priceId: `pricing_${plan.code}`,
+    interval: 'month',
+    priceValue: plan.priceCents,
+    metadata: {
+      level: plan.level,
+      giftPoints: String(plan.giftPoints),
+      billingCycle: plan.billingCycle,
+    },
+  }),
+});
+
+const billingCatalog = {
+  ...subscriptionCatalog,
+  purchasableIds: [...subscriptionCatalog.purchasableIds, 'credits-50'],
+};
+```
 
 商品购买的包内适配器会优先读取 Casdoor 商品详情，再按 `owner/name` 解析商品 ID，并自动选择可用 provider 后调用 `buy-product` 兼容接口；宿主只需要提供允许购买的商品 id 和相应的 Casdoor 接口 loader。loader 约定使用 Casdoor 的标准响应 envelope，然后从 `data` 中取出商品、组织、账号、应用或支付记录。`buy-product` 如果返回 `status: "error"`，包内会把 `msg` 里的错误信息和错误码透传到宿主的 `onPurchaseError` / `onPurchaseComplete`。`useBillingProductDetail` 会把商品详情里的 `providers` 和 `providerObjs` 暴露给宿主，`useBillingProductPurchaseOptions` 可以直接拿到商品详情、当前 provider 选择、当前选中 provider 对象和 setter，适合商品详情页按支付方式展示不同购买参数；宿主选中的 `providerName` 也可以直接传给 `purchaseProduct.run({ key, providerName })`，让包内适配器按这个 provider 下单。这个 hook 只是给单选场景提供默认态，如果宿主想同时渲染两个不同的支付入口，直接遍历 `providerObjs` 就行，`selectedProvider` 不会限制 UI 结构。`productId` 推荐写成 `owner/name` 形式，例如 `qixiaoju/创小剧积分包-50`，和 `GET /api/get-product?id=qixiaoju/创小剧积分包-50` 的查询值保持一致。支付结果轮询和 `get-account` / `get-application` / `get-payment` 这类浏览器侧查询，优先请求 `/auth/api/*` 同域代理；只有服务端或明确启用 CORS 的特殊场景，才考虑直接连 `NEXT_PUBLIC_CASDOOR_SERVER_URL` origin 的 `/api/*`。
 
@@ -364,6 +410,7 @@ NEXTAUTH_URL=http://localhost:5177
    - `prisma/auth-kit.prisma`
    - `.env`、`.env.local`、`.env.production`、`.env.example`
    - `.agents/skills/casdoor-next-auth-kit/SKILL.md`
+   - 其中 `NEXT_PUBLIC_BILLING_PURCHASABLE_IDS` 的默认示例值会写成 `membership-monthly,credits-50`
 4. 如果 `check` 仍然报缺失，优先排查这些问题
    - 宿主项目还没重新安装到新的包产物，先回到本仓库执行 `pnpm build`
    - 宿主项目没重新安装依赖，执行 `pnpm install` 后再跑一次 `update`

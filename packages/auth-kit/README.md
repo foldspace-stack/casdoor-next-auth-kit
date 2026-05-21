@@ -57,6 +57,76 @@ import { BillingProvider } from '@foldspace-fe/casdoor-next-auth-kit/react';
 
 如果宿主已经有自己的会员计划 rows，先用 `buildBillingSubscriptionCatalog()` 生成 subscription catalog，再把结果交给 `BillingProvider`。商品项仍然可以单独拼进同一个 catalog，但订阅和商品要保持语义分离。
 
+一个可以直接复制的完整模板如下：
+
+```ts
+const membershipPlans = [
+  {
+    id: 'plan-basic',
+    code: 'membership-monthly',
+    name: 'Membership Monthly',
+    level: 'BASIC',
+    priceCents: 99900,
+    giftPoints: 10000,
+    billingCycle: 'MONTH',
+    benefits: {
+      faceLibrary: true,
+      monthlyReports: true,
+    },
+  },
+];
+
+const subscriptionCatalog = buildBillingSubscriptionCatalog(membershipPlans, {
+  catalogKey: 'main',
+  title: 'Billing Catalog',
+  mapPlan: (plan) => ({
+    source: plan,
+    key: plan.code,
+    title: plan.name,
+    description: `${plan.level} membership`,
+    productId: 'qixiaoju/创小剧会员订阅',
+    planId: plan.id,
+    priceId: `pricing_${plan.code}`,
+    interval: 'month',
+    priceValue: plan.priceCents,
+    metadata: {
+      level: plan.level,
+      giftPoints: String(plan.giftPoints),
+      billingCycle: plan.billingCycle,
+    },
+  }),
+});
+
+const billingCatalog = {
+  ...subscriptionCatalog,
+  purchasableIds: [...subscriptionCatalog.purchasableIds, 'credits-50'],
+  items: [
+    ...subscriptionCatalog.items,
+    {
+      key: 'credits-50',
+      kind: 'product',
+      title: '50 Credits',
+      description: 'One-time product used for credits or other non-recurring goods.',
+      credits: 50,
+      backendRef: {
+        productId: 'qixiaoju/创小剧积分包-50',
+        priceId: 'price_credits_50',
+      },
+      creditGrant: {
+        creditsPerUnit: 50,
+        unitName: 'credits',
+      },
+    },
+  ],
+};
+```
+
+如果你只是想配白名单，`.env` 里可以直接写：
+
+```env
+NEXT_PUBLIC_BILLING_PURCHASABLE_IDS=membership-monthly,credits-50
+```
+
 ### Billing 动作
 
 ```tsx

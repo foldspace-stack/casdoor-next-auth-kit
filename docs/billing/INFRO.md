@@ -153,6 +153,54 @@ billing 的页面层完全由宿主工程自己控制。套件不生成 product 
 
 如果宿主已经有自己的会员计划 rows，推荐先用 `buildBillingSubscriptionCatalog()` 生成 subscription catalog，再交给 `BillingProvider` 和 `useSubscribePlan`。这样 host 只需要写一次映射逻辑，后面 UI 组件可以直接消费 auth-kit 的 subscription hooks。
 
+订阅的 `pricing / plan` 本身不是 env 配置项，而是 billing catalog 里的数据。环境变量里通常只放白名单，比如 `NEXT_PUBLIC_BILLING_PURCHASABLE_IDS=membership-monthly,credits-50`；真正的订阅定价、计划名和 Casdoor 映射值，要在 `buildBillingSubscriptionCatalog()` 的 `mapPlan` 里定义。
+
+如果你要把这三样一起配好，推荐直接按这个模板写：
+
+```ts
+const membershipPlans = [
+  {
+    id: 'plan-basic',
+    code: 'membership-monthly',
+    name: 'Membership Monthly',
+    level: 'BASIC',
+    priceCents: 99900,
+    giftPoints: 10000,
+    billingCycle: 'MONTH',
+    benefits: {
+      faceLibrary: true,
+      monthlyReports: true,
+    },
+  },
+];
+
+const subscriptionCatalog = buildBillingSubscriptionCatalog(membershipPlans, {
+  catalogKey: 'main',
+  title: 'Billing Catalog',
+  mapPlan: (plan) => ({
+    source: plan,
+    key: plan.code,
+    title: plan.name,
+    description: `${plan.level} membership`,
+    productId: 'qixiaoju/创小剧会员订阅',
+    planId: plan.id,
+    priceId: `pricing_${plan.code}`,
+    interval: 'month',
+    priceValue: plan.priceCents,
+    metadata: {
+      level: plan.level,
+      giftPoints: String(plan.giftPoints),
+      billingCycle: plan.billingCycle,
+    },
+  }),
+});
+
+const billingCatalog = {
+  ...subscriptionCatalog,
+  purchasableIds: [...subscriptionCatalog.purchasableIds, 'credits-50'],
+};
+```
+
 如果宿主希望直接渲染订阅购买页或订单面板，可以优先组合这些 hooks：
 
 - `useBillingPricing`、`useBillingPlan`、`useBillingPricingPlans`
