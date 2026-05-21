@@ -126,3 +126,7 @@ jobs:
       - name: Publish package
         working-directory: packages/auth-kit
         run: npm publish --access public --tag latest
+
+      - name: Sync next dist-tag
+        working-directory: packages/auth-kit
+        run: npm dist-tag add "@foldspace-fe/casdoor-next-auth-kit@${{ steps.version.outputs.version }}" next

@@ -25,7 +25,7 @@
 - 当修改 `packages/auth-kit` 的模板、路由壳、billing 流程或生成文件契约时，必须同时检查 `docs/billing/*`、`AGENTS.md` 和生成结果是否一致，避免文档、skill 和代码三者分叉。
 - 当修改 `packages/auth-kit/src/cli/templates.ts`、`packages/auth-kit/src/cli/operations.ts`、`packages/auth-kit/src/billing/*` 或 `packages/auth-kit/src/core/env.ts` 时，要同步确认 `init`、`update`、`check` 三个命令的行为都仍然一致，不能只修单个入口。
 - npm 发布流水线使用 GitHub Actions Trusted Publisher / OIDC，不再依赖 `NPM_TOKEN`；发布时优先保留 `id-token: write`、`registry-url` 和 `npm publish` 的组合，避免重新引入长生命周期写权限 token。
-- 正式 npm 发布默认打到 `latest`，不要再把 `next` 作为主发布标签；如果需要预发布通道，必须单独设计，不要和正式发布混在同一个 workflow 里。
+- 正式 npm 发布默认打到 `latest`，`next` 也要由 CI 自动同步到同一个最新发布版本，两个标签都表示当前最新稳定版；如果需要真正的预发布通道，必须单独设计，不要和正式发布混在同一个 workflow 里。
 - 改动 billing 相关模板时，必须同时验证 `app/(auth-kit)/auth-config.ts`、`lib/billing/payment-success.ts`、`lib/billing/payment-finished.ts` 三者的导入关系，没有一个文件能单独缺失。
 - 改动 billing 文档时，`docs/billing/README.md`、`docs/billing/INFRO.md`、`docs/billing/CASDOOR-INTEGRATION-TIMELINE.md` 和 `docs/billing/CASDOOR-INTEGRATION-TIMELINE.svg` 要一起更新，不能只改其中一份。
 - 改动受管路由壳时，要同时检查 `deprecatedTargets`、`targets`、生成模板和宿主运行结果，确保更新命令不会残留旧文件或生成半套文件。
