@@ -9,6 +9,7 @@
 - 真正对接 Casdoor 的是 `backendRef.productId / planId / priceId`
 - 支付成功后的 `Success URL` 统一落到宿主的 `/auth/payment/success`
 - 购买成功后的 `Return URL` 统一落到宿主的 `/auth/payment/finished`
+- 购买页、二维码扫描区和支付状态面板都由宿主工程自己渲染，套件只提供 headless hooks 和回调 handler
 - 套件默认生成 `lib/billing/payment-success.ts` 和 `lib/billing/payment-finished.ts`
 - `app/(auth-kit)/auth-config.ts` 会直接导入这两个默认文件，并把它们暴露为 `paymentSuccessHandler` / `paymentFinishedHandler`
 - 宿主函数自己解析 `paymentOwner`、`paymentName`、`paymentId`、`orderId` 和其它 query 参数，再做落库、Webhook 钩子和二次跳转
@@ -48,7 +49,7 @@ sequenceDiagram
   FinishedHandler->>FinishedHandler: 自行解析 paymentOwner / paymentName / paymentId / orderId / params
   FinishedHandler->>DB: 继续做收尾、通知或最终跳转
   FinishedHandler-->>Finished: 返回 redirectTo / Response / void
-  Finished-->>UI: 重定向到首页或业务指定落点
+  Finished-->>UI: 重定向到首页、业务指定落点，或继续停留在宿主自己的购买页 / 状态面板
 ```
 
 ## 映射说明

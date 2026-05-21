@@ -38,8 +38,9 @@ export function PricingSectionExample() {
   return (
     <section>
       <header>
-        <h2>Billing</h2>
+        <h2>Host-owned Billing Panel</h2>
         <p>Current subscription: {subscription?.planName ?? 'none'}</p>
+        <p>This is host UI. QR, payment state, and result handling stay in the same page tree.</p>
       </header>
 
       <div>

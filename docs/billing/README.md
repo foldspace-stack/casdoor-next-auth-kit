@@ -45,7 +45,7 @@
 - `purchasableIds`: 当前工程允许购买的 item key / productId / planId 白名单
 - `purchasables`: 当前工程允许购买的显式条目定义，适合需要补充 hooks 或额外字段的场景
 
-当宿主需要直接对接 Casdoor 商品购买时，还可以提供 `fetchProduct`、`fetchOrganizationNames` 和 `buyProduct` 这类 loader，让包内购买适配器按 `owner/name` 解析商品 ID 并自动选择 provider。这里 loader 约定拿到的是 Casdoor 的标准响应 envelope，再从 `data` 里取出商品或组织列表。这样宿主只需要配置少量允许购买的 product id，Casdoor 里可以继续保留更大的商品集合。
+当宿主需要直接对接 Casdoor 商品购买时，还可以提供 `fetchProduct`、`fetchOrganizationNames` 和 `buyProduct` 这类 loader，让包内购买适配器按 `owner/name` 解析商品 ID 并自动选择 provider。这里 loader 约定拿到的是 Casdoor 的标准响应 envelope，再从 `data` 里取出商品或组织列表。这样宿主只需要配置少量允许购买的 product id，Casdoor 里可以继续保留更大的商品集合。`buy-product` 如果返回 `status: "error"`，包内会把 `msg` 里的错误信息和错误码透传到宿主的 `onPurchaseError` / `onPurchaseComplete`，例如微信支付限制场景里的 `NO_AUTH`。
 
 建议宿主侧的 `productId` 直接使用 `owner/name` 格式，例如 `qixiaoju/创小剧积分包-50`，它要和 `GET /api/get-product?id=qixiaoju/创小剧积分包-50` 里的查询值保持一致；如果只配置 Casdoor 原始的内部 ID，包内适配器在缺少商品详情 loader 时会回退到旧的通用 action 流程。
 
@@ -56,6 +56,12 @@
 如果宿主想少写一些样板代码，可以直接用 `useBillingProductPurchaseOptions(productId)`，它会同时返回商品详情、`providers`、`providerObjs`、当前选中的 `providerName`，并带一个 `setProviderName`。
 
 这个 hook 只是给单选场景提供默认态；如果宿主想同时渲染两个不同的支付入口，直接遍历 `providerObjs` 就行，`selectedProvider` 只是一个方便的当前选中项引用，不会限制宿主的 UI 结构。
+
+billing 的页面层由宿主工程自己掌控。套件不生成 product page、buy page、二维码扫描页或 payment result page，只提供 headless hooks、Casdoor 购买适配器、支付回调 handler 和纯数据模型。宿主如果要展示二维码、支付状态或订单详情，可以在自己的页面或弹层里直接读取 `BillingCasdoorPaymentResponse`、`BillingCasdoorAccountResponse`、`BillingCasdoorApplicationResponse`，或者使用对应的 loader 结果。
+
+同一套 loader 约定也适用于 `fetchAccount`、`fetchApplication` 和 `fetchPayment`：宿主同域代理时请求 `/auth/api/get-account`、`/auth/api/get-application`、`/auth/api/get-payment`，直连 Casdoor origin 时则分别请求 `/api/get-account`、`/api/get-application`、`/api/get-payment`。
+
+同域代理请求 Casdoor 时，支付结果轮询应该走 `/auth/api/get-payment?id=...`；如果宿主直接在浏览器里请求 `NEXT_PUBLIC_CASDOOR_SERVER_URL` 对应的 Casdoor origin，则路径是 `/api/get-payment?id=...`。两种场景都使用同一套 response envelope，真正的数据都放在 `data` 里。
 
 runtime 也可以从 `runtimeConfig.items` 推导 `availablePlans` 和 `availableProducts`，但显式注入更利于宿主侧控制。
 当 `purchasableIds` 非空时，`BillingProvider` 只会对名单内的商品做购买动作和可购买列表暴露。

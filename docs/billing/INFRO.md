@@ -129,7 +129,7 @@ export async function paymentSuccessHandler(input: {
 
 1. 宿主工程通过 `BillingProvider` 或后端配置注入 `BillingCatalogConfig`
 2. `BillingCatalogConfig.purchasableIds` 只保留当前项目允许购买的条目
-3. 用户发起 `purchase` 后，包内购买适配器先按商品 ID 拉取 Casdoor 商品详情，再选择 provider 并发起 Casdoor 下单；这里的 loader 约定返回 Casdoor 标准响应 envelope，真正的数据放在 `data` 里。`productId` 推荐写成 `owner/name` 形式，例如 `qixiaoju/创小剧积分包-50`，并且要和 `GET /api/get-product?id=qixiaoju/创小剧积分包-50` 保持一致；回跳后由 `payment-success.ts` 和 `payment-finished.ts` 做宿主侧收尾
+3. 用户发起 `purchase` 后，包内购买适配器先按商品 ID 拉取 Casdoor 商品详情，再选择 provider 并发起 Casdoor 下单；这里的 loader 约定返回 Casdoor 标准响应 envelope，真正的数据放在 `data` 里。`productId` 推荐写成 `owner/name` 形式，例如 `qixiaoju/创小剧积分包-50`，并且要和 `GET /api/get-product?id=qixiaoju/创小剧积分包-50` 保持一致；`buy-product` 返回 `status: "error"` 时，`msg` 里的错误信息会直接透传给宿主的 `onPurchaseError` / `onPurchaseComplete`；回跳后由 `payment-success.ts` 和 `payment-finished.ts` 做宿主侧收尾
 
 商品详情页如果要展示支持的支付方式，可以直接调用 `useBillingProductDetail(productId)`，拿到 `providers` 和 `providerObjs` 后按 provider 渲染不同的购买按钮和参数。
 
@@ -140,5 +140,11 @@ export async function paymentSuccessHandler(input: {
 这个 hook 只是给单选场景提供默认态；如果宿主想同时渲染两个不同的支付入口，直接遍历 `providerObjs` 就行，`selectedProvider` 只是一个方便的当前选中项引用，不会限制宿主的 UI 结构。
 
 如果宿主还需要订单系统、积分发放、会员升级或 webhook，建议都放在默认生成的 `lib/billing/payment-success.ts` / `lib/billing/payment-finished.ts` 里，不要改回路由壳里硬编码。
+
+billing 的页面层完全由宿主工程自己控制。套件不生成 product page、buy page、二维码扫描页或 payment result page，只提供 headless hooks、Casdoor 购买适配器、支付回调 handler 和纯数据模型。宿主如果要展示二维码、支付状态或订单详情，可以在自己的页面里直接读取 `BillingCasdoorPaymentResponse`、`BillingCasdoorAccountResponse`、`BillingCasdoorApplicationResponse`，或者调用对应 loader。
+
+同一套 loader 约定也适用于 `fetchAccount`、`fetchApplication` 和 `fetchPayment`：宿主同域代理时请求 `/auth/api/get-account`、`/auth/api/get-application`、`/auth/api/get-payment`，直连 Casdoor origin 时则分别请求 `/api/get-account`、`/api/get-application`、`/api/get-payment`。
+
+同域代理请求 Casdoor 时，支付结果轮询应该走 `/auth/api/get-payment?id=...`；如果宿主直接在浏览器里请求 `NEXT_PUBLIC_CASDOOR_SERVER_URL` 对应的 Casdoor origin，则路径是 `/api/get-payment?id=...`。两种场景都使用同一套 response envelope，真正的数据都放在 `data` 里。
 
 💡 已知问题提醒
