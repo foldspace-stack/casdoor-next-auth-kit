@@ -11,6 +11,7 @@
 
 - `kind: 'subscription' | 'product'` 是包内 billing 抽象，不是 Casdoor 原生字段
 - `purchasableIds` 是宿主工程的购买白名单，只有白名单里的 item 才能发起 purchase
+- 如果宿主已经有自己的会员计划 rows，可以先用 `buildBillingSubscriptionCatalog()` 把它们转成 subscription catalog，再注入 `BillingProvider`
 - 真正对接 Casdoor 的是 `backendRef.productId / planId / priceId`
 - `fetchPricing` / `pricingLoader`、`fetchPlan` / `planLoader`、`fetchSubscriptionRecord` / `subscriptionRecordLoader`、`fetchSubscriptions` / `subscriptionsLoader` 应该对应 Casdoor 的 `get-pricing`、`get-plan`、`get-subscription`、`get-subscriptions`
 - `fetchOrder` / `orderLoader`、`fetchOrders` / `ordersLoader`、`fetchPayment` / `paymentLoader` 应该对应 Casdoor 的 `get-order`、`get-orders`、`get-payment`

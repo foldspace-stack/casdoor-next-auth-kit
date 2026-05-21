@@ -69,6 +69,7 @@
 - SaaS 订阅状态要以 Casdoor 的 `get-pricing` / `get-plan` / `get-subscription` / `get-subscriptions` 为准，产品购买后的订单列表和订单状态要以 Casdoor 的 `get-order` / `get-orders` / `get-payment` 为准，宿主本地状态只做归一化视图，不要反过来当真相源。
 - 订阅域和商品域要继续保持分离：`kind: 'subscription'` 的条目只负责定价、计划和订阅状态，`kind: 'product'` 的条目只负责商品、订单和支付状态；同一个 catalog 可以同时包含两类条目，但不要把它们合并成一套通用购买对象。
 - 订阅 / 商品分域的回归测试已经加在 `packages/auth-kit/test/billing-subscription-domain.test.ts`，如果以后改 billing 结构、catalog 语义或购买 payload，优先更新这个测试来锁住订阅和商品仍然是两条独立链路。
+- 如果宿主已有自己的会员计划 rows，但想少写映射样板，可以先用 `buildBillingSubscriptionCatalog()` 把计划数组转成 auth-kit 的 subscription catalog，再交给 `BillingProvider` 和 `useSubscribePlan`。
 - 生成的 `auth-config.ts` 必须同时兼容 `npx ... init` 和 `npx ... update`，不要让第一次生成能过、更新时却因为保留块或导入变化而编译失败。
 - 登录入口是 `app/(auth-kit)/auth/login` 和 `app/(auth-kit)/auth/signup`，授权壳子是 `app/(auth-kit)/login/oauth/authorize`。
 

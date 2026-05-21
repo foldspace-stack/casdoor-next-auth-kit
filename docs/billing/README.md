@@ -8,6 +8,7 @@
 - 商品域只负责 `product / order / payment`
 - 购买页、二维码区、状态面板都由宿主自己渲染
 - 套件只提供 headless hooks、Casdoor 适配器、回调 handler 和标准响应类型
+- 如果宿主已经有自己的会员计划 rows，可以先用 `buildBillingSubscriptionCatalog()` 把计划数组转成 subscription catalog，再交给 `BillingProvider` 和 `useSubscribePlan`
 
 ## 修改前必读
 
@@ -32,6 +33,7 @@
 
 - [Billing Runtime 类型](../../packages/auth-kit/src/billing/types.ts)
 - [Billing Runtime 辅助函数](../../packages/auth-kit/src/billing/runtime.ts)
+- [Billing Subscription Catalog Bridge](../../packages/auth-kit/src/billing/subscription-catalog.ts)
 - [Billing React Hooks](../../packages/auth-kit/src/billing/react.tsx)
 
 ## 主要运行时结构

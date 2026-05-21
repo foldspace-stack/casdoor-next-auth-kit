@@ -51,9 +51,11 @@ import {
 ### Billing runtime
 
 ```ts
-import type { BillingCatalogConfig } from '@foldspace-fe/casdoor-next-auth-kit/billing';
+import { buildBillingSubscriptionCatalog } from '@foldspace-fe/casdoor-next-auth-kit/billing';
 import { BillingProvider } from '@foldspace-fe/casdoor-next-auth-kit/react';
 ```
+
+如果宿主已经有自己的会员计划 rows，先用 `buildBillingSubscriptionCatalog()` 生成 subscription catalog，再把结果交给 `BillingProvider`。商品项仍然可以单独拼进同一个 catalog，但订阅和商品要保持语义分离。
 
 ### Billing 动作
 

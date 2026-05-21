@@ -82,6 +82,7 @@ npx @foldspace-fe/casdoor-next-auth-kit@latest check
 - 数据库契约和同步接口 — 定义宿主项目必须实现的用户数据字段和同步行为
 - `BillingProvider` / `BillingCoreProvider` — headless billing runtime 的根 Provider，支持 `purchasableIds` 白名单、`purchasables` 显式条目、Casdoor 商品购买适配器和购买回调 hooks
 - `SubscriptionProvider` / `ProductProvider` / `CreditsProvider` — 分域 billing Provider，按需注入订阅、商品和额度状态
+- `buildBillingSubscriptionCatalog` — 把宿主已有的会员计划 rows 转成 auth-kit 的 subscription catalog，适合 membership 这种“订阅为主、商品为辅”的接入场景
 - `useBillingAvailablePlans` / `useBillingAvailableProducts` — 从配置或注入的 catalog 中读取可订阅套餐和可购买商品列表，并自动过滤白名单外条目
 - `useBillingPricing` / `useBillingPlan` / `useBillingPricingPlans` / `useBillingSubscriptionPurchaseOptions` — 读取订阅定价、单个计划、计划组合和订阅购买选项
 - `useBillingSubscription` / `useBillingSubscriptionHistory` / `useBillingSubscriptionRecord` / `useBillingSubscriptions` / `useBillingSubscriptionProduct` — 查看当前订阅、订阅历史、订阅记录、订阅列表和当前订阅对应产品
