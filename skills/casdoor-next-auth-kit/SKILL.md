@@ -9,6 +9,8 @@ metadata:
 
 本 skill 用于维护可复用的 `@foldspace-fe/casdoor-next-auth-kit` 认证套件仓库，以及消费该套件的宿主项目。当用户需要修改认证流程、路由壳模板、React 认证钩子、或执行宿主项目的 skill 安装流程时，应激活此 skill。
 
+本项目的核心价值，是把 Casdoor 原本依赖三方页面和分散接入的能力，整合到宿主工程内部统一管理，保持登录、购买、回跳和状态展示的一致体验，同时把安全边界和可控性留在宿主自己手里。
+
 ### 修改前必读
 
 在改下面这些内容之前，先确认当前行为、生成结果和文档说明都已对齐：
@@ -106,7 +108,7 @@ npx @foldspace-fe/casdoor-next-auth-kit@latest check
 
 Billing 的购买白名单可以通过 `BillingCatalogConfig.purchasableIds` 或宿主注入的 `purchasables` 显式配置。宿主只需要在自己的项目里维护允许购买的少量条目，Casdoor 里可以继续保留更大的商品集合。
 
-商品购买的包内适配器会优先读取 Casdoor 商品详情，再按 `owner/name` 解析商品 ID，并自动选择可用 provider 后调用 `buy-product` 兼容接口；宿主只需要提供允许购买的商品 id 和相应的 Casdoor 接口 loader。loader 约定使用 Casdoor 的标准响应 envelope，然后从 `data` 中取出商品、组织、账号、应用或支付记录。`buy-product` 如果返回 `status: "error"`，包内会把 `msg` 里的错误信息和错误码透传到宿主的 `onPurchaseError` / `onPurchaseComplete`。`useBillingProductDetail` 会把商品详情里的 `providers` 和 `providerObjs` 暴露给宿主，`useBillingProductPurchaseOptions` 可以直接拿到商品详情、当前 provider 选择、当前选中 provider 对象和 setter，适合商品详情页按支付方式展示不同购买参数；宿主选中的 `providerName` 也可以直接传给 `purchaseProduct.run({ key, providerName })`，让包内适配器按这个 provider 下单。这个 hook 只是给单选场景提供默认态，如果宿主想同时渲染两个不同的支付入口，直接遍历 `providerObjs` 就行，`selectedProvider` 不会限制 UI 结构。`productId` 推荐写成 `owner/name` 形式，例如 `qixiaoju/创小剧积分包-50`，和 `GET /api/get-product?id=qixiaoju/创小剧积分包-50` 的查询值保持一致。支付结果轮询如果走宿主同域代理，请请求 `/auth/api/get-payment?id=...`；如果宿主直接连 Casdoor origin，则请求 `/api/get-payment?id=...`。`get-account`、`get-application`、`get-payment` 也遵循同样规则，宿主页面自己决定如何展示账号信息、应用信息和支付状态面板。
+商品购买的包内适配器会优先读取 Casdoor 商品详情，再按 `owner/name` 解析商品 ID，并自动选择可用 provider 后调用 `buy-product` 兼容接口；宿主只需要提供允许购买的商品 id 和相应的 Casdoor 接口 loader。loader 约定使用 Casdoor 的标准响应 envelope，然后从 `data` 中取出商品、组织、账号、应用或支付记录。`buy-product` 如果返回 `status: "error"`，包内会把 `msg` 里的错误信息和错误码透传到宿主的 `onPurchaseError` / `onPurchaseComplete`。`useBillingProductDetail` 会把商品详情里的 `providers` 和 `providerObjs` 暴露给宿主，`useBillingProductPurchaseOptions` 可以直接拿到商品详情、当前 provider 选择、当前选中 provider 对象和 setter，适合商品详情页按支付方式展示不同购买参数；宿主选中的 `providerName` 也可以直接传给 `purchaseProduct.run({ key, providerName })`，让包内适配器按这个 provider 下单。这个 hook 只是给单选场景提供默认态，如果宿主想同时渲染两个不同的支付入口，直接遍历 `providerObjs` 就行，`selectedProvider` 不会限制 UI 结构。`productId` 推荐写成 `owner/name` 形式，例如 `qixiaoju/创小剧积分包-50`，和 `GET /api/get-product?id=qixiaoju/创小剧积分包-50` 的查询值保持一致。支付结果轮询和 `get-account` / `get-application` / `get-payment` 这类浏览器侧查询，优先请求 `/auth/api/*` 同域代理；只有服务端或明确启用 CORS 的特殊场景，才考虑直接连 `NEXT_PUBLIC_CASDOOR_SERVER_URL` origin 的 `/api/*`。
 
 ## 宿主工程 `proxy.ts` 配置要求
 

@@ -59,9 +59,9 @@
 
 billing 的页面层由宿主工程自己掌控。套件不生成 product page、buy page、二维码扫描页或 payment result page，只提供 headless hooks、Casdoor 购买适配器、支付回调 handler 和纯数据模型。宿主如果要展示二维码、支付状态或订单详情，可以在自己的页面或弹层里直接读取 `BillingCasdoorPaymentResponse`、`BillingCasdoorAccountResponse`、`BillingCasdoorApplicationResponse`，或者使用对应的 loader 结果。
 
-同一套 loader 约定也适用于 `fetchAccount`、`fetchApplication` 和 `fetchPayment`：宿主同域代理时请求 `/auth/api/get-account`、`/auth/api/get-application`、`/auth/api/get-payment`，直连 Casdoor origin 时则分别请求 `/api/get-account`、`/api/get-application`、`/api/get-payment`。
+同一套 loader 约定也适用于 `fetchAccount`、`fetchApplication` 和 `fetchPayment`：浏览器侧默认走 `/auth/api/get-account`、`/auth/api/get-application`、`/auth/api/get-payment` 这类同域代理，避免跨域；只有服务端或明确启用 CORS 的特殊场景，才考虑直接请求 `NEXT_PUBLIC_CASDOOR_SERVER_URL` 对应 origin 的 `/api/get-account`、`/api/get-application`、`/api/get-payment`。
 
-同域代理请求 Casdoor 时，支付结果轮询应该走 `/auth/api/get-payment?id=...`；如果宿主直接在浏览器里请求 `NEXT_PUBLIC_CASDOOR_SERVER_URL` 对应的 Casdoor origin，则路径是 `/api/get-payment?id=...`。两种场景都使用同一套 response envelope，真正的数据都放在 `data` 里。
+支付结果轮询同样优先走 `/auth/api/get-payment?id=...`。如果必须直连 Casdoor origin，两种场景都仍然使用同一套 response envelope，真正的数据都放在 `data` 里。
 
 runtime 也可以从 `runtimeConfig.items` 推导 `availablePlans` 和 `availableProducts`，但显式注入更利于宿主侧控制。
 当 `purchasableIds` 非空时，`BillingProvider` 只会对名单内的商品做购买动作和可购买列表暴露。

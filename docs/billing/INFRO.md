@@ -143,8 +143,8 @@ export async function paymentSuccessHandler(input: {
 
 billing 的页面层完全由宿主工程自己控制。套件不生成 product page、buy page、二维码扫描页或 payment result page，只提供 headless hooks、Casdoor 购买适配器、支付回调 handler 和纯数据模型。宿主如果要展示二维码、支付状态或订单详情，可以在自己的页面里直接读取 `BillingCasdoorPaymentResponse`、`BillingCasdoorAccountResponse`、`BillingCasdoorApplicationResponse`，或者调用对应 loader。
 
-同一套 loader 约定也适用于 `fetchAccount`、`fetchApplication` 和 `fetchPayment`：宿主同域代理时请求 `/auth/api/get-account`、`/auth/api/get-application`、`/auth/api/get-payment`，直连 Casdoor origin 时则分别请求 `/api/get-account`、`/api/get-application`、`/api/get-payment`。
+同一套 loader 约定也适用于 `fetchAccount`、`fetchApplication` 和 `fetchPayment`：浏览器侧默认请求 `/auth/api/get-account`、`/auth/api/get-application`、`/auth/api/get-payment` 这类同域代理，避免跨域；只有服务端或明确启用 CORS 的特殊场景，才考虑直接请求 `NEXT_PUBLIC_CASDOOR_SERVER_URL` origin 的 `/api/get-account`、`/api/get-application`、`/api/get-payment`。
 
-同域代理请求 Casdoor 时，支付结果轮询应该走 `/auth/api/get-payment?id=...`；如果宿主直接在浏览器里请求 `NEXT_PUBLIC_CASDOOR_SERVER_URL` 对应的 Casdoor origin，则路径是 `/api/get-payment?id=...`。两种场景都使用同一套 response envelope，真正的数据都放在 `data` 里。
+支付结果轮询同样优先走 `/auth/api/get-payment?id=...`。如果必须直连 Casdoor origin，两种场景都仍然使用同一套 response envelope，真正的数据都放在 `data` 里。
 
 💡 已知问题提醒
