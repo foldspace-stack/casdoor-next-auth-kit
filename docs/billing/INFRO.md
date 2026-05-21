@@ -97,7 +97,7 @@ https://your-website.com/auth/payment/success?paymentId=payment_xxx&orderId=orde
 
 如果商品在 Casdoor 里显式配置了 Success URL，支付成功后 Casdoor 会把浏览器先带到这里，再由宿主处理器按需调用 `NotifyPayment` 完成支付确认。
 
-套件会默认生成宿主侧处理器文件 `lib/billing/payment-success.ts`，`app/(auth-kit)/auth-config.ts` 会直接导入它并导出为 `paymentSuccessHandler`。默认处理器的签名如下：
+套件会默认生成宿主侧处理器文件 `lib/billing/payment-success.ts`，同时还会生成共享 helper `lib/billing/order-redirect.ts`；`app/(auth-kit)/auth-config.ts` 会直接导入 `paymentSuccessHandler`。默认处理器的签名如下：
 
 ```ts
 export async function paymentSuccessHandler(input: {
@@ -119,7 +119,7 @@ export async function paymentSuccessHandler(input: {
 
 本仓库把这个固定回调路径统一收敛到宿主站内的 `/auth/payment/finished`，路由壳会把请求参数交给宿主自己实现的处理器，再由处理器决定最终跳转。
 
-套件会默认生成宿主侧处理器文件 `lib/billing/payment-finished.ts`，`app/(auth-kit)/auth-config.ts` 会直接导入它并导出为 `paymentFinishedHandler`。签名与 success 处理器一致。
+套件会默认生成宿主侧处理器文件 `lib/billing/payment-finished.ts`，并同样直接导入 `lib/billing/order-redirect.ts`；`app/(auth-kit)/auth-config.ts` 会直接导入它并导出为 `paymentFinishedHandler`。签名与 success 处理器一致。
 
 如果默认处理器没有写入业务逻辑，路由会打印日志并回落到首页 `/`。
 
@@ -129,7 +129,7 @@ export async function paymentSuccessHandler(input: {
 
 1. 宿主工程通过 `BillingProvider` 或后端配置注入 `BillingCatalogConfig`
 2. `BillingCatalogConfig.purchasableIds` 只保留当前项目允许购买的条目
-3. 用户发起 `purchase` 后，包内购买适配器先按商品 ID 拉取 Casdoor 商品详情，再选择 provider 并发起 Casdoor 下单；这里的 loader 约定返回 Casdoor 标准响应 envelope，真正的数据放在 `data` 里。`productId` 推荐写成 `owner/name` 形式，例如 `qixiaoju/创小剧积分包-50`，并且要和 `GET /api/get-product?id=qixiaoju/创小剧积分包-50` 保持一致；`buy-product` 返回 `status: "error"` 时，`msg` 里的错误信息会直接透传给宿主的 `onPurchaseError` / `onPurchaseComplete`；回跳后由 `payment-success.ts` 和 `payment-finished.ts` 做宿主侧收尾。对于 SaaS 订阅，推荐把 `fetchPricing` / `pricingLoader`、`fetchPlan` / `planLoader`、`fetchSubscriptionRecord` / `subscriptionRecordLoader`、`fetchSubscriptions` / `subscriptionsLoader` 绑定到 Casdoor 的 `get-pricing`、`get-plan`、`get-subscription`、`get-subscriptions`。对于标准商品，推荐把 `fetchOrder` / `orderLoader`、`fetchOrders` / `ordersLoader`、`fetchPayment` / `paymentLoader` 绑定到 Casdoor 的 `get-order`、`get-orders`、`get-payment`。
+3. 用户发起 `purchase` 后，包内购买适配器先按商品 ID 拉取 Casdoor 商品详情，再选择 provider 并发起 Casdoor 下单；这里的 loader 约定返回 Casdoor 标准响应 envelope，真正的数据放在 `data` 里。`productId` 推荐写成 `owner/name` 形式，例如 `qixiaoju/创小剧积分包-50`，并且要和 `GET /api/get-product?id=qixiaoju/创小剧积分包-50` 保持一致；`buy-product` 返回 `status: "error"` 时，`msg` 里的错误信息会直接透传给宿主的 `onPurchaseError` / `onPurchaseComplete`；回跳后由 `payment-success.ts`、`payment-finished.ts` 和共享的 `order-redirect.ts` 做宿主侧收尾。对于 SaaS 订阅，推荐把 `fetchPricing` / `pricingLoader`、`fetchPlan` / `planLoader`、`fetchSubscriptionRecord` / `subscriptionRecordLoader`、`fetchSubscriptions` / `subscriptionsLoader` 绑定到 Casdoor 的 `get-pricing`、`get-plan`、`get-subscription`、`get-subscriptions`。对于标准商品，推荐把 `fetchOrder` / `orderLoader`、`fetchOrders` / `ordersLoader`、`fetchPayment` / `paymentLoader` 绑定到 Casdoor 的 `get-order`、`get-orders`、`get-payment`。
 
 商品详情页如果要展示支持的支付方式，可以直接调用 `useBillingProductDetail(productId)`，拿到 `providers` 和 `providerObjs` 后按 provider 渲染不同的购买按钮和参数。
 
@@ -139,7 +139,7 @@ export async function paymentSuccessHandler(input: {
 
 这个 hook 只是给单选场景提供默认态；如果宿主想同时渲染两个不同的支付入口，直接遍历 `providerObjs` 就行，`selectedProvider` 只是一个方便的当前选中项引用，不会限制宿主的 UI 结构。
 
-如果宿主还需要订单系统、积分发放、会员升级或 webhook，建议都放在默认生成的 `lib/billing/payment-success.ts` / `lib/billing/payment-finished.ts` 里，不要改回路由壳里硬编码。
+如果宿主还需要订单系统、积分发放、会员升级或 webhook，建议都放在默认生成的 `lib/billing/payment-success.ts` / `lib/billing/payment-finished.ts` 里；`lib/billing/order-redirect.ts` 则负责回跳归一化，不要改回路由壳里硬编码。
 
 billing 的页面层完全由宿主工程自己控制。套件不生成 product page、buy page、二维码扫描页或 payment result page，只提供 headless hooks、Casdoor 购买适配器、支付回调 handler 和纯数据模型。宿主如果要展示二维码、支付状态或订单详情，可以在自己的页面里直接读取 `BillingCasdoorPaymentResponse`、`BillingCasdoorAccountResponse`、`BillingCasdoorApplicationResponse`，或者调用对应 loader。
 

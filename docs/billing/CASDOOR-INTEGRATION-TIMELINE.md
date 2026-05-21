@@ -18,8 +18,9 @@
 - 支付成功后的 `Success URL` 统一落到宿主的 `/auth/payment/success`
 - 购买成功后的 `Return URL` 统一落到宿主的 `/auth/payment/finished`
 - 购买页、二维码扫描区和支付状态面板都由宿主工程自己渲染，套件只提供 headless hooks 和回调 handler
-- 套件默认生成 `lib/billing/payment-success.ts` 和 `lib/billing/payment-finished.ts`
+- 套件默认生成 `lib/billing/order-redirect.ts`、`lib/billing/payment-success.ts` 和 `lib/billing/payment-finished.ts`
 - `app/(auth-kit)/auth-config.ts` 会直接导入这两个默认文件，并把它们暴露为 `paymentSuccessHandler` / `paymentFinishedHandler`
+- 两个 handler 都会直接导入 `lib/billing/order-redirect.ts`，让 update 每次都能把回跳归一化 helper 重新生成回来
 - 宿主函数自己解析 `paymentOwner`、`paymentName`、`paymentId`、`orderId` 和其它 query 参数，再做落库、Webhook 钩子和二次跳转
 - 商品购买适配器会先按 `owner/name` 拉取商品详情，再取可用组织名并调用 `buy-product` 兼容接口；宿主只需要配置允许购买的少量 product id
 - 订阅 catalog 条目和商品 catalog 条目可以共存于同一个 runtimeConfig，但语义上要继续分开：订阅条目走 pricing / plan / subscription，商品条目走 product / order / payment，宿主 UI 可以并排展示但不要合并为同一个购买对象
@@ -34,6 +35,7 @@ sequenceDiagram
   participant Casdoor as Casdoor Billing API
   participant Success as /auth/payment/success
   participant Finished as /auth/payment/finished
+  participant Redirect as lib/billing/order-redirect.ts
   participant SuccessHandler as lib/billing/payment-success.ts
   participant FinishedHandler as lib/billing/payment-finished.ts
   participant DB as 宿主数据库 / Webhook 钩子
@@ -50,12 +52,14 @@ sequenceDiagram
     Casdoor->>Casdoor: 创建订单 / 付款 / 交易 / 订阅
   Casdoor-->>Success: 302 Redirect 到 /auth/payment/success?paymentId=...&orderId=...
   Success->>Success: 收集全部 query 参数
+  Success->>Redirect: 解析归一化的 order/payment 回跳目标
   Success->>SuccessHandler: 直接调用默认生成的 paymentSuccessHandler
   SuccessHandler->>SuccessHandler: 自行解析 paymentOwner / paymentName / paymentId / orderId / params
   SuccessHandler->>DB: 写订单、支付、交易或触发 webhook 钩子
   SuccessHandler-->>Success: 返回 redirectTo / Response / void
   Success-->>Finished: 默认或业务指定时跳转到 /auth/payment/finished
   Finished->>Finished: 收集全部 query 参数
+  Finished->>Redirect: 解析归一化的 order/payment 回跳目标
   Finished->>FinishedHandler: 直接调用默认生成的 paymentFinishedHandler
   FinishedHandler->>FinishedHandler: 自行解析 paymentOwner / paymentName / paymentId / orderId / params
   FinishedHandler->>DB: 继续做收尾、通知或最终跳转
@@ -79,4 +83,4 @@ Casdoor 侧实际需要的是：
 - `priceId`
 - `metadata`
 
-宿主后端负责把 `BillingCatalogConfig` 翻译成 Casdoor 可执行的购买参数，并在成功回跳和完成回调时分别通过默认生成的 `lib/billing/payment-success.ts`、`lib/billing/payment-finished.ts` 接管后续业务。
+宿主后端负责把 `BillingCatalogConfig` 翻译成 Casdoor 可执行的购买参数，并在成功回跳和完成回调时分别通过默认生成的 `lib/billing/payment-success.ts`、`lib/billing/payment-finished.ts` 接管后续业务；共享的 `lib/billing/order-redirect.ts` 负责把回跳目标归一化成安全的相对路径。

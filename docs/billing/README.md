@@ -91,7 +91,7 @@ const billingCatalog = {
 2. `npx @foldspace-fe/casdoor-next-auth-kit@latest update` 会补齐受管文件并保持可编译
 3. `pnpm build` 后宿主可以直接 `next build`
 
-如果会影响生成文件，优先把 `app/(auth-kit)/auth-config.ts`、`lib/billing/payment-success.ts` 和 `lib/billing/payment-finished.ts` 一起对齐，再改文档。
+如果会影响生成文件，优先把 `app/(auth-kit)/auth-config.ts`、`lib/billing/order-redirect.ts`、`lib/billing/payment-success.ts` 和 `lib/billing/payment-finished.ts` 一起对齐，再改文档。
 
 ## 覆盖范围
 
@@ -199,6 +199,7 @@ runtime 也可以从 `runtimeConfig.items` 推导 `availablePlans` 和 `availabl
 
 ## 回调约定
 
-- 套件默认生成 `lib/billing/payment-success.ts` 和 `lib/billing/payment-finished.ts`
+- 套件默认生成 `lib/billing/order-redirect.ts`、`lib/billing/payment-success.ts` 和 `lib/billing/payment-finished.ts`
 - `app/(auth-kit)/auth-config.ts` 会直接导入这两个默认文件，并暴露为 `paymentSuccessHandler` / `paymentFinishedHandler`
+- `payment-success.ts` 和 `payment-finished.ts` 都会直接导入 `lib/billing/order-redirect.ts`，用来保证 update 后回跳归一化 helper 仍然存在
 - 两个回调都能接收 `paymentId`、`orderId`、query 参数和 body，由宿主自己在默认生成文件里完成落库、Webhook 钩子和最终跳转

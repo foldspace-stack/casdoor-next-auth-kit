@@ -26,7 +26,7 @@
 - 当修改 `packages/auth-kit/src/cli/templates.ts`、`packages/auth-kit/src/cli/operations.ts`、`packages/auth-kit/src/billing/*` 或 `packages/auth-kit/src/core/env.ts` 时，要同步确认 `init`、`update`、`check` 三个命令的行为都仍然一致，不能只修单个入口。
 - npm 发布流水线使用 GitHub Actions Trusted Publisher / OIDC，不再依赖 `NPM_TOKEN`；发布时优先保留 `id-token: write`、`registry-url` 和 `npm publish` 的组合，避免重新引入长生命周期写权限 token。
 - 正式 npm 发布默认打到 `latest`。在纯 Trusted Publisher / OIDC 模式下不要再要求 CI 同步 `next`，如果需要预发布通道，必须单独设计并额外配置认证，不要和正式发布混在同一个 workflow 里。
-- 改动 billing 相关模板时，必须同时验证 `app/(auth-kit)/auth-config.ts`、`lib/billing/payment-success.ts`、`lib/billing/payment-finished.ts` 三者的导入关系，没有一个文件能单独缺失。
+- 改动 billing 相关模板时，必须同时验证 `app/(auth-kit)/auth-config.ts`、`lib/billing/order-redirect.ts`、`lib/billing/payment-success.ts`、`lib/billing/payment-finished.ts` 三者的导入关系，没有一个文件能单独缺失。
 - 改动 billing 文档时，`docs/billing/README.md`、`docs/billing/INFRO.md`、`docs/billing/CASDOOR-INTEGRATION-TIMELINE.md` 和 `docs/billing/CASDOOR-INTEGRATION-TIMELINE.svg` 要一起更新，不能只改其中一份。
 - 改动受管路由壳时，要同时检查 `deprecatedTargets`、`targets`、生成模板和宿主运行结果，确保更新命令不会残留旧文件或生成半套文件。
 
@@ -63,6 +63,7 @@
 - 认证用户的 `role` 是一等字段，Casdoor profile、callback、JWT/session、React hooks 和生成的 `auth-config.ts` 都要保持 `role` 与 `isAdmin` 同步，不能只在 hooks 里临时推导。
 - billing 默认就是受管内容，CLI 必须同时生成 `lib/billing/payment-success.ts` 和 `lib/billing/payment-finished.ts`，`auth-config.ts` 直接导入这两个默认文件，不要要求宿主手工创建 `@/lib/billing/*`。
 - 默认生成的 `lib/billing/payment-success.ts` 和 `lib/billing/payment-finished.ts` 是宿主定制 billing 收尾逻辑的唯一入口，后续如果要改订单补全、Webhook 或跳转逻辑，优先改这两个默认文件的 custom block，不要把业务塞回路由壳。
+- 默认生成的 `lib/billing/order-redirect.ts` 是 billing 回跳归一化的共享 helper，`payment-success.ts` 和 `payment-finished.ts` 都会直接导入它，`update` 时不要让这个 import 被丢掉。
 - 默认生成的 billing handler 文件必须保持“拿来就能编译”，文件里如果没有业务逻辑，也要保留可运行的空实现和明确日志，不允许生成只写注释或只留导入的半成品。
 - billing 的购买页、二维码扫描区和支付状态面板都属于宿主工程自己的 UI，套件只提供 headless hooks、Casdoor 适配器、支付回调 handler 和纯数据模型，不要再把 `/qrcode` 或 `/payments/.../result` 当成套件内置页面能力。
 - billing 的 headless hooks 现在还包括 `useBillingPricing`、`useBillingPlan`、`useBillingPricingPlans`、`useBillingSubscriptionPurchaseOptions`、`useBillingSubscriptionRecord`、`useBillingSubscriptions`、`useBillingOrder` 和 `useBillingOrders`，宿主应该优先用这些 hooks 把 Casdoor 的定价、计划、订阅和订单查询结果渲染成自己的 UI，而不是自己再拼一层查询封装。
