@@ -112,12 +112,10 @@ jobs:
           if (refType === 'tag') {
             const version = normalize(refName);
             write('version', stringify(version));
-            write('dist_tag', 'latest');
           } else {
             const base = npmBaseline && compare(npmBaseline, localBaseline) > 0 ? npmBaseline : localBaseline;
             const nextVersion = bumpPatch(base);
             write('version', stringify(nextVersion));
-            write('dist_tag', 'next');
           }
           NODE
 
@@ -127,4 +125,4 @@ jobs:
 
       - name: Publish package
         working-directory: packages/auth-kit
-        run: npm publish --access public --tag "${{ steps.version.outputs.dist_tag }}"
+        run: npm publish --access public --tag latest
