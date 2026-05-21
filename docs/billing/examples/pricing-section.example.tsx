@@ -18,6 +18,7 @@ export function PricingSectionExample() {
   const productId = 'qixiaoju/创小剧积分包-50';
 
   const subscriptionOptions = useBillingSubscriptionPurchaseOptions(pricingId);
+  const pricingPlans = useBillingPricingPlans(pricingId, false, subscriptionOptions.selectedPlanName);
   const productOptions = useBillingProductPurchaseOptions(productId);
   const orders = useBillingOrders({ owner: 'qixiaoju', user: 'admin' });
   const subscriptions = useBillingSubscriptions({ owner: 'qixiaoju', user: 'admin' });
@@ -41,6 +42,7 @@ export function PricingSectionExample() {
         <h3>Subscription Purchase</h3>
         <p>Pricing: {subscriptionOptions.pricing?.displayName ?? pricingId}</p>
         <p>Selected plan: {subscriptionOptions.selectedPlan?.displayName ?? selectedPlanName ?? 'none'}</p>
+        <p>Plan count: {pricingPlans.length}</p>
         <div>
           {subscriptionOptions.plans.map((plan) => (
             <button
@@ -127,7 +129,7 @@ export function PricingSectionExample() {
           {JSON.stringify(
             {
               pricing: subscriptionOptions.pricing,
-              plans: subscriptionOptions.plans,
+              plans: pricingPlans,
               selectedPlanName: subscriptionOptions.selectedPlanName,
               selectedPlan: subscriptionOptions.selectedPlan,
             },

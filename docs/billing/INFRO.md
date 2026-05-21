@@ -149,6 +149,8 @@ billing 的页面层完全由宿主工程自己控制。套件不生成 product 
 
 订阅状态建议以 Casdoor 的 `get-pricing` / `get-plan` / `get-subscription` / `get-subscriptions` 为准，产品购买后的订单列表和订单状态建议以 Casdoor 的 `get-order` / `get-orders` / `get-payment` 为准。包内的 `BillingSubscriptionState`、`BillingOrderHistoryItem`、`BillingPurchaseStatus` 只是宿主页面的归一化视图，不应该反过来成为真相源。
 
+订阅 catalog 条目和商品 catalog 条目可以共存于一个 catalog，但业务语义要分开：订阅条目对应 pricing / plan / subscription，商品条目对应 product / order / payment。宿主可以共用同一个 billing runtime，但 UI 结构和查询 loader 仍然要按两个分支分别处理。
+
 如果宿主希望直接渲染订阅购买页或订单面板，可以优先组合这些 hooks：
 
 - `useBillingPricing`、`useBillingPlan`、`useBillingPricingPlans`

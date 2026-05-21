@@ -21,6 +21,7 @@
 - `app/(auth-kit)/auth-config.ts` 会直接导入这两个默认文件，并把它们暴露为 `paymentSuccessHandler` / `paymentFinishedHandler`
 - 宿主函数自己解析 `paymentOwner`、`paymentName`、`paymentId`、`orderId` 和其它 query 参数，再做落库、Webhook 钩子和二次跳转
 - 商品购买适配器会先按 `owner/name` 拉取商品详情，再取可用组织名并调用 `buy-product` 兼容接口；宿主只需要配置允许购买的少量 product id
+- 订阅 catalog 条目和商品 catalog 条目可以共存于同一个 runtimeConfig，但语义上要继续分开：订阅条目走 pricing / plan / subscription，商品条目走 product / order / payment，宿主 UI 可以并排展示但不要合并为同一个购买对象
 
 ```mermaid
 sequenceDiagram

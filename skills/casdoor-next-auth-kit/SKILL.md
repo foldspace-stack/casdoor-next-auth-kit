@@ -90,6 +90,9 @@ npx @foldspace-fe/casdoor-next-auth-kit@latest check
 - `useSubscribePlan` / `usePurchaseProduct` — 发起订阅和商品购买动作，单次购买只针对一个具体条目；订阅购买会先走定价和计划查询，商品购买会先走商品详情解析，再组装 Casdoor 的下单参数
 - `useBillingRefresh` / `useBillingPipeline` — 刷新 billing 状态和编排动作执行链路
 
+订阅域和商品域要保持分离：`kind: 'subscription'` 的 catalog 条目只负责定价、计划和订阅状态，`kind: 'product'` 的 catalog 条目只负责商品、订单和支付状态。两类条目可以共存于同一个 catalog，但不要把它们压成一套无差别的购买对象。
+这条约定已经由 `packages/auth-kit/test/billing-subscription-domain.test.ts` 锁住；后续如果调整 catalog、购买 payload 或订阅购买路径，优先更新这个回归测试，确保订阅和商品仍然是两条独立链路。
+
 ## 路由模型
 
 认证套件采用同源路由架构，所有认证相关页面均在宿主应用域名下呈现：
@@ -113,7 +116,7 @@ Billing 的购买白名单可以通过 `BillingCatalogConfig.purchasableIds` 或
 
 商品购买的包内适配器会优先读取 Casdoor 商品详情，再按 `owner/name` 解析商品 ID，并自动选择可用 provider 后调用 `buy-product` 兼容接口；宿主只需要提供允许购买的商品 id 和相应的 Casdoor 接口 loader。loader 约定使用 Casdoor 的标准响应 envelope，然后从 `data` 中取出商品、组织、账号、应用或支付记录。`buy-product` 如果返回 `status: "error"`，包内会把 `msg` 里的错误信息和错误码透传到宿主的 `onPurchaseError` / `onPurchaseComplete`。`useBillingProductDetail` 会把商品详情里的 `providers` 和 `providerObjs` 暴露给宿主，`useBillingProductPurchaseOptions` 可以直接拿到商品详情、当前 provider 选择、当前选中 provider 对象和 setter，适合商品详情页按支付方式展示不同购买参数；宿主选中的 `providerName` 也可以直接传给 `purchaseProduct.run({ key, providerName })`，让包内适配器按这个 provider 下单。这个 hook 只是给单选场景提供默认态，如果宿主想同时渲染两个不同的支付入口，直接遍历 `providerObjs` 就行，`selectedProvider` 不会限制 UI 结构。`productId` 推荐写成 `owner/name` 形式，例如 `qixiaoju/创小剧积分包-50`，和 `GET /api/get-product?id=qixiaoju/创小剧积分包-50` 的查询值保持一致。支付结果轮询和 `get-account` / `get-application` / `get-payment` 这类浏览器侧查询，优先请求 `/auth/api/*` 同域代理；只有服务端或明确启用 CORS 的特殊场景，才考虑直接连 `NEXT_PUBLIC_CASDOOR_SERVER_URL` origin 的 `/api/*`。
 
-SaaS 订阅状态建议直接接 Casdoor 的 `get-pricing` / `get-plan` / `get-subscription` / `get-subscriptions`，产品购买后的订单列表和订单状态建议直接接 Casdoor 的 `get-order` / `get-orders` / `get-payment`。宿主本地的 `BillingSubscriptionState`、`BillingOrderHistoryItem`、`BillingPurchaseStatus` 只应该是归一化展示层，不应该成为真相源；如果宿主需要展示订阅计划价格、计划列表、订单详情或支付明细，优先从这些 Casdoor 查询 loader 里取 `data`。
+SaaS 订阅状态建议直接接 Casdoor 的 `get-pricing` / `get-plan` / `get-subscription` / `get-subscriptions`，产品购买后的订单列表和订单状态建议直接接 Casdoor 的 `get-order` / `get-orders` / `get-payment`。宿主本地的 `BillingSubscriptionState`、`BillingOrderHistoryItem`、`BillingPurchaseStatus` 只应该是归一化展示层，不应该成为真相源；如果宿主需要展示订阅计划价格、计划列表、订单详情或支付明细，优先从这些 Casdoor 查询 loader 里取 `data`。订阅 catalog 条目和商品 catalog 条目可以共存，但 UI 和购买参数生成要保持两个分支各自独立。
 
 ## 宿主工程 `proxy.ts` 配置要求
 

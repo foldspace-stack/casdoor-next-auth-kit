@@ -22,6 +22,7 @@ export function OrderHistoryPageExample() {
       <header>
         <h2>Order History</h2>
         <p>Latest status: {purchaseStatus.purchaseStatus?.status ?? 'idle'}</p>
+        <p>Orders and subscriptions stay separate; the host renders them in different panels.</p>
       </header>
 
       <div>
