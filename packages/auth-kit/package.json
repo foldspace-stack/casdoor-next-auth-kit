@@ -5,7 +5,7 @@
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "https://github.com/foldspace-stack/casdoor-next-auth-kit"
+    "url": "git+https://github.com/foldspace-stack/casdoor-next-auth-kit.git"
   },
   "homepage": "https://github.com/foldspace-stack/casdoor-next-auth-kit#readme",
   "bugs": {
@@ -46,6 +46,7 @@
   "scripts": {
     "build": "tsup && node ./scripts/copy-skill.mjs",
     "test": "pnpm build && node --test --experimental-strip-types ./scripts/verify-casdoor-proxy.mjs ./test/*.test.ts",
+    "lint": "tsc -p tsconfig.json --noEmit",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "dev": "tsup --watch"
   },

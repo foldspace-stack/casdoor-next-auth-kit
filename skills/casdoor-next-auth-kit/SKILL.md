@@ -66,6 +66,8 @@ npx @foldspace-fe/casdoor-next-auth-kit@latest check
 
 如果宿主项目使用的是本地 `file:` 依赖或工作区链接，先在本仓库执行 `pnpm build`，再回到宿主项目执行 `pnpm install` 或 `npx @foldspace-fe/casdoor-next-auth-kit@latest update`，否则可能看到旧产物。
 
+仓库发布到 npm 时使用 GitHub Actions Trusted Publisher / OIDC，不再依赖 `NPM_TOKEN`；CI 里需要保留 `id-token: write`，并让 `npm publish` 直接走受信发布流程。
+
 ## 套件提供的功能
 
 - `AuthProvider` — React 认证上下文 Provider，包裹整个应用提供会话状态

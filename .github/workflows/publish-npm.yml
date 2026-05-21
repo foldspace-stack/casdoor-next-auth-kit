@@ -42,7 +42,7 @@ jobs:
       - name: Validate package metadata
         working-directory: packages/auth-kit
         run: |
-          node -e 'const pkg=require("./package.json"); const expected="https://github.com/foldspace-stack/casdoor-next-auth-kit"; const errors=[]; if(pkg.name!=="@foldspace-fe/casdoor-next-auth-kit") errors.push("name="+pkg.name); if(!pkg.repository||pkg.repository.url!==expected) errors.push("repository.url="+(pkg.repository&&pkg.repository.url)); if(pkg.homepage!==expected+"#readme") errors.push("homepage="+pkg.homepage); if(!pkg.publishConfig||pkg.publishConfig.access!=="public") errors.push("publishConfig.access"); if(!pkg.publishConfig||pkg.publishConfig.provenance!==true) errors.push("publishConfig.provenance"); if(errors.length){ console.error("Invalid package metadata:", errors.join(", ")); process.exit(1); }'
+          node -e 'const pkg=require("./package.json"); const expectedRepo="git+https://github.com/foldspace-stack/casdoor-next-auth-kit.git"; const expectedHomepage="https://github.com/foldspace-stack/casdoor-next-auth-kit#readme"; const errors=[]; if(pkg.name!=="@foldspace-fe/casdoor-next-auth-kit") errors.push("name="+pkg.name); if(!pkg.repository||pkg.repository.url!==expectedRepo) errors.push("repository.url="+(pkg.repository&&pkg.repository.url)); if(pkg.homepage!==expectedHomepage) errors.push("homepage="+pkg.homepage); if(!pkg.publishConfig||pkg.publishConfig.access!=="public") errors.push("publishConfig.access"); if(!pkg.publishConfig||pkg.publishConfig.provenance!==true) errors.push("publishConfig.provenance"); if(errors.length){ console.error("Invalid package metadata:", errors.join(", ")); process.exit(1); }'
 
       - name: Build package
         run: pnpm build:auth-kit
@@ -127,12 +127,4 @@ jobs:
 
       - name: Publish package
         working-directory: packages/auth-kit
-        run: npm publish --access public --provenance --tag "${{ steps.version.outputs.dist_tag }}"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Promote latest dist-tag
-        working-directory: packages/auth-kit
-        run: npm dist-tag add "@foldspace-fe/casdoor-next-auth-kit@${{ steps.version.outputs.version }}" latest
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public --tag "${{ steps.version.outputs.dist_tag }}"
