@@ -61,6 +61,7 @@
 - `app/(auth-kit)/callback/error/page.tsx` 和 `app/(auth-kit)/callback/error/clear-domain-cookies-button.tsx` 也是受管内容，默认错误页必须带“清空当前域 Cookie”按钮，不要让宿主手工补这个能力。
 - `app/(auth-kit)/auth-config.ts` 必须显式导出 `authKitConfig`、`adapter`、`persistence`、`paymentSuccessHandler` 和 `paymentFinishedHandler`，不要只保留局部变量让 route 再去间接取值。
 - 认证用户的 `role` 是一等字段，Casdoor profile、callback、JWT/session、React hooks 和生成的 `auth-config.ts` 都要保持 `role` 与 `isAdmin` 同步，不能只在 hooks 里临时推导。
+- 生成的 `auth-config.ts` 需要同时读取 Casdoor profile 和 access token 里的兜底 claims，`onUserSync` 优先用 `decodeCasdoorAccessToken(accessToken)` 补齐 `email`、`sub` 和 `isAdmin`，并把最终用户对象通过 `syncUserRecord(user)` 落库。
 - billing 默认就是受管内容，CLI 必须同时生成 `lib/billing/payment-success.ts` 和 `lib/billing/payment-finished.ts`，`auth-config.ts` 直接导入这两个默认文件，不要要求宿主手工创建 `@/lib/billing/*`。
 - 默认生成的 `lib/billing/payment-success.ts` 和 `lib/billing/payment-finished.ts` 是宿主定制 billing 收尾逻辑的唯一入口，后续如果要改订单补全、Webhook 或跳转逻辑，优先改这两个默认文件的 custom block，不要把业务塞回路由壳。
 - 默认生成的 `lib/billing/order-redirect.ts` 是 billing 回跳归一化的共享 helper，`payment-success.ts` 和 `payment-finished.ts` 都会直接导入它，`update` 时不要让这个 import 被丢掉。
