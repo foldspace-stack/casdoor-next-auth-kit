@@ -1,6 +1,6 @@
-import { customBegin, customEnd } from './fs';
-import { buildAuthPrismaSchemaTemplate } from '../prisma/schema-template';
-import { AUTH_KIT_ENV_FILES, buildManagedEnvTemplate } from '../core/env';
+import { customBegin, customEnd } from './fs.ts';
+import { buildAuthPrismaSchemaTemplate } from '../prisma/schema-template.ts';
+import { AUTH_KIT_ENV_FILES, buildManagedEnvTemplate } from '../core/env.ts';
 
 export function authLoginRouteTemplate() {
   return `import { loginHandler } from '../../auth-config';
@@ -449,14 +449,17 @@ export const GET = createBillingPaymentFinishedRouteHandler({
 
 export function billingPaymentSuccessHandlerTemplate() {
   return `import type { BillingPaymentSuccessHandler } from '@foldspace-fe/casdoor-next-auth-kit/billing';
+import { resolveBillingOrderRedirect } from './order-redirect';
 
 ${customBegin}
 const paymentSuccessHandlerImpl: BillingPaymentSuccessHandler = async (context) => {
+  const redirectTarget = resolveBillingOrderRedirect(context.orderId || context.paymentId);
   console.info('[casdoor-next-auth-kit] payment success callback received', {
     paymentId: context.paymentId,
     orderId: context.orderId,
     status: context.status,
     redirectTo: context.redirectTo,
+    redirectTarget,
   });
   return;
 };
@@ -468,20 +471,34 @@ export const paymentSuccessHandler: BillingPaymentSuccessHandler = paymentSucces
 
 export function billingPaymentFinishedHandlerTemplate() {
   return `import type { BillingPaymentFinishedHandler } from '@foldspace-fe/casdoor-next-auth-kit/billing';
+import { resolveBillingOrderRedirect } from './order-redirect';
 
 ${customBegin}
 const paymentFinishedHandlerImpl: BillingPaymentFinishedHandler = async (context) => {
+  const redirectTarget = resolveBillingOrderRedirect(context.orderId || context.paymentId);
   console.info('[casdoor-next-auth-kit] payment finished callback received', {
     paymentId: context.paymentId,
     orderId: context.orderId,
     status: context.status,
     redirectTo: context.redirectTo,
+    redirectTarget,
   });
   return;
 };
 ${customEnd}
 
 export const paymentFinishedHandler: BillingPaymentFinishedHandler = paymentFinishedHandlerImpl;
+`;
+}
+
+export function billingOrderRedirectTemplate() {
+  return `export function resolveBillingOrderRedirect(orderIdOrPaymentId?: string | null): string | null {
+  if (!orderIdOrPaymentId) {
+    return null;
+  }
+
+  return null;
+}
 `;
 }
 

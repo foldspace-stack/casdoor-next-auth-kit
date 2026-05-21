@@ -15,6 +15,7 @@ import {
   authorizeRouteTemplate,
   callbackRouteTemplate,
   billingPaymentFinishedHandlerTemplate,
+  billingOrderRedirectTemplate,
   billingPaymentSuccessHandlerTemplate,
   commerceProxyRouteTemplate,
   envTemplate,
@@ -51,6 +52,7 @@ const targets = [
   ['app/(auth-kit)/auth/api/commerce/[...path]/route.ts', commerceProxyRouteTemplate],
   ['lib/billing/payment-success.ts', billingPaymentSuccessHandlerTemplate],
   ['lib/billing/payment-finished.ts', billingPaymentFinishedHandlerTemplate],
+  ['lib/billing/order-redirect.ts', billingOrderRedirectTemplate],
   ['app/(auth-kit)/index-html.ts', authIndexHtmlTemplate],
   ['prisma/auth-kit.prisma', prismaSchemaTemplate],
 ] as const;
