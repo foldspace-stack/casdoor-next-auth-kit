@@ -312,13 +312,15 @@ export function authConfigTemplate() {
   createLogoutHandler,
   createNextAuthOptions,
   createSignupRouteHandler,
+  decodeCasdoorAccessToken,
+  isGlobalAdminEmail,
   type AuthBusinessAdapter,
   type AuthKitConfig,
   type AuthPersistenceAdapter,
 } from '@foldspace-fe/casdoor-next-auth-kit';
-import { isGlobalAdminEmail } from '@foldspace-fe/casdoor-next-auth-kit';
 import { paymentSuccessHandler as billingPaymentSuccessHandler } from '@/lib/billing/payment-success';
 import { paymentFinishedHandler as billingPaymentFinishedHandler } from '@/lib/billing/payment-finished';
+import { syncUserRecord } from '@/lib/user/record';
 
 export function createAuthKitConfig(): AuthKitConfig {
   return {
@@ -340,12 +342,26 @@ export function createAuthKitConfig(): AuthKitConfig {
 export const authKitConfig = createAuthKitConfig();
 
 export const adapter: AuthBusinessAdapter = {
-  onUserSync: async (profile) => {
-    const email = profile.email ?? null;
-    const isAdmin = Boolean(profile.isAdmin) || isGlobalAdminEmail(email);
+  onUserSync: async (profile, tokens) => {
+    const accessToken = tokens.accessToken ?? tokens.access_token ?? '';
+    const decodedAccessToken = accessToken ? decodeCasdoorAccessToken(accessToken) : null;
+    const email =
+      profile.email ??
+      (typeof decodedAccessToken?.email === 'string' ? decodedAccessToken.email : null);
+    const isAdmin =
+      Boolean(profile.isAdmin) ||
+      Boolean(decodedAccessToken?.isAdmin) ||
+      isGlobalAdminEmail(email);
 
     return {
-      id: String(profile.id ?? profile.sub ?? email ?? 'casdoor-user'),
+      id: String(
+        profile.id ??
+          profile.sub ??
+          (typeof decodedAccessToken?.sub === 'string' ? decodedAccessToken.sub : null) ??
+          (typeof decodedAccessToken?.id === 'string' ? decodedAccessToken.id : null) ??
+          email ??
+          'casdoor-user',
+      ),
       name: profile.name ?? profile.displayName ?? null,
       email,
       image: profile.picture ?? profile.avatarUrl ?? null,
@@ -360,12 +376,7 @@ export const adapter: AuthBusinessAdapter = {
 
 export const persistence: AuthPersistenceAdapter = {
   async syncAuthUser(user) {
-    console.info('[casdoor-next-auth-kit] syncAuthUser received user', {
-      id: user.id,
-      email: user.email,
-      isAdmin: user.isAdmin,
-      role: user.role,
-    });
+    await syncUserRecord(user);
   },
   async findAuthUser() {
     return null;
