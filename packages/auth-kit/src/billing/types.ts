@@ -64,6 +64,14 @@ export interface BillingPurchaseRequest {
   metadata?: Record<string, string>;
 }
 
+export interface BillingCasdoorErrorDetail {
+  field?: string;
+  value?: string;
+  issue?: string;
+  location?: string;
+  [key: string]: unknown;
+}
+
 export interface BillingCasdoorProviderOption {
   name: string;
   owner?: string;
@@ -183,6 +191,13 @@ export interface BillingCasdoorProductDetail {
   state?: string;
 }
 
+export interface BillingCasdoorErrorPayload {
+  code?: string;
+  message?: string;
+  detail?: BillingCasdoorErrorDetail;
+  [key: string]: unknown;
+}
+
 export interface BillingCasdoorApiResponse<TData = unknown> {
   status: string;
   msg: string;
@@ -194,6 +209,251 @@ export interface BillingCasdoorApiResponse<TData = unknown> {
 }
 
 export type BillingCasdoorProductResponse = BillingCasdoorApiResponse<BillingCasdoorProductDetail>;
+
+export interface BillingCasdoorAccountMultiFactorAuthDetail {
+  enabled: boolean;
+  isPreferred: boolean;
+  mfaType: string;
+  mfaRememberInHours: number;
+}
+
+export interface BillingCasdoorAccountDetail {
+  owner: string;
+  name: string;
+  createdTime?: string;
+  updatedTime?: string;
+  deletedTime?: string;
+  id?: string;
+  externalId?: string;
+  type?: string;
+  password?: string;
+  passwordSalt?: string;
+  passwordType?: string;
+  displayName?: string;
+  firstName?: string;
+  lastName?: string;
+  avatar?: string;
+  avatarType?: string;
+  permanentAvatar?: string;
+  email?: string;
+  emailVerified?: boolean;
+  phone?: string;
+  countryCode?: string;
+  region?: string;
+  location?: string;
+  address?: string[] | null;
+  affiliation?: string;
+  title?: string;
+  idCardType?: string;
+  idCard?: string;
+  homepage?: string;
+  bio?: string;
+  tag?: string;
+  language?: string;
+  gender?: string;
+  birthday?: string;
+  education?: string;
+  score?: number;
+  karma?: number;
+  ranking?: number;
+  balance?: number;
+  balanceCredit?: number;
+  currency?: string;
+  balanceCurrency?: string;
+  isDefaultAvatar?: boolean;
+  isOnline?: boolean;
+  isAdmin?: boolean;
+  isForbidden?: boolean;
+  isDeleted?: boolean;
+  signupApplication?: string;
+  hash?: string;
+  preHash?: string;
+  registerType?: string;
+  registerSource?: string;
+  accessKey?: string;
+  accessSecret?: string;
+  accessToken?: string;
+  originalToken?: string;
+  createdIp?: string;
+  lastSigninTime?: string;
+  lastSigninIp?: string;
+  properties?: Record<string, string>;
+  roles?: string[];
+  permissions?: string[];
+  groups?: string[];
+  lastChangePasswordTime?: string;
+  lastSigninWrongTime?: string;
+  signinWrongTimes?: number;
+  managedAccounts?: unknown[] | null;
+  mfaAccounts?: unknown[] | null;
+  mfaItems?: unknown[] | null;
+  mfaRememberDeadline?: string;
+  needUpdatePassword?: boolean;
+  ipWhitelist?: string;
+  webauthnCredentials?: unknown[] | null;
+  preferredMfaType?: string;
+  recoveryCodes?: string[] | null;
+  totpSecret?: string;
+  mfaPhoneEnabled?: boolean;
+  mfaEmailEnabled?: boolean;
+  mfaRadiusEnabled?: boolean;
+  mfaRadiusUsername?: string;
+  mfaRadiusProvider?: string;
+  mfaPushEnabled?: boolean;
+  mfaPushReceiver?: string;
+  mfaPushProvider?: string;
+  multiFactorAuths?: BillingCasdoorAccountMultiFactorAuthDetail[];
+  invitation?: string;
+  invitationCode?: string;
+  faceIds?: unknown[] | null;
+  ldap?: string;
+  [key: string]: unknown;
+}
+
+export type BillingCasdoorAccountResponse = BillingCasdoorApiResponse<BillingCasdoorAccountDetail>;
+
+export interface BillingCasdoorApplicationProviderDetail {
+  owner?: string;
+  name?: string;
+  canSignUp?: boolean;
+  canSignIn?: boolean;
+  canUnlink?: boolean;
+  countryCodes?: string[] | null;
+  prompted?: boolean;
+  signupGroup?: string;
+  rule?: string;
+  provider?: BillingCasdoorProviderDetail;
+}
+
+export interface BillingCasdoorApplicationSigninMethodDetail {
+  name?: string;
+  displayName?: string;
+  rule?: string;
+}
+
+export interface BillingCasdoorApplicationSignupItemDetail {
+  name?: string;
+  visible?: boolean;
+  required?: boolean;
+  prompted?: boolean;
+  type?: string;
+  customCss?: string;
+  label?: string;
+  placeholder?: string;
+  options?: string[] | null;
+  regex?: string;
+  rule?: string;
+}
+
+export interface BillingCasdoorApplicationSigninItemDetail {
+  name?: string;
+  visible?: boolean;
+  label?: string;
+  customCss?: string;
+  placeholder?: string;
+  rule?: string;
+  isCustom?: boolean;
+}
+
+export interface BillingCasdoorApplicationDetail extends BillingCasdoorOrganizationDetail {
+  organization?: string;
+  cert?: string;
+  defaultGroup?: string;
+  headerHtml?: string;
+  enablePassword?: boolean;
+  enableSignUp?: boolean;
+  disableSignin?: boolean;
+  enableSigninSession?: boolean;
+  enableAutoSignin?: boolean;
+  enableCodeSignin?: boolean;
+  enableExclusiveSignin?: boolean;
+  enableSamlCompress?: boolean;
+  enableSamlC14n10?: boolean;
+  enableSamlPostBinding?: boolean;
+  useEmailAsSamlNameId?: boolean;
+  enableWebAuthn?: boolean;
+  enableLinkWithEmail?: boolean;
+  orgChoiceMode?: string;
+  samlReplyUrl?: string;
+  providers?: BillingCasdoorApplicationProviderDetail[];
+  signinMethods?: BillingCasdoorApplicationSigninMethodDetail[];
+  signupItems?: BillingCasdoorApplicationSignupItemDetail[];
+  signinItems?: BillingCasdoorApplicationSigninItemDetail[];
+  grantTypes?: string[];
+  organizationObj?: BillingCasdoorOrganizationDetail;
+  certPublicKey?: string;
+  tags?: string[];
+  samlAttributes?: Record<string, string> | null;
+  samlHashAlgorithm?: string;
+  isShared?: boolean;
+  ipRestriction?: string;
+  clientId?: string;
+  clientSecret?: string;
+  redirectUris?: string[];
+  forcedRedirectOrigin?: string;
+  tokenFormat?: string;
+  tokenSigningMethod?: string;
+  tokenFields?: string[];
+  tokenAttributes?: string[];
+  expireInHours?: number;
+  refreshExpireInHours?: number;
+  signupUrl?: string;
+  signinUrl?: string;
+  forgetUrl?: string;
+  affiliationUrl?: string;
+  termsOfUse?: string;
+  signupHtml?: string;
+  signinHtml?: string;
+  themeData?: unknown;
+  footerHtml?: string;
+  formCss?: string;
+  formCssMobile?: string;
+  formOffset?: number;
+  formSideHtml?: string;
+  formBackgroundUrl?: string;
+  formBackgroundUrlMobile?: string;
+  failedSigninLimit?: number;
+  failedSigninFrozenTime?: number;
+  codeResendTimeout?: number;
+}
+
+export type BillingCasdoorApplicationResponse = BillingCasdoorApiResponse<BillingCasdoorApplicationDetail>;
+
+export interface BillingCasdoorPaymentDetail {
+  owner: string;
+  name: string;
+  createdTime?: string;
+  displayName?: string;
+  provider?: string;
+  type?: string;
+  productName?: string;
+  productDisplayName?: string;
+  detail?: string;
+  tag?: string;
+  currency?: string;
+  price?: number;
+  returnUrl?: string;
+  isRecharge?: boolean;
+  user?: string;
+  personName?: string;
+  personIdCard?: string;
+  personEmail?: string;
+  personPhone?: string;
+  invoiceType?: string;
+  invoiceTitle?: string;
+  invoiceTaxId?: string;
+  invoiceRemark?: string;
+  invoiceUrl?: string;
+  outOrderId?: string;
+  payUrl?: string;
+  successUrl?: string;
+  state?: string;
+  message?: string;
+  [key: string]: unknown;
+}
+
+export type BillingCasdoorPaymentResponse = BillingCasdoorApiResponse<BillingCasdoorPaymentDetail>;
+
 export type BillingCasdoorOrganizationNamesResponse = BillingCasdoorApiResponse<BillingCasdoorOrganizationDetail[]>;
 
 export interface BillingCasdoorBuyProductRequest {
@@ -213,6 +473,17 @@ export interface BillingOrderCreatedContext {
   purchasable: BillingPurchasableEntry;
   orderId: string | null;
   paymentId: string | null;
+  redirectTo: string | null;
+  rawResult: unknown;
+}
+
+export interface BillingPurchaseErrorContext {
+  request: BillingPurchaseRequest;
+  orderId: string | null;
+  paymentId: string | null;
+  status: 'failed';
+  message: string;
+  errorCode?: string;
   redirectTo: string | null;
   rawResult: unknown;
 }
@@ -248,6 +519,7 @@ export interface BillingPurchaseCompleteContext {
 export interface BillingPurchaseHooks {
   onPurchaseStart?: (context: BillingPurchaseRequest) => void | Promise<void>;
   onOrderCreated?: (context: BillingOrderCreatedContext) => void | Promise<void>;
+  onPurchaseError?: (context: BillingPurchaseErrorContext) => void | Promise<void>;
   onPaymentSuccess?: (context: BillingPaymentCallbackContext) => void | Promise<void>;
   onPaymentFailure?: (context: BillingPaymentCallbackContext) => void | Promise<void>;
   onPaymentFinished?: (context: BillingPaymentFinishedContext) => void | Promise<void>;
@@ -518,6 +790,9 @@ export interface BillingApiClient {
   fetchPurchaseStatus: (args: { orderId?: string; paymentId?: string; transactionId?: string }) => Promise<BillingPurchaseStatus>;
   fetchCredits: (args: { userId?: string; catalogKey?: string }) => Promise<BillingCreditsState>;
   fetchEntitlements: (args: { userId?: string; catalogKey?: string }) => Promise<BillingEntitlementState>;
+  fetchAccount?: (args: { id?: string }) => Promise<BillingCasdoorAccountResponse>;
+  fetchApplication?: (args: { id?: string }) => Promise<BillingCasdoorApplicationResponse>;
+  fetchPayment?: (args: { id?: string }) => Promise<BillingCasdoorPaymentResponse>;
   fetchProduct?: (args: { id: string }) => Promise<BillingCasdoorProductResponse>;
   fetchOrganizationNames?: (args: { owner: string }) => Promise<BillingCasdoorOrganizationNamesResponse>;
   buyProduct?: (args: BillingCasdoorBuyProductRequest) => Promise<BillingCasdoorBuyProductResponse>;
@@ -529,6 +804,8 @@ export interface BillingActionExecutionResult {
   redirectTo?: string;
   nextAction?: string;
   status?: 'pending' | 'succeeded' | 'failed';
+  message?: string;
+  errorCode?: string;
   orderId?: string;
   paymentId?: string;
   transactionId?: string;
@@ -545,6 +822,9 @@ export interface BillingLoaders {
   purchaseStatusLoader?: (args: { orderId?: string; paymentId?: string; transactionId?: string }) => Promise<BillingPurchaseStatus>;
   creditsLoader?: (args: { userId?: string; catalogKey?: string }) => Promise<BillingCreditsState>;
   entitlementsLoader?: (args: { userId?: string; catalogKey?: string }) => Promise<BillingEntitlementState>;
+  accountLoader?: (args: { id?: string }) => Promise<BillingCasdoorAccountResponse>;
+  applicationLoader?: (args: { id?: string }) => Promise<BillingCasdoorApplicationResponse>;
+  paymentLoader?: (args: { id?: string }) => Promise<BillingCasdoorPaymentResponse>;
   productLoader?: (args: { id: string }) => Promise<BillingCasdoorProductResponse>;
   organizationNamesLoader?: (args: { owner: string }) => Promise<BillingCasdoorOrganizationNamesResponse>;
   buyProductLoader?: (args: BillingCasdoorBuyProductRequest) => Promise<BillingCasdoorBuyProductResponse>;

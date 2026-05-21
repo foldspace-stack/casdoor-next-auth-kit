@@ -27,6 +27,7 @@ import {
 } from './runtime';
 import {
   buildCasdoorBuyProductRequest,
+  normalizeCasdoorBuyProductResponse,
   normalizeCasdoorProductId,
 } from './casdoor-purchase.js';
 import type {
@@ -37,7 +38,6 @@ import type {
   BillingApiClient,
   BillingCatalogConfig,
   BillingCasdoorBuyProductRequest,
-  BillingCasdoorBuyProductResponse,
   BillingCasdoorProductDetail,
   BillingCoreContextValue,
   BillingCreditsContextValue,
@@ -173,44 +173,6 @@ function extractCasdoorResponseData<TData>(response: { data?: TData } | TData | 
   return response as TData;
 }
 
-function readBuyProductRedirectTo(value: unknown): string | undefined {
-  if (typeof value === 'string' && value.trim()) {
-    return value;
-  }
-  if (!value || typeof value !== 'object') {
-    return undefined;
-  }
-
-  const record = value as Record<string, unknown>;
-  for (const key of ['redirectTo', 'redirectUrl', 'redirect_url', 'url', 'href', 'location']) {
-    const candidate = record[key];
-    if (typeof candidate === 'string' && candidate.trim()) {
-      return candidate;
-    }
-  }
-
-  return undefined;
-}
-
-function normalizeBuyProductExecutionResult(response: BillingCasdoorBuyProductResponse, fallbackRedirectTo?: string) {
-  const statusText = typeof response.status === 'string' ? response.status.toLowerCase() : '';
-  const status = statusText.includes('fail') || statusText.includes('error') || statusText.includes('cancel')
-    ? 'failed'
-    : statusText.includes('pend') || statusText.includes('require')
-      ? 'pending'
-      : 'succeeded';
-
-  return {
-    status,
-    redirectTo:
-      readBuyProductRedirectTo(response.data) ??
-      readBuyProductRedirectTo(response.data2) ??
-      readBuyProductRedirectTo(response.data3) ??
-      fallbackRedirectTo,
-    rawResult: response,
-  } satisfies BillingActionExecutionResult;
-}
-
 async function runCasdoorProductPurchase(
   purchaseRequest: NonNullable<ReturnType<typeof buildBillingPurchaseRequest>>,
   apiClient: BillingApiClient,
@@ -261,10 +223,7 @@ async function runCasdoorProductPurchase(
   );
 
   const response = await buyProductLoader(buyRequest);
-  return normalizeBuyProductExecutionResult(
-    response,
-    purchaseRequest.returnTo ?? productDetail.returnUrl ?? productDetail.successUrl,
-  );
+  return normalizeCasdoorBuyProductResponse(response, purchaseRequest.returnTo ?? productDetail.returnUrl ?? productDetail.successUrl);
 }
 
 function normalizeRuntimeConfigInput(config?: BillingRuntimeConfig | BillingCatalogConfig | null): BillingRuntimeConfig | undefined {
@@ -561,6 +520,59 @@ export function BillingProvider({
         } else {
           result = await executor(prepared);
         }
+
+        if (result.status === 'failed') {
+          await runPurchaseHook(
+            'onPurchaseError',
+            purchaseHooks?.onPurchaseError,
+            purchaseRequest
+              ? {
+                  request: purchaseRequest,
+                  orderId: result.orderId ?? null,
+                  paymentId: result.paymentId ?? null,
+                  status: 'failed',
+                  message: result.message ?? 'Purchase failed.',
+                  errorCode: result.errorCode,
+                  redirectTo: result.redirectTo ?? null,
+                  rawResult: result.rawResult ?? result,
+                }
+              : undefined,
+          );
+
+          setPurchaseStatus((current) => ({
+            actionKey: prepared.key,
+            orderId: result.orderId ?? current?.orderId,
+            paymentId: result.paymentId ?? current?.paymentId,
+            transactionId: result.transactionId ?? current?.transactionId,
+            status: 'failed',
+            redirectTo: result.redirectTo ?? current?.redirectTo,
+            updatedAt: new Date().toISOString(),
+          }));
+          setStatus((current) => ({
+            ...current,
+            loading: false,
+            refreshing: false,
+            error: result.message ?? current.error ?? 'Purchase failed.',
+          }));
+
+          await runPurchaseHook(
+            'onPurchaseComplete',
+            purchaseHooks?.onPurchaseComplete,
+            purchaseRequest
+              ? {
+                  request: purchaseRequest,
+                  orderId: result.orderId ?? null,
+                  paymentId: result.paymentId ?? null,
+                  status: 'failed',
+                  redirectTo: result.redirectTo ?? null,
+                }
+              : undefined,
+          );
+
+          await refresh();
+          return result;
+        }
+
         await runPurchaseHook(
           'onOrderCreated',
           purchaseHooks?.onOrderCreated,
@@ -604,7 +616,7 @@ export function BillingProvider({
                 request: purchaseRequest,
                 orderId: result.orderId ?? null,
                 paymentId: result.paymentId ?? null,
-                status: result.status === 'failed' ? 'failed' : 'succeeded',
+                status: 'succeeded',
                 redirectTo: result.redirectTo ?? null,
               }
             : undefined,
@@ -614,6 +626,21 @@ export function BillingProvider({
         return result;
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
+        await runPurchaseHook(
+          'onPurchaseError',
+          purchaseHooks?.onPurchaseError,
+          purchaseRequest
+            ? {
+                request: purchaseRequest,
+                orderId: null,
+                paymentId: null,
+                status: 'failed',
+                message,
+                redirectTo: null,
+                rawResult: error,
+              }
+            : undefined,
+        );
         await runPurchaseHook(
           'onPurchaseComplete',
           purchaseHooks?.onPurchaseComplete,
