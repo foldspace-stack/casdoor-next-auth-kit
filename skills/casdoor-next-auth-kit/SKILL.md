@@ -66,7 +66,7 @@ npx @foldspace-fe/casdoor-next-auth-kit@latest check
 
 如果宿主项目使用的是本地 `file:` 依赖或工作区链接，先在本仓库执行 `pnpm build`，再回到宿主项目执行 `pnpm install` 或 `npx @foldspace-fe/casdoor-next-auth-kit@latest update`，否则可能看到旧产物。
 
-仓库发布到 npm 时使用 GitHub Actions Trusted Publisher / OIDC，不再依赖 `NPM_TOKEN`；CI 里需要保留 `id-token: write`，并让 `npm publish` 直接走受信发布流程。正式发布默认打到 `latest`，并且 CI 要自动把 `next` 同步到同一个最新发布版本，让两个标签都代表当前稳定版。
+仓库发布到 npm 时使用 GitHub Actions Trusted Publisher / OIDC，不再依赖 `NPM_TOKEN`；CI 里需要保留 `id-token: write`，并让 `npm publish` 直接走受信发布流程。正式发布默认打到 `latest`；在纯 Trusted Publisher / OIDC 模式下不要要求 CI 再去同步 `next`，如果需要预发布通道，要单独设计认证方案。
 
 ## 套件提供的功能
 
