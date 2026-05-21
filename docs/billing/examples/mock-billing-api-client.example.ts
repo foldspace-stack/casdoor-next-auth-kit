@@ -2,8 +2,14 @@ import type {
   BillingApiClient,
   BillingCasdoorBuyProductRequest,
   BillingCasdoorBuyProductResponse,
+  BillingCasdoorOrderResponse,
+  BillingCasdoorOrdersResponse,
   BillingCasdoorOrganizationNamesResponse,
+  BillingCasdoorPlanResponse,
+  BillingCasdoorPricingResponse,
   BillingCasdoorProductResponse,
+  BillingCasdoorSubscriptionResponse,
+  BillingCasdoorSubscriptionsResponse,
   BillingActionPayload,
   BillingCreditsState,
   BillingEntitlementState,
@@ -61,6 +67,50 @@ export const mockBillingApiClient: BillingApiClient = {
       },
     ] satisfies BillingSubscriptionHistoryItem[];
   },
+  async fetchPricing({ id }) {
+    await delay(40);
+    const [owner, ...rest] = id.split('/');
+    return {
+      status: 'ok',
+      msg: '',
+      sub: '',
+      name: '',
+      data: {
+        owner,
+        name: rest.join('/'),
+        displayName: '创小剧会员订阅',
+        plans: ['创小剧订阅测试'],
+        isEnabled: true,
+        trialDuration: 7,
+      },
+      data2: null,
+      data3: null,
+    } satisfies BillingCasdoorPricingResponse;
+  },
+  async fetchPlan({ id, includeOption }) {
+    await delay(40);
+    const [owner, ...rest] = id.split('/');
+    return {
+      status: 'ok',
+      msg: '',
+      sub: '',
+      name: '',
+      data: {
+        owner,
+        name: rest.join('/'),
+        displayName: '创小剧订阅测试',
+        price: 0.01,
+        currency: 'CNY',
+        period: 'Monthly',
+        product: 'product_h24p63',
+        paymentProviders: ['创小剧-微信支付'],
+        isEnabled: true,
+        options: includeOption ? { mocked: true } : null,
+      },
+      data2: null,
+      data3: null,
+    } satisfies BillingCasdoorPlanResponse;
+  },
   async fetchProducts() {
     await delay(80);
     return [
@@ -82,6 +132,51 @@ export const mockBillingApiClient: BillingApiClient = {
         owned: true,
       },
     ] satisfies BillingProductState[];
+  },
+  async fetchOrder({ id }) {
+    await delay(40);
+    const [owner, ...rest] = id.split('/');
+    return {
+      status: 'ok',
+      msg: '',
+      sub: '',
+      name: '',
+      data: {
+        owner,
+        name: rest.join('/'),
+        product: 'qixiaoju/创小剧积分包-50',
+        productDisplayName: '创小剧积分包-50',
+        quantity: 1,
+        price: 50,
+        currency: 'CNY',
+        state: 'Paid',
+      },
+      data2: null,
+      data3: null,
+    } satisfies BillingCasdoorOrderResponse;
+  },
+  async fetchOrders(_args: { owner?: string; user?: string; product?: string } = {}) {
+    await delay(40);
+    return {
+      status: 'ok',
+      msg: '',
+      sub: '',
+      name: '',
+      data: [
+        {
+          owner: 'qixiaoju',
+          name: 'order_001',
+          product: 'qixiaoju/创小剧积分包-50',
+          productDisplayName: '创小剧积分包-50',
+          quantity: 1,
+          price: 50,
+          currency: 'CNY',
+          state: 'Paid',
+        },
+      ],
+      data2: null,
+      data3: null,
+    } satisfies BillingCasdoorOrdersResponse;
   },
   async fetchOrderHistory() {
     await delay(80);
@@ -126,6 +221,49 @@ export const mockBillingApiClient: BillingApiClient = {
         createdAt: '2025-06-01T00:00:00.000Z',
       },
     ] satisfies BillingPaymentHistoryItem[];
+  },
+  async fetchSubscriptionRecord({ id }) {
+    await delay(40);
+    const [owner, ...rest] = id.split('/');
+    return {
+      status: 'ok',
+      msg: '',
+      sub: '',
+      name: '',
+      data: {
+        owner,
+        name: rest.join('/'),
+        displayName: '创小剧订阅测试',
+        plan: '创小剧订阅测试',
+        pricing: '创小剧会员订阅',
+        user: 'admin',
+        state: 'Active',
+      },
+      data2: null,
+      data3: null,
+    } satisfies BillingCasdoorSubscriptionResponse;
+  },
+  async fetchSubscriptions(_args: { owner?: string; user?: string } = {}) {
+    await delay(40);
+    return {
+      status: 'ok',
+      msg: '',
+      sub: '',
+      name: '',
+      data: [
+        {
+          owner: 'qixiaoju',
+          name: 'subscription_001',
+          displayName: '创小剧订阅测试',
+          plan: '创小剧订阅测试',
+          pricing: '创小剧会员订阅',
+          user: 'admin',
+          state: 'Active',
+        },
+      ],
+      data2: null,
+      data3: null,
+    } satisfies BillingCasdoorSubscriptionsResponse;
   },
   async fetchPurchaseStatus() {
     await delay(40);

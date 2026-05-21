@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1760" height="1080" viewBox="0 0 1760 1080" role="img" aria-labelledby="title desc">
   <title id="title">Billing to Casdoor Integration Timeline</title>
-  <desc id="desc">Sequence diagram showing how billing catalog configuration, purchasableIds, Casdoor product detail lookup, and buy-product compatibility flow map to the payment-success and payment-finished host handlers while the host owns purchase pages, QR scanning, and payment state panels.</desc>
+  <desc id="desc">Sequence diagram showing how billing catalog configuration, purchasableIds, Casdoor pricing and product query loaders, and buy-product compatibility flow map to the payment-success and payment-finished host handlers while the host owns purchase pages, QR scanning, payment state panels, subscription queries, and order queries.</desc>
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
       <path d="M 0 0 L 10 5 L 0 10 z" fill="#344054"/>
@@ -28,7 +28,7 @@
 
   <rect class="bg" x="0" y="0" width="1760" height="1080"/>
   <text class="title" x="56" y="58">Billing to Casdoor Integration Timeline</text>
-  <text class="subtitle" x="56" y="86">Standalone SVG sequence diagram. Open directly in browser or preview pane.</text>
+  <text class="subtitle" x="56" y="86">Standalone SVG sequence diagram. Subscription truth comes from get-pricing / get-plan / get-subscription / get-subscriptions; order truth comes from get-order / get-orders / get-payment.</text>
 
   <rect class="lane" x="40" y="120" width="1680" height="900"/>
 
@@ -63,7 +63,7 @@
   <g transform="translate(1120,150)">
     <rect class="participant-warn" x="0" y="0" width="210" height="56"/>
     <text class="label" x="105" y="24" text-anchor="middle">Casdoor</text>
-    <text class="tiny" x="105" y="42" text-anchor="middle">Product / Plan / Price</text>
+    <text class="tiny" x="105" y="42" text-anchor="middle">Pricing / Order / Payment</text>
     <line x1="105" y1="56" x2="105" y2="780" stroke="#98a2b3" stroke-dasharray="6 6"/>
   </g>
 
@@ -85,7 +85,7 @@
     <rect class="step" x="0" y="0" width="1530" height="86"/>
     <text class="note-title" x="22" y="26">1. Configure catalog</text>
     <text class="note-text" x="22" y="50">Admin defines BillingRuntimeConfig, BillingItem list, and purchasableIds whitelist. kind is a runtime category, backendRef holds the Casdoor mapping.</text>
-    <text class="note-text" x="22" y="70">subscription -> plan/price path, product -> one-time product path, creditGrant marks a credits pack.</text>
+    <text class="note-text" x="22" y="70">subscription -> Pricing / Plan / Subscription query path, product -> Order / Payment query path, creditGrant marks a credits pack.</text>
   </g>
 
   <path class="line" d="M 170 380 C 260 380, 280 380, 370 380"/>
@@ -95,7 +95,7 @@
     <rect class="step" x="0" y="0" width="1530" height="96"/>
     <text class="note-title" x="22" y="26">2. Inject into runtime</text>
     <text class="note-text" x="22" y="50">BillingProvider receives runtimeConfig or derived availablePlans / availableProducts, filters purchasableIds, and exposes hooks like useSubscribePlan, usePurchaseProduct.</text>
-    <text class="note-text" x="22" y="72">The UI is headless; the host renders any page it wants and handles post-purchase hooks in its own code.</text>
+    <text class="note-text" x="22" y="72">The UI is headless; the host renders any page it wants and handles post-purchase hooks in its own code. Subscription and order status should come from Casdoor query loaders, not local guesses.</text>
   </g>
 
   <path class="line" d="M 700 574 C 780 574, 800 574, 880 574"/>
@@ -104,7 +104,7 @@
   <g transform="translate(70,590)">
     <rect class="step" x="0" y="0" width="1530" height="100"/>
     <text class="note-title" x="22" y="26">3. Translate to Casdoor payload</text>
-    <text class="note-text" x="22" y="50">Host action layer maps the item into owner/name, productId / planId / priceId / metadata, then fetches product details before invoking Casdoor.</text>
+    <text class="note-text" x="22" y="50">Host action layer maps the item into owner/name, productId / planId / priceId / metadata, then fetches product, pricing, plan, order, or subscription details before invoking Casdoor.</text>
     <text class="note-text" x="22" y="72">This is where a credits pack is treated as a product and one-time purchase or subscription can diverge.</text>
   </g>
 
@@ -114,7 +114,7 @@
   <g transform="translate(70,720)">
     <rect class="step" x="0" y="0" width="1530" height="88"/>
     <text class="note-title" x="22" y="26">4. Casdoor processes payment</text>
-    <text class="note-text" x="22" y="50">Casdoor creates order / payment / transaction and then redirects the browser back to the configured Success URL or Return URL.</text>
+    <text class="note-text" x="22" y="50">Casdoor creates order / payment / transaction / subscription and then redirects the browser back to the configured Success URL or Return URL.</text>
     <text class="note-text" x="22" y="70">The redirect carries paymentId, orderId, and any extra query parameters Casdoor appends.</text>
   </g>
 

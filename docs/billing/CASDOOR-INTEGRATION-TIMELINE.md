@@ -2,11 +2,18 @@
 
 这份图描述的是：`docs/billing/examples/billing-catalog.example.ts` 里的配置，最后如何通过宿主侧的 `backendRef` 和默认生成的回跳处理器，和 Casdoor 对接起来。
 
+这里要明确区分两条 Casdoor 真相链路：
+
+- `Pricing -> Plan -> Subscription` 是 SaaS 订阅链路，订阅状态、订阅历史和计划价格都应该以 Casdoor 查询结果为准
+- `Product -> Order -> Payment` 是一次性商品链路，商品订单列表、订单状态和支付状态都应该以 Casdoor 查询结果为准
+
 要点：
 
 - `kind: 'subscription' | 'product'` 是包内 billing 抽象，不是 Casdoor 原生字段
 - `purchasableIds` 是宿主工程的购买白名单，只有白名单里的 item 才能发起 purchase
 - 真正对接 Casdoor 的是 `backendRef.productId / planId / priceId`
+- `fetchPricing` / `pricingLoader`、`fetchPlan` / `planLoader`、`fetchSubscriptionRecord` / `subscriptionRecordLoader`、`fetchSubscriptions` / `subscriptionsLoader` 应该对应 Casdoor 的 `get-pricing`、`get-plan`、`get-subscription`、`get-subscriptions`
+- `fetchOrder` / `orderLoader`、`fetchOrders` / `ordersLoader`、`fetchPayment` / `paymentLoader` 应该对应 Casdoor 的 `get-order`、`get-orders`、`get-payment`
 - 支付成功后的 `Success URL` 统一落到宿主的 `/auth/payment/success`
 - 购买成功后的 `Return URL` 统一落到宿主的 `/auth/payment/finished`
 - 购买页、二维码扫描区和支付状态面板都由宿主工程自己渲染，套件只提供 headless hooks 和回调 handler
@@ -35,8 +42,10 @@ sequenceDiagram
   UI->>UI: 根据 kind 渲染订阅 / 普通商品 / 积分商品，并过滤非白名单项
     UI->>Host: useSubscribePlan / usePurchaseProduct
     Host->>Host: 将 BillingItem 映射成 Casdoor payload
-    Host->>Casdoor: get-product -> get-organization-names -> buy-product
-    Casdoor->>Casdoor: 创建订单 / 付款 / 交易
+    Host->>Casdoor: 订阅链路: get-pricing -> get-plan -> get-subscription -> get-subscriptions
+    Host->>Casdoor: 商品链路: get-product -> get-order -> get-orders -> get-payment
+    Host->>Casdoor: get-organization-names -> buy-product
+    Casdoor->>Casdoor: 创建订单 / 付款 / 交易 / 订阅
   Casdoor-->>Success: 302 Redirect 到 /auth/payment/success?paymentId=...&orderId=...
   Success->>Success: 收集全部 query 参数
   Success->>SuccessHandler: 直接调用默认生成的 paymentSuccessHandler

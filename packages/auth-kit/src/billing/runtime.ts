@@ -2,20 +2,22 @@ import type {
   BillingActionPayload,
   BillingCatalogConfig,
   BillingCreditsState,
+  BillingCasdoorOrderDetail,
+  BillingCasdoorSubscriptionDetail,
   BillingEntitlementState,
   BillingInterval,
   BillingItem,
   BillingPurchasableEntry,
-  BillingPaymentCallbackContext,
-  BillingPurchaseRequest,
   BillingOrderHistoryItem,
   BillingPaymentHistoryItem,
+  BillingPaymentCallbackContext,
+  BillingPurchaseRequest,
   BillingProductSnapshot,
   BillingProductState,
   BillingPurchaseStatus,
   BillingRuntimeConfig,
-  BillingSubscriptionHistoryItem,
   BillingSubscriptionState,
+  BillingSubscriptionHistoryItem,
 } from './types';
 
 function normalizeCasdoorProductId(id: string): { owner: string; name: string } {
@@ -271,6 +273,127 @@ export function resolveBillingSubscriptionProduct(
     creditGrant: item.creditGrant,
     creditRedeem: item.creditRedeem,
     metadata: item.metadata,
+  };
+}
+
+function normalizeCasdoorSubscriptionStatus(status?: string | null): BillingSubscriptionState['status'] {
+  const normalized = typeof status === 'string' ? status.toLowerCase() : '';
+  if (normalized.includes('active') || normalized.includes('paid')) return 'active';
+  if (normalized.includes('trial')) return 'trialing';
+  if (normalized.includes('past_due') || normalized.includes('pastdue') || normalized.includes('due')) return 'past_due';
+  if (normalized.includes('suspend')) return 'inactive';
+  if (normalized.includes('expire')) return 'inactive';
+  if (normalized.includes('cancel')) return 'canceled';
+  if (normalized.includes('fail') || normalized.includes('error')) return 'inactive';
+  return 'inactive';
+}
+
+function normalizeBillingOrderStatus(status?: string | null): BillingOrderHistoryItem['status'] {
+  const normalized = typeof status === 'string' ? status.toLowerCase() : '';
+  if (normalized.includes('paid') || normalized.includes('success') || normalized.includes('complete')) return 'paid';
+  if (normalized.includes('pend') || normalized.includes('wait')) return 'pending';
+  if (normalized.includes('fail') || normalized.includes('error')) return 'failed';
+  if (normalized.includes('refund')) return 'refunded';
+  if (normalized.includes('cancel')) return 'canceled';
+  return 'pending';
+}
+
+function normalizeBillingPaymentStatus(status?: string | null): BillingPaymentHistoryItem['status'] {
+  const normalized = typeof status === 'string' ? status.toLowerCase() : '';
+  if (normalized.includes('paid') || normalized.includes('success') || normalized.includes('complete')) return 'paid';
+  if (normalized.includes('pend') || normalized.includes('wait') || normalized.includes('process')) return 'pending';
+  if (normalized.includes('fail') || normalized.includes('error')) return 'failed';
+  if (normalized.includes('refund')) return 'refunded';
+  if (normalized.includes('cancel')) return 'canceled';
+  return 'pending';
+}
+
+function pickLatestBillingTimestamp(values: Array<string | undefined>): string | undefined {
+  return values
+    .filter((value): value is string => typeof value === 'string' && value.length > 0)
+    .sort((left, right) => Date.parse(right) - Date.parse(left))[0];
+}
+
+export function normalizeCasdoorSubscriptionDetail(
+  record: BillingCasdoorSubscriptionDetail | undefined,
+): BillingSubscriptionState | undefined {
+  if (!record) return undefined;
+  const status = normalizeCasdoorSubscriptionStatus(record.state);
+  return {
+    subscriptionId: record.name,
+    planKey: record.plan ?? record.pricing ?? record.name,
+    planName: record.displayName ?? record.plan ?? record.pricing,
+    status,
+    interval: record.duration === 12 ? 'year' : record.duration === 1 ? 'month' : undefined,
+    renewAt: record.endTime,
+    currentPeriodStart: record.startTime,
+    currentPeriodEnd: record.endTime,
+  };
+}
+
+export function normalizeCasdoorSubscriptionHistoryItem(
+  record: BillingCasdoorSubscriptionDetail,
+): BillingSubscriptionHistoryItem {
+  const status = normalizeCasdoorSubscriptionStatus(record.state);
+  return {
+    subscriptionId: record.name,
+    planKey: record.plan ?? record.pricing ?? record.name,
+    planName: record.displayName ?? record.plan ?? record.pricing,
+    status,
+    startedAt: record.startTime,
+    endedAt: record.endTime,
+    updatedAt: pickLatestBillingTimestamp([record.endTime, record.startTime, record.createdTime]),
+  };
+}
+
+export function normalizeCasdoorOrderHistoryItem(
+  record: BillingCasdoorOrderDetail,
+): BillingOrderHistoryItem {
+  const productKey = record.product ?? record.products?.[0];
+  const createdAt = record.createdTime ?? (record as { updatedTime?: string }).updatedTime;
+  return {
+    orderId: record.name,
+    productKey,
+    productId: record.product,
+    productTitle: record.productDisplayName ?? record.displayName ?? record.product,
+    kind: productKey ? 'product' : undefined,
+    quantity: record.quantity,
+    amount: record.amount ?? record.price,
+    currency: record.currency,
+    status: normalizeBillingOrderStatus(record.state),
+    paymentId: record.payment,
+    transactionId: record.transaction,
+    createdAt,
+    updatedAt: pickLatestBillingTimestamp([createdAt, record.successUrl]),
+  };
+}
+
+export function normalizeCasdoorPaymentHistoryItem(
+  record: {
+    name: string;
+    order?: string;
+    outOrderId?: string;
+    product?: string;
+    productName?: string;
+    productDisplayName?: string;
+    price?: number;
+    currency?: string;
+    state?: string;
+    transactionId?: string;
+    createdTime?: string;
+    updatedTime?: string;
+  },
+): BillingPaymentHistoryItem {
+  return {
+    paymentId: record.name,
+    orderId: record.order ?? record.outOrderId,
+    productKey: record.product,
+    amount: record.price,
+    currency: record.currency,
+    status: normalizeBillingPaymentStatus(record.state),
+    transactionId: record.transactionId,
+    createdAt: record.createdTime,
+    updatedAt: pickLatestBillingTimestamp([record.updatedTime, record.createdTime]),
   };
 }
 

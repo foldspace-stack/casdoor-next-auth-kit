@@ -17,6 +17,10 @@ import {
   deriveBillingCreditsState,
   deriveBillingEntitlements,
   filterBillingPurchasableItems,
+  normalizeCasdoorOrderHistoryItem,
+  normalizeCasdoorPaymentHistoryItem,
+  normalizeCasdoorSubscriptionDetail,
+  normalizeCasdoorSubscriptionHistoryItem,
   normalizeBillingPurchaseStatus,
   normalizeBillingCatalogConfig,
   normalizeBillingRuntimeConfig,
@@ -38,7 +42,14 @@ import type {
   BillingApiClient,
   BillingCatalogConfig,
   BillingCasdoorBuyProductRequest,
+  BillingCasdoorOrderDetail,
+  BillingCasdoorOrdersResponse,
+  BillingCasdoorPlanDetail,
+  BillingCasdoorPricingDetail,
   BillingCasdoorProductDetail,
+  BillingCasdoorQueryState,
+  BillingCasdoorSubscriptionDetail,
+  BillingCasdoorSubscriptionsResponse,
   BillingCoreContextValue,
   BillingCreditsContextValue,
   BillingCreditsState,
@@ -171,6 +182,78 @@ function extractCasdoorResponseData<TData>(response: { data?: TData } | TData | 
     return (response as { data?: TData }).data;
   }
   return response as TData;
+}
+
+function useBillingCasdoorQuery<TData, TArgs extends Record<string, unknown>>(
+  loader: ((args: TArgs) => Promise<{ data?: TData } | TData>) | undefined,
+  buildArgs: () => TArgs,
+  deps: readonly unknown[],
+  missingLoaderMessage: string,
+): BillingCasdoorQueryState<TData> {
+  const [data, setData] = useState<TData | undefined>();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    if (!loader) {
+      setData(undefined);
+      setError(missingLoaderMessage);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await loader(buildArgs());
+      const extracted = extractCasdoorResponseData<TData>(response);
+      setData(extracted);
+      setError(null);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setData(undefined);
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  }, [buildArgs, loader, missingLoaderMessage]);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh, ...deps]);
+
+  return useMemo(
+    () => ({
+      data,
+      loading,
+      error,
+      refresh,
+    }),
+    [data, error, loading, refresh],
+  );
+}
+
+function pickCurrentCasdoorSubscription(records: BillingCasdoorSubscriptionDetail[]): BillingCasdoorSubscriptionDetail | undefined {
+  if (!records.length) return undefined;
+  const active = records.find((record) => {
+    const status = (record.state ?? '').toLowerCase();
+    return status.includes('active') || status.includes('trial');
+  });
+  if (active) return active;
+  return [...records].sort((left, right) => {
+    const leftTime = Date.parse(left.endTime ?? left.createdTime ?? '') || 0;
+    const rightTime = Date.parse(right.endTime ?? right.createdTime ?? '') || 0;
+    return rightTime - leftTime;
+  })[0];
+}
+
+function pickLatestCasdoorOrder(records: BillingCasdoorOrderDetail[]): BillingCasdoorOrderDetail | undefined {
+  if (!records.length) return undefined;
+  return [...records].sort((left, right) => {
+    const leftTime = Date.parse((left as { updatedTime?: string }).updatedTime ?? left.createdTime ?? '') || 0;
+    const rightTime = Date.parse((right as { updatedTime?: string }).updatedTime ?? right.createdTime ?? '') || 0;
+    return rightTime - leftTime;
+  })[0];
 }
 
 async function runCasdoorProductPurchase(
@@ -397,9 +480,12 @@ export function BillingProvider({
     const resolvedLoaders = loaders ?? {};
     const subscriptionLoader = resolvedLoaders.subscriptionLoader ?? apiClient.fetchSubscription;
     const subscriptionHistoryLoader = resolvedLoaders.subscriptionHistoryLoader ?? apiClient.fetchSubscriptionHistory;
+    const subscriptionsLoader = resolvedLoaders.subscriptionsLoader ?? apiClient.fetchSubscriptions;
     const productsLoader = resolvedLoaders.productsLoader ?? apiClient.fetchProducts;
     const orderHistoryLoader = resolvedLoaders.orderHistoryLoader ?? apiClient.fetchOrderHistory;
+    const ordersLoader = resolvedLoaders.ordersLoader ?? apiClient.fetchOrders;
     const paymentHistoryLoader = resolvedLoaders.paymentHistoryLoader ?? apiClient.fetchPaymentHistory;
+    const paymentLoader = resolvedLoaders.paymentLoader ?? apiClient.fetchPayment;
     const purchaseStatusLoader = resolvedLoaders.purchaseStatusLoader ?? apiClient.fetchPurchaseStatus;
     const creditsLoader = resolvedLoaders.creditsLoader ?? apiClient.fetchCredits;
     const entitlementsLoader = resolvedLoaders.entitlementsLoader ?? apiClient.fetchEntitlements;
@@ -417,35 +503,100 @@ export function BillingProvider({
       }
 
       const nextCatalogKey = nextRuntimeConfig?.catalogKey ?? nextRuntimeCatalog?.catalogKey ?? catalogKey;
+      const nextSubscriptionsResponsePromise: Promise<BillingCasdoorSubscriptionsResponse | undefined> = subscriptionsLoader
+        ? subscriptionsLoader({}).catch(() => undefined)
+        : Promise.resolve(undefined);
+      const nextOrdersResponsePromise: Promise<BillingCasdoorOrdersResponse | undefined> = ordersLoader
+        ? ordersLoader({}).catch(() => undefined)
+        : Promise.resolve(undefined);
 
       const [
         nextSubscription,
         nextSubscriptionHistory,
+        nextSubscriptionsResponse,
         nextProducts,
         nextOrderHistory,
+        nextOrdersResponse,
         nextPaymentHistory,
         nextCredits,
         nextEntitlements,
       ] = await Promise.all([
         subscriptionLoader({ catalogKey: nextCatalogKey }),
         subscriptionHistoryLoader({ catalogKey: nextCatalogKey }),
+        nextSubscriptionsResponsePromise,
         productsLoader({ catalogKey: nextCatalogKey }),
         orderHistoryLoader({ catalogKey: nextCatalogKey }),
+        nextOrdersResponsePromise,
         paymentHistoryLoader({ catalogKey: nextCatalogKey }),
         creditsLoader({ catalogKey: nextCatalogKey }),
         entitlementsLoader({ catalogKey: nextCatalogKey }),
       ]);
+
+      const casdoorSubscriptions = extractCasdoorResponseData<BillingCasdoorSubscriptionDetail[]>(nextSubscriptionsResponse) ?? [];
+      const casdoorOrders = extractCasdoorResponseData<BillingCasdoorOrderDetail[]>(nextOrdersResponse) ?? [];
+      const derivedSubscriptionHistory = nextSubscriptionHistory ?? casdoorSubscriptions.map(normalizeCasdoorSubscriptionHistoryItem);
+      const derivedOrderHistory = nextOrderHistory ?? casdoorOrders.map(normalizeCasdoorOrderHistoryItem);
+
+      let resolvedPaymentHistory = nextPaymentHistory;
+      if ((!resolvedPaymentHistory || resolvedPaymentHistory.length === 0) && casdoorOrders.length && paymentLoader) {
+        const latestCasdoorOrder = pickLatestCasdoorOrder(casdoorOrders);
+        const paymentId = latestCasdoorOrder?.payment ?? latestCasdoorOrder?.transaction;
+        if (paymentId) {
+          const paymentResponse = await paymentLoader({ id: paymentId }).catch(() => undefined);
+          const paymentDetail = extractCasdoorResponseData<{
+            name?: string;
+            order?: string;
+            outOrderId?: string;
+            product?: string;
+            productName?: string;
+            productDisplayName?: string;
+            price?: number;
+            currency?: string;
+            state?: string;
+            transactionId?: string;
+            createdTime?: string;
+            updatedTime?: string;
+          }>(paymentResponse);
+          if (paymentDetail?.name) {
+            resolvedPaymentHistory = [
+              normalizeCasdoorPaymentHistoryItem({
+                name: paymentDetail.name,
+                order: paymentDetail.order,
+                outOrderId: paymentDetail.outOrderId,
+                product: paymentDetail.product ?? paymentDetail.productName,
+                productName: paymentDetail.productName,
+                productDisplayName: paymentDetail.productDisplayName,
+                price: paymentDetail.price,
+                currency: paymentDetail.currency,
+                state: paymentDetail.state,
+                transactionId: paymentDetail.transactionId,
+                createdTime: paymentDetail.createdTime,
+                updatedTime: paymentDetail.updatedTime,
+              }),
+            ];
+          }
+        }
+      }
 
       const subscriptionWithProduct = nextSubscription
         ? {
             ...nextSubscription,
             product: resolveBillingSubscriptionProduct(nextSubscription, nextRuntimeConfig ?? runtimeConfig),
           }
-        : undefined;
+        : (() => {
+            const derivedSubscription = normalizeCasdoorSubscriptionDetail(pickCurrentCasdoorSubscription(casdoorSubscriptions));
+            return derivedSubscription
+              ? {
+                  ...derivedSubscription,
+                  product: resolveBillingSubscriptionProduct(derivedSubscription, nextRuntimeConfig ?? runtimeConfig),
+                }
+              : undefined;
+          })();
+
       const normalizedCredits = deriveBillingCreditsState(nextCredits, nextProducts, nextRuntimeConfig?.conversionRules ?? runtimeConfig?.conversionRules);
       const normalizedEntitlements = nextEntitlements ?? deriveBillingEntitlements(subscriptionWithProduct, nextProducts, normalizedCredits, nextRuntimeConfig ?? runtimeConfig);
-      const latestOrder = getLatestOrder(nextOrderHistory);
-      const latestPayment = getLatestPayment(nextPaymentHistory);
+      const latestOrder = getLatestOrder(derivedOrderHistory);
+      const latestPayment = getLatestPayment(resolvedPaymentHistory);
       const fetchedPurchaseStatus = await purchaseStatusLoader({
         orderId: latestOrder?.orderId,
         paymentId: latestPayment?.paymentId,
@@ -458,10 +609,10 @@ export function BillingProvider({
       );
 
       setSubscription(subscriptionWithProduct);
-      setSubscriptionHistory(nextSubscriptionHistory);
+      setSubscriptionHistory(derivedSubscriptionHistory);
       setProducts(nextProducts);
-      setOrderHistory(nextOrderHistory);
-      setPaymentHistory(nextPaymentHistory);
+      setOrderHistory(derivedOrderHistory);
+      setPaymentHistory(resolvedPaymentHistory);
       setCredits(normalizedCredits);
       setEntitlements(normalizedEntitlements);
       setPurchaseStatus(normalizedPurchaseStatus);
@@ -961,6 +1112,219 @@ export function useBillingProductPurchaseOptions(productId: string, preferredPro
       refresh: detailState.refresh,
     }),
     [detailState.error, detailState.loading, detailState.product, detailState.refresh, providerName],
+  );
+}
+
+export type BillingPricingState = BillingCasdoorQueryState<BillingCasdoorPricingDetail>;
+export type BillingPlanState = BillingCasdoorQueryState<BillingCasdoorPlanDetail>;
+export type BillingOrderState = BillingCasdoorQueryState<BillingCasdoorOrderDetail>;
+export type BillingOrdersState = BillingCasdoorQueryState<BillingCasdoorOrderDetail[]>;
+export type BillingSubscriptionRecordState = BillingCasdoorQueryState<BillingCasdoorSubscriptionDetail>;
+export type BillingSubscriptionsState = BillingCasdoorQueryState<BillingCasdoorSubscriptionDetail[]>;
+
+export function useBillingPricing(pricingId: string): BillingPricingState {
+  const core = useRequiredCoreContext();
+  const loader = core.loaders?.pricingLoader ?? core.apiClient.fetchPricing;
+  return useBillingCasdoorQuery(
+    loader,
+    useCallback(() => ({ id: pricingId }), [pricingId]),
+    [pricingId, loader],
+    'Missing billing pricing loader.',
+  );
+}
+
+export function useBillingPlan(planId: string, includeOption = false): BillingPlanState {
+  const core = useRequiredCoreContext();
+  const loader = core.loaders?.planLoader ?? core.apiClient.fetchPlan;
+  return useBillingCasdoorQuery(
+    loader,
+    useCallback(() => ({ id: planId, includeOption }), [includeOption, planId]),
+    [includeOption, loader, planId],
+    'Missing billing plan loader.',
+  );
+}
+
+export function useBillingOrder(orderId: string): BillingOrderState {
+  const core = useRequiredCoreContext();
+  const loader = core.loaders?.orderLoader ?? core.apiClient.fetchOrder;
+  return useBillingCasdoorQuery(
+    loader,
+    useCallback(() => ({ id: orderId }), [orderId]),
+    [loader, orderId],
+    'Missing billing order loader.',
+  );
+}
+
+export function useBillingSubscriptionRecord(subscriptionId: string): BillingSubscriptionRecordState {
+  const core = useRequiredCoreContext();
+  const loader = core.loaders?.subscriptionRecordLoader ?? core.apiClient.fetchSubscriptionRecord;
+  return useBillingCasdoorQuery(
+    loader,
+    useCallback(() => ({ id: subscriptionId }), [subscriptionId]),
+    [loader, subscriptionId],
+    'Missing billing subscription loader.',
+  );
+}
+
+export function useBillingOrders(options: { owner?: string; user?: string; product?: string } = {}): BillingOrdersState {
+  const core = useRequiredCoreContext();
+  const loader = core.loaders?.ordersLoader ?? core.apiClient.fetchOrders;
+  const owner = options.owner;
+  const user = options.user;
+  const product = options.product;
+  return useBillingCasdoorQuery(
+    loader,
+    useCallback(() => ({ owner, user, product }), [owner, product, user]),
+    [loader, owner, product, user],
+    'Missing billing orders loader.',
+  );
+}
+
+export function useBillingSubscriptions(options: { owner?: string; user?: string } = {}): BillingSubscriptionsState {
+  const core = useRequiredCoreContext();
+  const loader = core.loaders?.subscriptionsLoader ?? core.apiClient.fetchSubscriptions;
+  const owner = options.owner;
+  const user = options.user;
+  return useBillingCasdoorQuery(
+    loader,
+    useCallback(() => ({ owner, user }), [owner, user]),
+    [loader, owner, user],
+    'Missing billing subscriptions loader.',
+  );
+}
+
+export interface BillingPricingPlansState {
+  pricing?: BillingCasdoorPricingDetail;
+  plans: BillingCasdoorPlanDetail[];
+  selectedPlanName?: string;
+  selectedPlan?: BillingCasdoorPlanDetail;
+  setSelectedPlanName: (planName?: string) => void;
+  loading: boolean;
+  error: string | null;
+  refresh: () => Promise<void>;
+}
+
+export function useBillingPricingPlans(
+  pricingId: string,
+  includeOption = false,
+  preferredPlanName?: string,
+): BillingPricingPlansState {
+  const pricingState = useBillingPricing(pricingId);
+  const core = useRequiredCoreContext();
+  const [selectedPlanName, setSelectedPlanName] = useState<string | undefined>(preferredPlanName);
+  const planLoader = core.loaders?.planLoader ?? core.apiClient.fetchPlan;
+  const [plans, setPlans] = useState<BillingCasdoorPlanDetail[]>([]);
+  const [planLoading, setPlanLoading] = useState(false);
+  const [planError, setPlanError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (preferredPlanName) {
+      setSelectedPlanName(preferredPlanName);
+    }
+  }, [preferredPlanName]);
+
+  useEffect(() => {
+    const nextPlanName = selectedPlanName ?? pricingState.data?.plans?.[0];
+    if (!nextPlanName || (selectedPlanName && pricingState.data?.plans && !pricingState.data.plans.includes(selectedPlanName))) {
+      setSelectedPlanName(pricingState.data?.plans?.[0]);
+      return;
+    }
+    if (!selectedPlanName && nextPlanName) {
+      setSelectedPlanName(nextPlanName);
+    }
+  }, [pricingState.data?.plans, selectedPlanName]);
+
+  const refreshPlans = useCallback(async () => {
+    if (!planLoader) {
+      setPlans([]);
+      setPlanError('Missing billing plan loader.');
+      setPlanLoading(false);
+      return;
+    }
+
+    const planNames = pricingState.data?.plans ?? [];
+    if (!planNames.length) {
+      setPlans([]);
+      setPlanError(null);
+      setPlanLoading(false);
+      return;
+    }
+
+    setPlanLoading(true);
+    setPlanError(null);
+    try {
+      const results = await Promise.all(
+        planNames.map(async (planName) => {
+          const response = await planLoader({ id: planName, includeOption });
+          return extractCasdoorResponseData<BillingCasdoorPlanDetail>(response);
+        }),
+      );
+      setPlans(results.filter((plan): plan is BillingCasdoorPlanDetail => Boolean(plan)));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setPlans([]);
+      setPlanError(message);
+    } finally {
+      setPlanLoading(false);
+    }
+  }, [includeOption, planLoader, pricingState.data?.plans]);
+
+  useEffect(() => {
+    void refreshPlans();
+  }, [refreshPlans]);
+
+  const selectedPlan = useMemo(
+    () => plans.find((plan) => plan.name === selectedPlanName) ?? (plans.length === 1 ? plans[0] : undefined),
+    [plans, selectedPlanName],
+  );
+
+  return useMemo(
+    () => ({
+      pricing: pricingState.data,
+      plans,
+      selectedPlanName,
+      selectedPlan,
+      setSelectedPlanName,
+      loading: pricingState.loading || planLoading,
+      error: pricingState.error ?? planError,
+      refresh: async () => {
+        await pricingState.refresh();
+        await refreshPlans();
+      },
+    }),
+    [planError, planLoading, plans, pricingState, refreshPlans, selectedPlan, selectedPlanName],
+  );
+}
+
+export interface BillingSubscriptionPurchaseOptionsState {
+  pricing?: BillingCasdoorPricingDetail;
+  plans: BillingCasdoorPlanDetail[];
+  selectedPlanName?: string;
+  selectedPlan?: BillingCasdoorPlanDetail;
+  setSelectedPlanName: (planName?: string) => void;
+  loading: boolean;
+  error: string | null;
+  refresh: () => Promise<void>;
+}
+
+export function useBillingSubscriptionPurchaseOptions(
+  pricingId: string,
+  includeOption = false,
+  preferredPlanName?: string,
+): BillingSubscriptionPurchaseOptionsState {
+  const pricingPlans = useBillingPricingPlans(pricingId, includeOption, preferredPlanName);
+  return useMemo(
+    () => ({
+      pricing: pricingPlans.pricing,
+      plans: pricingPlans.plans,
+      selectedPlanName: pricingPlans.selectedPlanName,
+      selectedPlan: pricingPlans.selectedPlan,
+      setSelectedPlanName: pricingPlans.setSelectedPlanName,
+      loading: pricingPlans.loading,
+      error: pricingPlans.error,
+      refresh: pricingPlans.refresh,
+    }),
+    [pricingPlans],
   );
 }
 

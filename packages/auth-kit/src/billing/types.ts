@@ -208,7 +208,48 @@ export interface BillingCasdoorApiResponse<TData = unknown> {
   data3: unknown | null;
 }
 
+export interface BillingCasdoorQueryState<TData> {
+  data?: TData;
+  loading: boolean;
+  error: string | null;
+  refresh: () => Promise<void>;
+}
+
 export type BillingCasdoorProductResponse = BillingCasdoorApiResponse<BillingCasdoorProductDetail>;
+
+export interface BillingCasdoorPricingDetail {
+  owner: string;
+  name: string;
+  createdTime?: string;
+  displayName?: string;
+  description?: string;
+  plans?: string[];
+  isEnabled?: boolean;
+  trialDuration?: number;
+  application?: string;
+  [key: string]: unknown;
+}
+
+export type BillingCasdoorPricingResponse = BillingCasdoorApiResponse<BillingCasdoorPricingDetail>;
+
+export interface BillingCasdoorPlanDetail {
+  owner: string;
+  name: string;
+  createdTime?: string;
+  displayName?: string;
+  description?: string;
+  price?: number;
+  currency?: string;
+  period?: string;
+  product?: string;
+  paymentProviders?: string[];
+  isEnabled?: boolean;
+  role?: string;
+  options?: unknown;
+  [key: string]: unknown;
+}
+
+export type BillingCasdoorPlanResponse = BillingCasdoorApiResponse<BillingCasdoorPlanDetail>;
 
 export interface BillingCasdoorAccountMultiFactorAuthDetail {
   enabled: boolean;
@@ -453,6 +494,51 @@ export interface BillingCasdoorPaymentDetail {
 }
 
 export type BillingCasdoorPaymentResponse = BillingCasdoorApiResponse<BillingCasdoorPaymentDetail>;
+
+export interface BillingCasdoorOrderDetail {
+  owner: string;
+  name: string;
+  createdTime?: string;
+  displayName?: string;
+  user?: string;
+  product?: string;
+  productDisplayName?: string;
+  products?: string[];
+  price?: number;
+  amount?: number;
+  currency?: string;
+  quantity?: number;
+  provider?: string;
+  payment?: string;
+  transaction?: string;
+  successUrl?: string;
+  returnUrl?: string;
+  state?: string;
+  [key: string]: unknown;
+}
+
+export type BillingCasdoorOrderResponse = BillingCasdoorApiResponse<BillingCasdoorOrderDetail>;
+export type BillingCasdoorOrdersResponse = BillingCasdoorApiResponse<BillingCasdoorOrderDetail[]>;
+
+export interface BillingCasdoorSubscriptionDetail {
+  owner: string;
+  name: string;
+  createdTime?: string;
+  displayName?: string;
+  description?: string;
+  duration?: number;
+  startTime?: string;
+  endTime?: string;
+  pricing?: string;
+  plan?: string;
+  payment?: string;
+  user?: string;
+  state?: 'Pending' | 'Error' | 'Suspended' | 'Active' | 'Upcoming' | 'Expired' | string;
+  [key: string]: unknown;
+}
+
+export type BillingCasdoorSubscriptionResponse = BillingCasdoorApiResponse<BillingCasdoorSubscriptionDetail>;
+export type BillingCasdoorSubscriptionsResponse = BillingCasdoorApiResponse<BillingCasdoorSubscriptionDetail[]>;
 
 export type BillingCasdoorOrganizationNamesResponse = BillingCasdoorApiResponse<BillingCasdoorOrganizationDetail[]>;
 
@@ -790,6 +876,12 @@ export interface BillingApiClient {
   fetchPurchaseStatus: (args: { orderId?: string; paymentId?: string; transactionId?: string }) => Promise<BillingPurchaseStatus>;
   fetchCredits: (args: { userId?: string; catalogKey?: string }) => Promise<BillingCreditsState>;
   fetchEntitlements: (args: { userId?: string; catalogKey?: string }) => Promise<BillingEntitlementState>;
+  fetchPricing?: (args: { id: string }) => Promise<BillingCasdoorPricingResponse>;
+  fetchPlan?: (args: { id: string; includeOption?: boolean }) => Promise<BillingCasdoorPlanResponse>;
+  fetchOrder?: (args: { id: string }) => Promise<BillingCasdoorOrderResponse>;
+  fetchOrders?: (args: { owner?: string; user?: string; product?: string }) => Promise<BillingCasdoorOrdersResponse>;
+  fetchSubscriptionRecord?: (args: { id: string }) => Promise<BillingCasdoorSubscriptionResponse>;
+  fetchSubscriptions?: (args: { owner?: string; user?: string }) => Promise<BillingCasdoorSubscriptionsResponse>;
   fetchAccount?: (args: { id?: string }) => Promise<BillingCasdoorAccountResponse>;
   fetchApplication?: (args: { id?: string }) => Promise<BillingCasdoorApplicationResponse>;
   fetchPayment?: (args: { id?: string }) => Promise<BillingCasdoorPaymentResponse>;
@@ -822,6 +914,12 @@ export interface BillingLoaders {
   purchaseStatusLoader?: (args: { orderId?: string; paymentId?: string; transactionId?: string }) => Promise<BillingPurchaseStatus>;
   creditsLoader?: (args: { userId?: string; catalogKey?: string }) => Promise<BillingCreditsState>;
   entitlementsLoader?: (args: { userId?: string; catalogKey?: string }) => Promise<BillingEntitlementState>;
+  pricingLoader?: (args: { id: string }) => Promise<BillingCasdoorPricingResponse>;
+  planLoader?: (args: { id: string; includeOption?: boolean }) => Promise<BillingCasdoorPlanResponse>;
+  orderLoader?: (args: { id: string }) => Promise<BillingCasdoorOrderResponse>;
+  ordersLoader?: (args: { owner?: string; user?: string; product?: string }) => Promise<BillingCasdoorOrdersResponse>;
+  subscriptionRecordLoader?: (args: { id: string }) => Promise<BillingCasdoorSubscriptionResponse>;
+  subscriptionsLoader?: (args: { owner?: string; user?: string }) => Promise<BillingCasdoorSubscriptionsResponse>;
   accountLoader?: (args: { id?: string }) => Promise<BillingCasdoorAccountResponse>;
   applicationLoader?: (args: { id?: string }) => Promise<BillingCasdoorApplicationResponse>;
   paymentLoader?: (args: { id?: string }) => Promise<BillingCasdoorPaymentResponse>;

@@ -129,7 +129,7 @@ export async function paymentSuccessHandler(input: {
 
 1. 宿主工程通过 `BillingProvider` 或后端配置注入 `BillingCatalogConfig`
 2. `BillingCatalogConfig.purchasableIds` 只保留当前项目允许购买的条目
-3. 用户发起 `purchase` 后，包内购买适配器先按商品 ID 拉取 Casdoor 商品详情，再选择 provider 并发起 Casdoor 下单；这里的 loader 约定返回 Casdoor 标准响应 envelope，真正的数据放在 `data` 里。`productId` 推荐写成 `owner/name` 形式，例如 `qixiaoju/创小剧积分包-50`，并且要和 `GET /api/get-product?id=qixiaoju/创小剧积分包-50` 保持一致；`buy-product` 返回 `status: "error"` 时，`msg` 里的错误信息会直接透传给宿主的 `onPurchaseError` / `onPurchaseComplete`；回跳后由 `payment-success.ts` 和 `payment-finished.ts` 做宿主侧收尾
+3. 用户发起 `purchase` 后，包内购买适配器先按商品 ID 拉取 Casdoor 商品详情，再选择 provider 并发起 Casdoor 下单；这里的 loader 约定返回 Casdoor 标准响应 envelope，真正的数据放在 `data` 里。`productId` 推荐写成 `owner/name` 形式，例如 `qixiaoju/创小剧积分包-50`，并且要和 `GET /api/get-product?id=qixiaoju/创小剧积分包-50` 保持一致；`buy-product` 返回 `status: "error"` 时，`msg` 里的错误信息会直接透传给宿主的 `onPurchaseError` / `onPurchaseComplete`；回跳后由 `payment-success.ts` 和 `payment-finished.ts` 做宿主侧收尾。对于 SaaS 订阅，推荐把 `fetchPricing` / `pricingLoader`、`fetchPlan` / `planLoader`、`fetchSubscriptionRecord` / `subscriptionRecordLoader`、`fetchSubscriptions` / `subscriptionsLoader` 绑定到 Casdoor 的 `get-pricing`、`get-plan`、`get-subscription`、`get-subscriptions`。对于标准商品，推荐把 `fetchOrder` / `orderLoader`、`fetchOrders` / `ordersLoader`、`fetchPayment` / `paymentLoader` 绑定到 Casdoor 的 `get-order`、`get-orders`、`get-payment`。
 
 商品详情页如果要展示支持的支付方式，可以直接调用 `useBillingProductDetail(productId)`，拿到 `providers` 和 `providerObjs` 后按 provider 渲染不同的购买按钮和参数。
 
@@ -146,5 +146,14 @@ billing 的页面层完全由宿主工程自己控制。套件不生成 product 
 同一套 loader 约定也适用于 `fetchAccount`、`fetchApplication` 和 `fetchPayment`：浏览器侧默认请求 `/auth/api/get-account`、`/auth/api/get-application`、`/auth/api/get-payment` 这类同域代理，避免跨域；只有服务端或明确启用 CORS 的特殊场景，才考虑直接请求 `NEXT_PUBLIC_CASDOOR_SERVER_URL` origin 的 `/api/get-account`、`/api/get-application`、`/api/get-payment`。
 
 支付结果轮询同样优先走 `/auth/api/get-payment?id=...`。如果必须直连 Casdoor origin，两种场景都仍然使用同一套 response envelope，真正的数据都放在 `data` 里。
+
+订阅状态建议以 Casdoor 的 `get-pricing` / `get-plan` / `get-subscription` / `get-subscriptions` 为准，产品购买后的订单列表和订单状态建议以 Casdoor 的 `get-order` / `get-orders` / `get-payment` 为准。包内的 `BillingSubscriptionState`、`BillingOrderHistoryItem`、`BillingPurchaseStatus` 只是宿主页面的归一化视图，不应该反过来成为真相源。
+
+如果宿主希望直接渲染订阅购买页或订单面板，可以优先组合这些 hooks：
+
+- `useBillingPricing`、`useBillingPlan`、`useBillingPricingPlans`
+- `useBillingSubscriptionRecord`、`useBillingSubscriptions`
+- `useBillingOrder`、`useBillingOrders`
+- `useBillingSubscriptionPurchaseOptions`
 
 💡 已知问题提醒

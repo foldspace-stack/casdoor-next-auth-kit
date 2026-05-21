@@ -94,10 +94,10 @@
   <rect class="box" x="466" y="682" width="458" height="166"/>
   <text class="label" x="492" y="714">Hooks</text>
   <text class="small" x="492" y="742">useBillingCatalog, useBillingItem, useBillingProducts</text>
-  <text class="small" x="492" y="766">useBillingSubscription, useBillingSubscriptionHistory</text>
-  <text class="small" x="492" y="790">useSubscribePlan, useManageSubscription</text>
-  <text class="small" x="492" y="814">useBillingProduct, usePurchaseProduct, useBillingOrderHistory</text>
-  <text class="small" x="492" y="838">useBillingCredits, usePurchaseProduct, useBillingRefresh</text>
+  <text class="small" x="492" y="766">useBillingPricing, useBillingPlan, useBillingPricingPlans</text>
+  <text class="small" x="492" y="790">useBillingSubscription, useBillingSubscriptionHistory, useBillingSubscriptions</text>
+  <text class="small" x="492" y="814">useBillingProductDetail, useBillingOrder, useBillingOrders</text>
+  <text class="small" x="492" y="838">useSubscribePlan, usePurchaseProduct, useBillingCredits, useBillingRefresh</text>
 
   <rect class="lane" x="986" y="118" width="416" height="790"/>
   <text class="section-title" x="1010" y="154">Personal API Subset</text>

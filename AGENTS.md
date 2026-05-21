@@ -63,7 +63,10 @@
 - 默认生成的 `lib/billing/payment-success.ts` 和 `lib/billing/payment-finished.ts` 是宿主定制 billing 收尾逻辑的唯一入口，后续如果要改订单补全、Webhook 或跳转逻辑，优先改这两个默认文件的 custom block，不要把业务塞回路由壳。
 - 默认生成的 billing handler 文件必须保持“拿来就能编译”，文件里如果没有业务逻辑，也要保留可运行的空实现和明确日志，不允许生成只写注释或只留导入的半成品。
 - billing 的购买页、二维码扫描区和支付状态面板都属于宿主工程自己的 UI，套件只提供 headless hooks、Casdoor 适配器、支付回调 handler 和纯数据模型，不要再把 `/qrcode` 或 `/payments/.../result` 当成套件内置页面能力。
+- billing 的 headless hooks 现在还包括 `useBillingPricing`、`useBillingPlan`、`useBillingPricingPlans`、`useBillingSubscriptionPurchaseOptions`、`useBillingSubscriptionRecord`、`useBillingSubscriptions`、`useBillingOrder` 和 `useBillingOrders`，宿主应该优先用这些 hooks 把 Casdoor 的定价、计划、订阅和订单查询结果渲染成自己的 UI，而不是自己再拼一层查询封装。
+- 订阅购买的基础交互也应优先走 `useBillingSubscriptionPurchaseOptions` + `useSubscribePlan`，商品购买优先走 `useBillingProductPurchaseOptions` + `usePurchaseProduct`；这样宿主可以自己渲染页面，但不需要自己重新实现订阅计划列表、商品 provider 选择和查询状态管理。
 - `BillingCasdoorAccountResponse`、`BillingCasdoorApplicationResponse`、`BillingCasdoorPaymentResponse` 是宿主对接 `get-account`、`get-application`、`get-payment` 的标准类型，浏览器侧 loader 默认走 `/auth/api/*` 同域代理；只有服务端或明确放开 CORS 的特殊场景，才考虑直接连 `NEXT_PUBLIC_CASDOOR_SERVER_URL` origin 的 `/api/*` 路径。
+- SaaS 订阅状态要以 Casdoor 的 `get-pricing` / `get-plan` / `get-subscription` / `get-subscriptions` 为准，产品购买后的订单列表和订单状态要以 Casdoor 的 `get-order` / `get-orders` / `get-payment` 为准，宿主本地状态只做归一化视图，不要反过来当真相源。
 - 生成的 `auth-config.ts` 必须同时兼容 `npx ... init` 和 `npx ... update`，不要让第一次生成能过、更新时却因为保留块或导入变化而编译失败。
 - 登录入口是 `app/(auth-kit)/auth/login` 和 `app/(auth-kit)/auth/signup`，授权壳子是 `app/(auth-kit)/login/oauth/authorize`。
 
