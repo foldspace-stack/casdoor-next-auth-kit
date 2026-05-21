@@ -23,12 +23,15 @@ export interface OAuthTokens {
   [key: string]: unknown;
 }
 
+export type AuthUserRole = 'user' | 'admin';
+
 export interface AuthUser {
   id: string;
   name: string | null;
   email: string | null;
   image: string | null;
   isAdmin: boolean;
+  role: AuthUserRole;
   tokenBalance: number;
   isVip: boolean;
 }

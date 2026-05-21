@@ -340,12 +340,32 @@ export function createAuthKitConfig(): AuthKitConfig {
 export const authKitConfig = createAuthKitConfig();
 
 export const adapter: AuthBusinessAdapter = {
+  onUserSync: async (profile) => {
+    const email = profile.email ?? null;
+    const isAdmin = Boolean(profile.isAdmin) || isGlobalAdminEmail(email);
+
+    return {
+      id: String(profile.id ?? profile.sub ?? email ?? 'casdoor-user'),
+      name: profile.name ?? profile.displayName ?? null,
+      email,
+      image: profile.picture ?? profile.avatarUrl ?? null,
+      isAdmin,
+      role: isAdmin ? 'admin' : 'user',
+      tokenBalance: 2580,
+      isVip: true,
+    };
+  },
   isAdminEmail: isGlobalAdminEmail,
 };
 
 export const persistence: AuthPersistenceAdapter = {
-  async syncAuthUser() {
-    return;
+  async syncAuthUser(user) {
+    console.info('[casdoor-next-auth-kit] syncAuthUser received user', {
+      id: user.id,
+      email: user.email,
+      isAdmin: user.isAdmin,
+      role: user.role,
+    });
   },
   async findAuthUser() {
     return null;

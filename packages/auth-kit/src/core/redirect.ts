@@ -13,6 +13,6 @@ export function buildAuthJumpHref(kind: 'login' | 'signup', redirect?: string, b
 }
 
 export function resolvePostLoginRedirect(user: AuthUser, fallback = '/'): string {
-  if (user.isAdmin) return '/admin';
+  if (user.role === 'admin' || user.isAdmin) return '/admin';
   return fallback;
 }

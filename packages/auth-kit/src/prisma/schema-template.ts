@@ -10,6 +10,7 @@ export const AUTH_PRISMA_SCHEMA_MODELS: PrismaSchemaModelDefinition[] = [
       { name: 'name', type: 'String?' },
       { name: 'image', type: 'String?' },
       { name: 'isAdmin', type: 'Boolean', attributes: ['@default(false)'] },
+      { name: 'role', type: 'String', attributes: ['@default("user")'] },
       { name: 'tokenBalance', type: 'Int', attributes: ['@default(0)'] },
       { name: 'isVip', type: 'Boolean', attributes: ['@default(false)'] },
       { name: 'createdAt', type: 'DateTime', attributes: ['@default(now())'] },

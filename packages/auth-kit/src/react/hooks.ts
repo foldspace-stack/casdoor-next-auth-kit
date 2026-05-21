@@ -2,9 +2,10 @@
 
 import { useSession } from 'next-auth/react';
 import { buildAuthJumpHref } from '../core/redirect';
+import { buildAuthUserSummary, type AuthSummaryRole } from '../core/auth-role';
 import type { AuthSession } from '../next/options';
 
-export type AuthRole = 'guest' | 'user' | 'admin';
+export type AuthRole = AuthSummaryRole;
 
 export interface AuthUserSummary {
   id: string | null;
@@ -30,24 +31,8 @@ export interface AuthActionsOptions {
   redirect?: string | null;
 }
 
-function getUserSummary(session: AuthSession | null | undefined): AuthUserSummary {
-  const user = session?.user;
-  const name = user?.name || '登录';
-  const isAuthenticated = Boolean(user);
-  const isAdmin = Boolean(user?.isAdmin);
-  const role: AuthRole = !isAuthenticated ? 'guest' : isAdmin ? 'admin' : 'user';
-
-  return {
-    id: user?.id ?? null,
-    name,
-    email: user?.email ?? null,
-    image: user?.image ?? null,
-    isAuthenticated,
-    isAdmin,
-    tokenBalance: Number(user?.tokenBalance ?? 2580),
-    isVip: Boolean(user?.isVip ?? true),
-    role,
-  };
+export function getUserSummary(session: AuthSession | null | undefined): AuthUserSummary {
+  return buildAuthUserSummary(session?.user);
 }
 
 export function useAuthSession() {

@@ -13,15 +13,21 @@ export const demoAuthConfig: AuthKitConfig = {
 };
 
 export const demoAuthAdapter: AuthBusinessAdapter = {
-  onUserSync: async (profile) => ({
-    id: String(profile.id ?? profile.email ?? 'demo-user'),
-    name: profile.name ?? profile.displayName ?? 'Demo User',
-    email: profile.email ?? 'demo@example.com',
-    image: profile.avatarUrl ?? null,
-    isAdmin: Boolean(profile.isAdmin),
-    tokenBalance: 2580,
-    isVip: true
-  }),
+  onUserSync: async (profile) => {
+    const email = profile.email ?? 'demo@example.com';
+    const isAdmin = Boolean(profile.isAdmin) || email === 'admin@example.com';
+
+    return {
+      id: String(profile.id ?? profile.email ?? 'demo-user'),
+      name: profile.name ?? profile.displayName ?? 'Demo User',
+      email,
+      image: profile.avatarUrl ?? null,
+      isAdmin,
+      role: isAdmin ? 'admin' : 'user',
+      tokenBalance: 2580,
+      isVip: true
+    };
+  },
   resolvePostLoginRedirect: () => '/me',
   isAdminEmail: (email) => email === 'admin@example.com',
   resolveCommerceRedirect: (action, payload) => '/orders?action=' + action + '&payload=' + encodeURIComponent(JSON.stringify(payload)),

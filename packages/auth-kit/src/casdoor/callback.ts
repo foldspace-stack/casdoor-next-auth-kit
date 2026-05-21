@@ -14,6 +14,7 @@ import { getPkceCookieName, verifyState } from '../core/oauth-state';
 import { encodeSessionToken } from '../core/session-token';
 import { isGlobalAdminEmail } from '../core/admin';
 import { resolvePostLoginRedirect } from '../core/redirect';
+import { buildAuthUserFromProfile } from '../core/auth-role';
 
 export interface CallbackHandlerOptions {
   config: AuthKitConfig;
@@ -116,11 +117,12 @@ function summarizeCookieHeader(cookieHeader: string | null): Record<string, unkn
   };
 }
 
-function mapProfileToAuthUser(profile: Awaited<ReturnType<typeof fetchCasdoorUserInfo>>, adapter?: AuthBusinessAdapter): AuthUser {
+export function mapProfileToAuthUser(profile: Awaited<ReturnType<typeof fetchCasdoorUserInfo>>, adapter?: AuthBusinessAdapter): AuthUser {
   const typedProfile = profile as Awaited<ReturnType<typeof fetchCasdoorUserInfo>> & {
     sub?: string;
     picture?: string;
     avatarUrl?: string;
+    role?: string;
   };
   const email = typedProfile.email || null;
   const isAdmin =
@@ -128,15 +130,20 @@ function mapProfileToAuthUser(profile: Awaited<ReturnType<typeof fetchCasdoorUse
     Boolean(adapter?.isAdminEmail?.(email)) ||
     isGlobalAdminEmail(email);
 
-  return {
-    id: typedProfile.sub || typedProfile.id || typedProfile.email || 'casdoor-user',
-    name: typedProfile.name || typedProfile.displayName || null,
-    email,
-    image: typedProfile.picture || typedProfile.avatarUrl || null,
+  return buildAuthUserFromProfile(
+    {
+      id: typedProfile.id,
+      sub: typedProfile.sub,
+      name: typedProfile.name,
+      displayName: typedProfile.displayName,
+      email,
+      picture: typedProfile.picture,
+      avatarUrl: typedProfile.avatarUrl,
+      isAdmin: typedProfile.isAdmin,
+      role: typedProfile.role,
+    },
     isAdmin,
-    tokenBalance: 2580,
-    isVip: true,
-  };
+  );
 }
 
 function getRedirectTarget(request: NextRequest, user: AuthUser, adapter?: AuthBusinessAdapter): string {
@@ -250,6 +257,7 @@ export async function createCallbackResponse(
       accessToken,
       expiresAt: tokens.expires_in ? Date.now() + tokens.expires_in * 1000 : decodedAccessToken?.exp,
       isAdmin: mappedUser.isAdmin,
+      role: mappedUser.role,
       tokenBalance: mappedUser.tokenBalance,
       isVip: mappedUser.isVip,
     },

@@ -1,10 +1,11 @@
 import NextAuth from 'next-auth';
 import type { NextAuthOptions, Session } from 'next-auth';
 import type { JWT } from 'next-auth/jwt';
-import type { AuthBusinessAdapter, AuthKitConfig, AuthPersistenceAdapter, AuthUser } from '../types';
+import type { AuthBusinessAdapter, AuthKitConfig, AuthPersistenceAdapter, AuthUser, AuthUserRole } from '../types';
 import { normalizeAuthKitConfig } from '../core/config';
 import { decodeSessionToken, encodeSessionToken } from '../core/session-token';
 import { isGlobalAdminEmail } from '../core/admin';
+import { buildAuthUserFromToken } from '../core/auth-role';
 
 export interface NextAuthRouteOptions {
   config: AuthKitConfig;
@@ -24,11 +25,13 @@ export interface AuthTokenPayload extends JWT {
   tokenBalance?: number;
   isVip?: boolean;
   isAdmin?: boolean;
+  role?: AuthUserRole;
 }
 
 export interface AuthSessionUser {
   id?: string;
   isAdmin?: boolean;
+  role?: AuthUserRole;
   tokenBalance?: number;
   isVip?: boolean;
 }
@@ -39,17 +42,25 @@ export interface AuthSession extends Session {
   user?: AuthSessionUser & NonNullable<Session['user']>;
 }
 
-function resolveAuthUserFromToken(token: AuthTokenPayload, adapter?: AuthBusinessAdapter): AuthUser {
+export function resolveAuthUserFromToken(token: AuthTokenPayload, adapter?: AuthBusinessAdapter): AuthUser {
   const email = typeof token.email === 'string' ? token.email : null;
-  return {
-    id: token.userId || token.sub || token.id || email || 'casdoor-user',
-    name: typeof token.name === 'string' ? token.name : null,
-    email,
-    image: typeof token.picture === 'string' ? token.picture : null,
-    isAdmin: Boolean(token.isAdmin) || Boolean(adapter?.isAdminEmail?.(email)) || isGlobalAdminEmail(email),
-    tokenBalance: Number(token.tokenBalance ?? 2580),
-    isVip: Boolean(token.isVip ?? true),
-  };
+  const isAdmin = Boolean(token.isAdmin) || token.role === 'admin' || Boolean(adapter?.isAdminEmail?.(email)) || isGlobalAdminEmail(email);
+
+  return buildAuthUserFromToken(
+    {
+      userId: token.userId,
+      sub: token.sub,
+      id: token.id,
+      name: token.name,
+      email,
+      picture: token.picture ?? null,
+      isAdmin: token.isAdmin,
+      role: token.role,
+      tokenBalance: token.tokenBalance,
+      isVip: token.isVip,
+    },
+    isAdmin,
+  );
 }
 
 export function createNextAuthOptions(options: NextAuthRouteOptions): NextAuthOptions {
@@ -89,6 +100,10 @@ export function createNextAuthOptions(options: NextAuthRouteOptions): NextAuthOp
           typedToken.email = typedProfile.email || typedToken.email;
           typedToken.picture = typedProfile.image || typedProfile.picture || typedToken.picture;
           typedToken.isAdmin = Boolean(typedProfile.isAdmin ?? typedToken.isAdmin);
+          typedToken.role =
+            typedProfile.role === 'admin' || typedProfile.role === 'user'
+              ? typedProfile.role
+              : typedToken.role ?? (typedToken.isAdmin ? 'admin' : 'user');
           typedToken.tokenBalance = typedProfile.tokenBalance ?? typedToken.tokenBalance ?? 2580;
           typedToken.isVip = typedProfile.isVip ?? typedToken.isVip ?? true;
         }
@@ -108,6 +123,7 @@ export function createNextAuthOptions(options: NextAuthRouteOptions): NextAuthOp
         if (typedSession.user) {
           typedSession.user.id = resolvedUser.id;
           typedSession.user.isAdmin = resolvedUser.isAdmin;
+          typedSession.user.role = resolvedUser.role;
           typedSession.user.tokenBalance = resolvedUser.tokenBalance;
           typedSession.user.isVip = resolvedUser.isVip;
         }
@@ -121,6 +137,7 @@ export function createNextAuthOptions(options: NextAuthRouteOptions): NextAuthOp
           image: typedSession.user?.image || resolvedUser.image,
           id: resolvedUser.id,
           isAdmin: resolvedUser.isAdmin,
+          role: resolvedUser.role,
           tokenBalance: resolvedUser.tokenBalance,
           isVip: resolvedUser.isVip,
         };
