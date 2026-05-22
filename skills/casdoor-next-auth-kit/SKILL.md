@@ -326,7 +326,7 @@ export async function proxy(request: NextRequest) {
 export const config = { matcher: '/:path*' };
 ```
 
-> `/auth/api/*` 路径不需要宿主额外处理头部清理。套件的 `proxyRequest` 在转发给 Casdoor 时会自动删除 `origin`、`referer`、`x-forwarded-host`、`x-forwarded-port`、`x-forwarded-proto` 和 `forwarded`，确保上游只看到干净的请求头。
+> `/auth/api/*` 路径不需要宿主额外处理头部清理。套件的 `proxyRequest` 在转发给 Casdoor 时会自动删除 `origin`、`referer`、`x-forwarded-host`、`x-forwarded-port`、`x-forwarded-proto` 和 `forwarded`，并且会优先从 NextAuth 会话 cookie 里还原 `accessToken` 补上 `Authorization: Bearer ...`，确保上游能识别当前登录态时只看到干净且完整的请求头。
 
 ### 实现要求
 

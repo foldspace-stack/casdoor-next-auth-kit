@@ -1,6 +1,7 @@
-import { NextResponse, type NextRequest } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server.js';
 import type { AuthKitConfig } from '../types';
-import { buildCasdoorProxyRequestHeaders } from './proxy-headers';
+import { buildCasdoorProxyRequestHeaders } from './proxy-headers.ts';
+import { decodeSessionToken } from '../core/session-token.ts';
 
 function buildUpstreamUrl(request: NextRequest, baseUrl: string, localPrefix: string, upstreamPrefix: string): string {
   const url = new URL(request.url);
@@ -13,14 +14,39 @@ function buildUpstreamUrl(request: NextRequest, baseUrl: string, localPrefix: st
 }
 
 async function proxyRequest(
+  config: AuthKitConfig,
   request: NextRequest,
-  baseUrl: string,
   localPrefix: string,
   upstreamPrefix: string,
   options: { suppressRedirects?: boolean } = {},
 ): Promise<NextResponse> {
-  const upstreamUrl = buildUpstreamUrl(request, baseUrl, localPrefix, upstreamPrefix);
+  const upstreamUrl = buildUpstreamUrl(request, config.casdoor.serverUrl, localPrefix, upstreamPrefix);
   const headers = buildCasdoorProxyRequestHeaders(request);
+  if (!headers.has('authorization')) {
+    const sessionToken =
+      request.cookies.get('__Secure-next-auth.session-token')?.value ||
+      request.cookies.get('next-auth.session-token')?.value ||
+      request.cookies
+        .getAll()
+        .filter((cookie) =>
+          cookie.name.startsWith('__Secure-next-auth.session-token.') ||
+          cookie.name.startsWith('next-auth.session-token.')
+        )
+        .sort((left, right) => left.name.localeCompare(right.name, undefined, { numeric: true }))
+        .map((cookie) => cookie.value)
+        .join('');
+
+    if (sessionToken) {
+      const decoded = await decodeSessionToken({
+        token: sessionToken,
+        secret: config.nextauthSecret,
+      });
+      const accessToken = typeof decoded?.accessToken === 'string' ? decoded.accessToken : undefined;
+      if (accessToken) {
+        headers.set('authorization', `Bearer ${accessToken}`);
+      }
+    }
+  }
   const body = request.method === 'GET' || request.method === 'HEAD' ? undefined : await request.arrayBuffer();
   const upstream = await fetch(upstreamUrl, {
     method: request.method,
@@ -56,7 +82,7 @@ export function createCasdoorApiProxyHandler(
   prefix = '/auth/api',
   upstreamPrefix = '/api',
 ): (request: NextRequest) => Promise<NextResponse> {
-  return async (request) => proxyRequest(request, config.casdoor.serverUrl, prefix, upstreamPrefix, { suppressRedirects: true });
+  return async (request) => proxyRequest(config, request, prefix, upstreamPrefix, { suppressRedirects: true });
 }
 
 export function createCasdoorPageProxyHandler(
@@ -64,7 +90,7 @@ export function createCasdoorPageProxyHandler(
   prefix = '/auth',
   upstreamPrefix = '',
 ): (request: NextRequest) => Promise<NextResponse> {
-  return async (request) => proxyRequest(request, config.casdoor.serverUrl, prefix, upstreamPrefix);
+  return async (request) => proxyRequest(config, request, prefix, upstreamPrefix);
 }
 
 export function createCasdoorCommerceProxyHandler(
@@ -72,5 +98,5 @@ export function createCasdoorCommerceProxyHandler(
   prefix = '/auth/api/commerce',
   upstreamPrefix = '/api/commerce',
 ): (request: NextRequest) => Promise<NextResponse> {
-  return async (request) => proxyRequest(request, config.casdoor.serverUrl, prefix, upstreamPrefix, { suppressRedirects: true });
+  return async (request) => proxyRequest(config, request, prefix, upstreamPrefix, { suppressRedirects: true });
 }

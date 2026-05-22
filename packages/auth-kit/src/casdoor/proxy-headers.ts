@@ -4,6 +4,7 @@ export function buildCasdoorProxyRequestHeaders(request: Pick<Request, 'headers'
     'accept',
     'accept-language',
     'authorization',
+    'cookie',
     'content-type',
     'x-requested-with',
   ];
