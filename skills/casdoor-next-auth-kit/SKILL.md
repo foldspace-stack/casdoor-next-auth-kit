@@ -438,6 +438,12 @@ Billing headless 能力的方案、接口草案和设计图已经放在仓库文
 - `docs/billing/examples/order-history-page.example.tsx` — 订单和订阅历史页面骨架示例
 - `docs/billing/examples/mock-billing-api-client.example.ts` — mock api client 示例
 
+Reusable Casdoor 协议 helper 也已经独立出来：
+
+- `packages/auth-kit/src/billing/casdoor-payment-session.ts` — 商品 checkout、二维码会话、`get-payment`、`notify-payment`、支付状态归一化
+- `packages/auth-kit/src/billing/casdoor-plan-product.ts` — `get-pricing`、`get-plan`、plan 到 product 的解析
+- `packages/auth-kit/src/billing/casdoor-helpers.ts` — 商品 ID 归一化和 provider 选择
+
 Billing 的宿主接入方式是：
 
 1. 在宿主应用里通过 `BillingProvider` 注入 `runtimeConfig` 或显式的 `availablePlans` / `availableProducts`
@@ -446,6 +452,8 @@ Billing 的宿主接入方式是：
 4. 使用 `useSubscribePlan`、`usePurchaseProduct` 发起动作
 5. 使用 `useBillingSubscription`、`useBillingSubscriptionHistory`、`useBillingSubscriptionRecord`、`useBillingSubscriptions`、`useBillingOrder`、`useBillingOrders`、`useBillingOrderHistory`、`useBillingPaymentHistory`、`useBillingCredits` 查看状态
 6. 使用 `useBillingPipeline` 或 `actionExecutor` 接入宿主自己的支付、跳转和后端编排逻辑
+
+如果宿主只想复用 Casdoor 协议，不想复用整套 UI，可以直接调用 `createCasdoorProductCheckoutSession()`、`fetchCasdoorPayment()`、`notifyCasdoorPayment()`、`fetchCasdoorPricing()`、`fetchCasdoorPlan()` 和 `resolveCasdoorPlanProductId()`，把返回结果喂给宿主自己的订单、会员和支付界面。协议 helper 只负责和 Casdoor 对话，不负责宿主订单表、积分发放或会员授予。
 
 购买动作只保留两类：
 

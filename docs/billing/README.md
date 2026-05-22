@@ -106,6 +106,9 @@ const billingCatalog = {
 
 - [Billing Runtime 类型](../../packages/auth-kit/src/billing/types.ts)
 - [Billing Runtime 辅助函数](../../packages/auth-kit/src/billing/runtime.ts)
+- [Casdoor Payment Session Helper](../../packages/auth-kit/src/billing/casdoor-payment-session.ts)
+- [Casdoor Plan Product Helper](../../packages/auth-kit/src/billing/casdoor-plan-product.ts)
+- [Casdoor Shared Helpers](../../packages/auth-kit/src/billing/casdoor-helpers.ts)
 - [Billing Subscription Catalog Bridge](../../packages/auth-kit/src/billing/subscription-catalog.ts)
 - [Billing React Hooks](../../packages/auth-kit/src/billing/react.tsx)
 
@@ -128,6 +131,17 @@ const billingCatalog = {
 - `purchasables`: 当前工程允许购买的显式条目定义，适合需要补充 hooks 或额外字段的场景
 
 当宿主需要直接对接 Casdoor 商品购买时，还可以提供 `fetchProduct`、`fetchOrganizationNames` 和 `buyProduct` 这类 loader，让包内购买适配器按 `owner/name` 解析商品 ID 并自动选择 provider。这里 loader 约定拿到的是 Casdoor 的标准响应 envelope，再从 `data` 里取出商品或组织列表。这样宿主只需要配置少量允许购买的 product id，Casdoor 里可以继续保留更大的商品集合。`buy-product` 如果返回 `status: "error"`，包内会把 `msg` 里的错误信息和错误码透传到宿主的 `onPurchaseError` / `onPurchaseComplete`，例如微信支付限制场景里的 `NO_AUTH`。
+
+如果宿主想把 Casdoor 协议层能力抽成可复用 helper，可以直接用这些文件：
+
+- `packages/auth-kit/src/billing/casdoor-payment-session.ts`
+  - 负责 `buy-product`、二维码会话、`get-payment`、`notify-payment`、支付状态归一化
+- `packages/auth-kit/src/billing/casdoor-plan-product.ts`
+  - 负责 `get-pricing`、`get-plan` 和 `plan.product -> owner/product` 的解析
+- `packages/auth-kit/src/billing/casdoor-helpers.ts`
+  - 负责商品 ID 归一化和 provider 选择等共享小工具
+
+这三者只负责 Casdoor 协议行为，宿主业务仍然应该自己维护本地订单、积分发放、会员授予和 UI 交互。
 
 如果宿主要做 SaaS 订阅购买，建议把 `fetchPricing` / `pricingLoader`、`fetchPlan` / `planLoader`、`fetchSubscriptionRecord` / `subscriptionRecordLoader`、`fetchSubscriptions` / `subscriptionsLoader` 接到 Casdoor 原生 `get-pricing`、`get-plan`、`get-subscription`、`get-subscriptions`。这样订阅状态、订阅历史和套餐价格都直接来自 Casdoor，不需要在宿主本地再维护一套“伪订阅状态”。
 

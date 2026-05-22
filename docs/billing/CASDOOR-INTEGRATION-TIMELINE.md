@@ -1,6 +1,6 @@
 # Billing 到 Casdoor 的对接时序
 
-这份图描述的是：`docs/billing/examples/billing-catalog.example.ts` 里的配置，最后如何通过宿主侧的 `backendRef` 和默认生成的回跳处理器，和 Casdoor 对接起来。
+这份图描述的是：`docs/billing/examples/billing-catalog.example.ts` 里的配置，最后如何通过宿主侧的 `backendRef`、`packages/auth-kit/src/billing/casdoor-payment-session.ts`、`packages/auth-kit/src/billing/casdoor-plan-product.ts` 和默认生成的回跳处理器，和 Casdoor 对接起来。
 
 这里要明确区分两条 Casdoor 真相链路：
 
@@ -15,6 +15,7 @@
 - 真正对接 Casdoor 的是 `backendRef.productId / planId / priceId`
 - `fetchPricing` / `pricingLoader`、`fetchPlan` / `planLoader`、`fetchSubscriptionRecord` / `subscriptionRecordLoader`、`fetchSubscriptions` / `subscriptionsLoader` 应该对应 Casdoor 的 `get-pricing`、`get-plan`、`get-subscription`、`get-subscriptions`
 - `fetchOrder` / `orderLoader`、`fetchOrders` / `ordersLoader`、`fetchPayment` / `paymentLoader` 应该对应 Casdoor 的 `get-order`、`get-orders`、`get-payment`
+- `createCasdoorProductCheckoutSession()`、`fetchCasdoorPayment()`、`notifyCasdoorPayment()`、`fetchCasdoorPricing()`、`fetchCasdoorPlan()`、`resolveCasdoorPlanProductId()` 是 auth-kit 可复用的 Casdoor 协议 helper；宿主只接它们的结果，不把本地订单或会员规则塞回 helper
 - 支付成功后的 `Success URL` 统一落到宿主的 `/auth/payment/success`
 - 购买成功后的 `Return URL` 统一落到宿主的 `/auth/payment/finished`
 - 购买页、二维码扫描区和支付状态面板都由宿主工程自己渲染，套件只提供 headless hooks 和回调 handler

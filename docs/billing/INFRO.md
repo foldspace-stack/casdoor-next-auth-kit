@@ -45,6 +45,8 @@ flowchart TD
 *   **定义**：宿主工程在一个更大的 Casdoor 商品集合里，只挑选少量允许购买的 item key / productId / planId。
 *   **核心价值**：Casdoor 可以继续维护很多产品，但单个项目只暴露自己允许买的那几个条目。`BillingProvider` 会用这个白名单过滤可购买列表，并在发起 purchase 时拒绝未配置项。
 
+*   **协议复用边界**：`packages/auth-kit/src/billing/casdoor-payment-session.ts` 负责商品 checkout、二维码会话、`get-payment`、`notify-payment` 和支付状态归一化；`packages/auth-kit/src/billing/casdoor-plan-product.ts` 负责 `get-pricing`、`get-plan` 和 plan 到 product 的解析；`packages/auth-kit/src/billing/casdoor-helpers.ts` 负责商品 ID 归一化和 provider 选择。宿主只接这些 helper 的输出，不把本地订单、积分发放或会员授予塞回协议层。
+
 ### 📝 计划 (Plan)
 *   **定义**：**计划**定义了一个订阅服务的具体内容、功能和价格。
 *   **核心价值**：计划是构成订阅服务的基础模块。它与特定的用户角色和产品关联，是订阅的核心内容载体。
