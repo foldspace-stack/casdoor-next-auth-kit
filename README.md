@@ -2,6 +2,7 @@
 
 可复用的 `@foldspace-fe/casdoor-next-auth-kit` 包的源码仓库，包含 CLI 脚手架工具、skill 分发源和 Next.js 演示应用。
 
+
 [![npm version](https://img.shields.io/npm/v/@foldspace-fe/casdoor-next-auth-kit?label=npm)](https://www.npmjs.com/package/@foldspace-fe/casdoor-next-auth-kit)
 [![npm downloads](https://img.shields.io/npm/dm/@foldspace-fe/casdoor-next-auth-kit?label=downloads)](https://www.npmjs.com/package/@foldspace-fe/casdoor-next-auth-kit)
 
