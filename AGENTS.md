@@ -26,7 +26,7 @@
 - 当修改 `packages/auth-kit/src/cli/templates.ts`、`packages/auth-kit/src/cli/operations.ts`、`packages/auth-kit/src/billing/*` 或 `packages/auth-kit/src/core/env.ts` 时，要同步确认 `init`、`update`、`check` 三个命令的行为都仍然一致，不能只修单个入口。
 - npm 发布流水线使用 GitHub Actions Trusted Publisher / OIDC，不再依赖 `NPM_TOKEN`；发布时优先保留 `id-token: write`、`registry-url` 和 `npm publish` 的组合，避免重新引入长生命周期写权限 token。
 - 正式 npm 发布默认打到 `latest`。在纯 Trusted Publisher / OIDC 模式下不要再要求 CI 同步 `next`，如果需要预发布通道，必须单独设计并额外配置认证，不要和正式发布混在同一个 workflow 里。
-- 改动 billing 相关模板时，必须同时验证 `app/(auth-kit)/auth-config.ts`、`lib/billing/order-redirect.ts`、`lib/billing/payment-success.ts`、`lib/billing/payment-finished.ts` 三者的导入关系，没有一个文件能单独缺失。
+- 改动 billing 相关模板时，必须同时验证宿主 app root 下的 `/(auth-kit)/auth-config.ts`、`lib/billing/order-redirect.ts`、`lib/billing/payment-success.ts`、`lib/billing/payment-finished.ts` 三者的导入关系，没有一个文件能单独缺失。
 - 改动 billing 文档时，`docs/billing/README.md`、`docs/billing/INFRO.md`、`docs/billing/CASDOOR-INTEGRATION-TIMELINE.md` 和 `docs/billing/CASDOOR-INTEGRATION-TIMELINE.svg` 要一起更新，不能只改其中一份。
 - 改动受管路由壳时，要同时检查 `deprecatedTargets`、`targets`、生成模板和宿主运行结果，确保更新命令不会残留旧文件或生成半套文件。
 
@@ -55,11 +55,11 @@
 - `apps/demo`：联调和 smoke test。
 - `skills/casdoor-next-auth-kit/`：分发到宿主项目的 skill 源目录。
 - `scripts/install-skill.mjs`：把 skill 安装到目标项目 `.agents/skills`。
-- 受管的 auth route shells 统一放在 `app/(auth-kit)` route group 下，URL 不变但文件更集中。
-- `app/auth/index-html.ts`、`.env*` 和 `prisma/auth-kit.prisma` 由 CLI 受管并可生成到宿主工程。
+- 受管的 auth route shells 会跟随宿主项目的 app root 自动生成到对应的 `/(auth-kit)` route group 下，URL 不变但文件更集中。
+- `auth-config.ts`、`lib/billing/*`、`.env*` 和 `prisma/auth-kit.prisma` 由 CLI 受管并可生成到宿主工程；这些文件会出现在宿主 app root 下的 `/(auth-kit)` 或对应受管目录里。
 - 受管 env 模板里的 `NEXT_PUBLIC_BILLING_PURCHASABLE_IDS` 默认示例值会写成 `membership-monthly,credits-50`，方便宿主在接入时直接看到订阅项和商品项各一个的白名单写法。
-- `app/(auth-kit)/callback/error/page.tsx` 和 `app/(auth-kit)/callback/error/clear-domain-cookies-button.tsx` 也是受管内容，默认错误页必须带“清空当前域 Cookie”按钮，不要让宿主手工补这个能力。
-- `app/(auth-kit)/auth-config.ts` 必须显式导出 `authKitConfig`、`adapter`、`persistence`、`paymentSuccessHandler` 和 `paymentFinishedHandler`，不要只保留局部变量让 route 再去间接取值。
+- 宿主 app root 下的 `/(auth-kit)/callback/error/page.tsx` 和 `/(auth-kit)/callback/error/clear-domain-cookies-button.tsx` 也是受管内容，默认错误页必须带“清空当前域 Cookie”按钮，不要让宿主手工补这个能力。
+- 宿主 app root 下的 `/(auth-kit)/auth-config.ts` 必须显式导出 `authKitConfig`、`adapter`、`persistence`、`paymentSuccessHandler` 和 `paymentFinishedHandler`，不要只保留局部变量让 route 再去间接取值。
 - 认证用户的 `role` 是一等字段，Casdoor profile、callback、JWT/session、React hooks 和生成的 `auth-config.ts` 都要保持 `role` 与 `isAdmin` 同步，不能只在 hooks 里临时推导。
 - 生成的 `auth-config.ts` 需要同时读取 Casdoor profile 和 access token 里的兜底 claims，`onUserSync` 优先用 `decodeCasdoorAccessToken(accessToken)` 补齐 `email`、`sub` 和 `isAdmin`，并把最终用户对象通过 `syncUserRecord(user)` 落库。
 - billing 默认就是受管内容，CLI 必须同时生成 `lib/billing/payment-success.ts` 和 `lib/billing/payment-finished.ts`，`auth-config.ts` 直接导入这两个默认文件，不要要求宿主手工创建 `@/lib/billing/*`。
@@ -76,13 +76,13 @@
 - 订阅 / 商品分域的回归测试已经加在 `packages/auth-kit/test/billing-subscription-domain.test.ts`，如果以后改 billing 结构、catalog 语义或购买 payload，优先更新这个测试来锁住订阅和商品仍然是两条独立链路。
 - 如果宿主已有自己的会员计划 rows，但想少写映射样板，可以先用 `buildBillingSubscriptionCatalog()` 把计划数组转成 auth-kit 的 subscription catalog，再交给 `BillingProvider` 和 `useSubscribePlan`。
 - 生成的 `auth-config.ts` 必须同时兼容 `npx ... init` 和 `npx ... update`，不要让第一次生成能过、更新时却因为保留块或导入变化而编译失败。
-- 登录入口是 `app/(auth-kit)/auth/login` 和 `app/(auth-kit)/auth/signup`，授权壳子是 `app/(auth-kit)/login/oauth/authorize`。
+- 登录入口是宿主 app root 下 `/(auth-kit)/auth/login` 和 `/(auth-kit)/auth/signup`，授权壳子是宿主 app root 下 `/(auth-kit)/login/oauth/authorize`。
 
 ## 对外约定
 
-- `npx @foldspace-fe/casdoor-next-auth-kit init` 生成宿主工程的受管 route shells。
-- `npx @foldspace-fe/casdoor-next-auth-kit update` 刷新受管文件。
-- `npx @foldspace-fe/casdoor-next-auth-kit check` 校验受管文件是否齐全。
+- `npx @foldspace-fe/casdoor-next-auth-kit init` 生成宿主工程的受管 route shells，并自动识别宿主使用的是 `app` 还是 `src/app`。
+- `npx @foldspace-fe/casdoor-next-auth-kit update` 刷新受管文件，路径会继续跟随宿主 app root。
+- `npx @foldspace-fe/casdoor-next-auth-kit check` 校验受管文件是否齐全，同样使用自动识别出的 app root。
 - 生成的登录体验应保持在宿主站点内完成，Casdoor 页面只作为包内部代理的上游，不应直接暴露给最终用户。
 - 宿主工程推荐把 `NEXT_PUBLIC_CASDOOR_APP_NAME` 和 `NEXT_PUBLIC_CASDOOR_ORGANIZATION_NAME` 视作同一个站点命名空间来配置，例如 `qixiaoju / qixiaoju`。
 - 宿主工程通过 `@foldspace-fe/casdoor-next-auth-kit/react` 读取认证状态和动作。
@@ -95,15 +95,15 @@
 - 不要再新增 `NEXT_PUBLIC_CASDOOR_SIGNUP_PATH` 之类的环境变量，signup 的 authorize 路径由包根据请求类型动态生成。
 - 不要再修改 `index-html.ts` 来实现登录/注册切换、资源重写或 JS 注入，`index-html.ts` 保持为现有静态壳子，由包外层 route handler 控制跳转。
 - 不要再把 Casdoor API 改回 `/api/casdoor/*` 或其他与主框架冲突的前缀，宿主统一使用 `/auth/api/*`。
-- 不要再恢复旧的 `/login`、`/signup`、`/logout` 兼容入口，宿主只保留 `app/(auth-kit)` 下的新路由。
+- 不要再恢复旧的 `/login`、`/signup`、`/logout` 兼容入口，宿主只保留 app root 下 `/(auth-kit)` 的新路由。
 - 不要再把 `NEXTAUTH_URL` 当成公共站点 origin 的来源，公共 origin 由请求头或 `APP_URL` 识别。
 - 不要再把 billing 回调设计成依赖 `.env` 里的 handler 模块路径；默认生成的 `lib/billing/payment-success.ts` 和 `lib/billing/payment-finished.ts` 就是宿主侧接入点，`auth-config.ts` 负责直接导入并导出对应 handler。
 - 不要再把 `/auth/payment/success` 和 `/auth/payment/finished` 退回成页面文件，它们必须保持为固定回调路径，由默认生成的 billing handler 文件承接业务逻辑和跳转。
 - 不要再让 billing 回调缺省成“静默空操作”；如果没有宿主业务逻辑，至少要保留日志和默认回退，方便排查 Casdoor 回跳链路是否真的走到了宿主。
 - 不要再把 `lib/billing/*` 当成宿主可选文件；这两个文件属于套件必须生成并维护的宿主接入层，缺失就意味着 `update` 不完整。
 - 不要再在 billing 模板里引入宿主工程不存在的 `@/lib/*`，除了默认生成的 `@/lib/billing/payment-success` 和 `@/lib/billing/payment-finished` 之外，不允许再加新的宿主硬依赖。
-- 不要再把 `app/(auth-kit)/auth-config.ts` 做成依赖多层间接导出的形式，route 文件必须能直接从这个文件拿到所需 handler 和配置对象。
-- 不要再把 `app/(auth-kit)/callback/error/page.tsx` 做成纯文本错误页，默认错误页必须提供本地清 cookie 按钮，帮助用户清掉当前域下残留的 auth cookie。
+- 不要再把宿主 app root 下的 `/(auth-kit)/auth-config.ts` 做成依赖多层间接导出的形式，route 文件必须能直接从这个文件拿到所需 handler 和配置对象。
+- 不要再把宿主 app root 下的 `/(auth-kit)/callback/error/page.tsx` 做成纯文本错误页，默认错误页必须提供本地清 cookie 按钮，帮助用户清掉当前域下残留的 auth cookie。
 - 不要再把 billing 的默认生成文件改成“只在文档里提到、代码里不生成”的状态；文档、skill、AGENTS 和 CLI 生成结果必须同时存在。
 - 不要再把 billing 页面层补回套件内置路由壳，`/qrcode`、`/payments/.../result` 和其他购买结果页面都应该由宿主自己实现。
 - 不要再把 Casdoor 的 `get-account`、`get-application`、`get-payment` 响应类型写成宽泛的 `unknown` 或裸对象，宿主侧 loader 和测试都要使用明确的响应 envelope。

@@ -20,7 +20,7 @@
 - 购买成功后的 `Return URL` 统一落到宿主的 `/auth/payment/finished`
 - 购买页、二维码扫描区和支付状态面板都由宿主工程自己渲染，套件只提供 headless hooks 和回调 handler
 - 套件默认生成 `lib/billing/order-redirect.ts`、`lib/billing/payment-success.ts` 和 `lib/billing/payment-finished.ts`
-- `app/(auth-kit)/auth-config.ts` 会直接导入这两个默认文件，并把它们暴露为 `paymentSuccessHandler` / `paymentFinishedHandler`
+- 宿主 app root 下的 `/(auth-kit)/auth-config.ts` 会直接导入这两个默认文件，并把它们暴露为 `paymentSuccessHandler` / `paymentFinishedHandler`
 - 两个 handler 都会直接导入 `lib/billing/order-redirect.ts`，让 update 每次都能把回跳归一化 helper 重新生成回来
 - 宿主函数自己解析 `paymentOwner`、`paymentName`、`paymentId`、`orderId` 和其它 query 参数，再做落库、Webhook 钩子和二次跳转
 - 商品购买适配器会先按 `owner/name` 拉取商品详情，再取可用组织名并调用 `buy-product` 兼容接口；宿主只需要配置允许购买的少量 product id

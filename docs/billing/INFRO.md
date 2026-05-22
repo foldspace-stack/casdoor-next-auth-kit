@@ -99,7 +99,7 @@ https://your-website.com/auth/payment/success?paymentId=payment_xxx&orderId=orde
 
 如果商品在 Casdoor 里显式配置了 Success URL，支付成功后 Casdoor 会把浏览器先带到这里，再由宿主处理器按需调用 `NotifyPayment` 完成支付确认。
 
-套件会默认生成宿主侧处理器文件 `lib/billing/payment-success.ts`，同时还会生成共享 helper `lib/billing/order-redirect.ts`；`app/(auth-kit)/auth-config.ts` 会直接导入 `paymentSuccessHandler`。默认处理器的签名如下：
+套件会默认生成宿主侧处理器文件 `lib/billing/payment-success.ts`，同时还会生成共享 helper `lib/billing/order-redirect.ts`；宿主 app root 下的 `/(auth-kit)/auth-config.ts` 会直接导入 `paymentSuccessHandler`。默认处理器的签名如下：
 
 ```ts
 export async function paymentSuccessHandler(input: {
@@ -121,7 +121,7 @@ export async function paymentSuccessHandler(input: {
 
 本仓库把这个固定回调路径统一收敛到宿主站内的 `/auth/payment/finished`，路由壳会把请求参数交给宿主自己实现的处理器，再由处理器决定最终跳转。
 
-套件会默认生成宿主侧处理器文件 `lib/billing/payment-finished.ts`，并同样直接导入 `lib/billing/order-redirect.ts`；`app/(auth-kit)/auth-config.ts` 会直接导入它并导出为 `paymentFinishedHandler`。签名与 success 处理器一致。
+套件会默认生成宿主侧处理器文件 `lib/billing/payment-finished.ts`，并同样直接导入 `lib/billing/order-redirect.ts`；宿主 app root 下的 `/(auth-kit)/auth-config.ts` 会直接导入它并导出为 `paymentFinishedHandler`。签名与 success 处理器一致。
 
 如果默认处理器没有写入业务逻辑，路由会打印日志并回落到首页 `/`。
 
