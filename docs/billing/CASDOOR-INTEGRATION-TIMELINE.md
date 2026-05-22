@@ -19,6 +19,7 @@
 - 支付成功后的 `Success URL` 统一落到宿主的 `/auth/payment/success`
 - 购买成功后的 `Return URL` 统一落到宿主的 `/auth/payment/finished`
 - 购买页、二维码扫描区和支付状态面板都由宿主工程自己渲染，套件只提供 headless hooks 和回调 handler
+- 只有受管 route shells 和宿主 app root 下的 `/(auth-kit)/auth-config.ts` 会跟随 `app` / `src/app` 自动切换；`lib/billing/*`、`prisma/auth-kit.prisma` 和 `.env*` 仍然固定生成在宿主项目根目录
 - 套件默认生成 `lib/billing/order-redirect.ts`、`lib/billing/payment-success.ts` 和 `lib/billing/payment-finished.ts`
 - 宿主 app root 下的 `/(auth-kit)/auth-config.ts` 会直接导入这两个默认文件，并把它们暴露为 `paymentSuccessHandler` / `paymentFinishedHandler`
 - 两个 handler 都会直接导入 `lib/billing/order-redirect.ts`，让 update 每次都能把回跳归一化 helper 重新生成回来

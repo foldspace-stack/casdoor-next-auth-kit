@@ -129,9 +129,10 @@
     <text class="note-text" x="22" y="50">The route at /auth/payment/success collects the full query string and loads the default generated paymentSuccessHandler from lib/billing/payment-success.ts, which also imports lib/billing/order-redirect.ts.</text>
     <text class="note-text" x="22" y="72">The route at /auth/payment/finished collects the same parameters and loads the default generated paymentFinishedHandler from lib/billing/payment-finished.ts, which also imports lib/billing/order-redirect.ts.</text>
     <text class="note-text" x="22" y="94">The host owns its own purchase page, QR scanning area, and payment status panel; the package only supplies hooks and handler inputs.</text>
-    <text class="note-text" x="22" y="116">Each handler can parse paymentOwner / paymentName / paymentId / orderId / params, write to DB, and return redirectTo / Response / void.</text>
+    <text class="note-text" x="22" y="116">Only route shells and app-root auth-config files follow app or src/app; lib/billing, prisma/auth-kit.prisma, and env files stay at the project root.</text>
+    <text class="note-text" x="22" y="138">Each handler can parse paymentOwner / paymentName / paymentId / orderId / params, write to DB, and return redirectTo / Response / void.</text>
   </g>
 
-  <path class="line" d="M 1495 886 C 1560 886, 1580 886, 1645 886"/>
-  <text class="small" x="1518" y="872">import + invoke</text>
+  <path class="line" d="M 1495 908 C 1560 908, 1580 908, 1645 908"/>
+  <text class="small" x="1518" y="894">import + invoke</text>
 </svg>

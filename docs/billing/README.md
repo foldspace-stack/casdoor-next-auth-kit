@@ -10,6 +10,7 @@
 - 套件只提供 headless hooks、Casdoor 适配器、回调 handler 和标准响应类型
 - 如果宿主已经有自己的会员计划 rows，可以先用 `buildBillingSubscriptionCatalog()` 把计划数组转成 subscription catalog，再交给 `BillingProvider` 和 `useSubscribePlan`
 - CLI 生成受管路由时会自动识别宿主使用的是 `app` 还是 `src/app`，并把这些受管文件写到对应的 `(auth-kit)` 目录下
+- 跟随 app root 变化的只有受管 route shells 和 `auth-config.ts`；`lib/billing/*`、`prisma/auth-kit.prisma` 和 `.env*` 仍然固定生成在宿主项目根目录
 
 ### 订阅定价模板
 
