@@ -1,17 +1,19 @@
+import {
+  chooseCasdoorProviderName,
+  normalizeCasdoorProductId,
+} from './casdoor-helpers.ts';
+export {
+  chooseCasdoorProviderName,
+  normalizeCasdoorProductId,
+} from './casdoor-helpers.ts';
 import type {
   BillingActionExecutionResult,
   BillingCasdoorBuyProductRequest,
   BillingCasdoorBuyProductResponse,
   BillingCasdoorErrorPayload,
   BillingCasdoorProductDetail,
-  BillingCasdoorProviderOption,
   BillingPurchaseRequest,
 } from './types';
-
-export interface NormalizedCasdoorProductId {
-  owner: string;
-  name: string;
-}
 
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
@@ -75,49 +77,6 @@ export function readBuyProductRedirectTo(value: unknown): string | undefined {
   }
 
   return undefined;
-}
-
-export function normalizeCasdoorProductId(id: string): NormalizedCasdoorProductId {
-  const [owner, ...rest] = id.split('/');
-  const name = rest.join('/');
-
-  if (!isNonEmptyString(owner) || !isNonEmptyString(name)) {
-    throw new Error(`Invalid Casdoor product id: ${id}`);
-  }
-
-  return { owner, name };
-}
-
-function chooseProviderFromObjects(
-  providerObjs: BillingCasdoorProviderOption[] | undefined,
-  preferredProviderName?: string,
-): string | undefined {
-  if (isNonEmptyString(preferredProviderName)) {
-    return preferredProviderName;
-  }
-
-  return providerObjs?.find((provider) => isNonEmptyString(provider.name))?.name;
-}
-
-export function chooseCasdoorProviderName(
-  product: Pick<BillingCasdoorProductDetail, 'providers' | 'providerObjs'>,
-  preferredProviderName?: string,
-): string {
-  if (isNonEmptyString(preferredProviderName)) {
-    return preferredProviderName;
-  }
-
-  const fromProviders = product.providers?.find(isNonEmptyString);
-  if (fromProviders) {
-    return fromProviders;
-  }
-
-  const fromProviderObjs = chooseProviderFromObjects(product.providerObjs, preferredProviderName);
-  if (fromProviderObjs) {
-    return fromProviderObjs;
-  }
-
-  throw new Error('No providerName available for Casdoor buy-product request.');
 }
 
 export function buildCasdoorBuyProductParams(

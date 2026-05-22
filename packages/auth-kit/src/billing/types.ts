@@ -217,6 +217,51 @@ export interface BillingCasdoorQueryState<TData> {
 
 export type BillingCasdoorProductResponse = BillingCasdoorApiResponse<BillingCasdoorProductDetail>;
 
+export interface BillingCasdoorRequestAuth {
+  requestUrl: string;
+  cookieHeader?: string | null;
+  accessToken?: string | null;
+}
+
+export interface BillingCasdoorProductCheckoutInput extends BillingCasdoorRequestAuth {
+  productId: string;
+  provider?: string;
+  providerName?: string;
+  orderRef: string;
+  orderId?: string;
+  orderCode?: string;
+  amountCents?: number;
+  currency?: string;
+  title?: string;
+  returnUrl?: string;
+  callbackUrl?: string;
+  paymentEnv?: string;
+  customPrice?: number;
+  pricingName?: string;
+  planName?: string;
+  userName?: string;
+}
+
+export interface BillingCasdoorCheckoutSession {
+  provider: string;
+  providerName: string;
+  providerOrderId: string;
+  checkoutUrl: string;
+  qrCodeUrl: string;
+  paymentSessionId: string;
+  paymentOwner?: string;
+  payUrl?: string;
+  successUrl?: string;
+  raw: unknown;
+}
+
+export type BillingCasdoorPaymentNormalizedState = 'paid' | 'pending' | 'failed' | 'unknown';
+
+export interface BillingCasdoorPaymentLookupInput extends BillingCasdoorRequestAuth {
+  paymentId: string;
+  paymentOwner?: string;
+}
+
 export interface BillingCasdoorPricingDetail {
   owner: string;
   name: string;
@@ -231,6 +276,11 @@ export interface BillingCasdoorPricingDetail {
 }
 
 export type BillingCasdoorPricingResponse = BillingCasdoorApiResponse<BillingCasdoorPricingDetail>;
+
+export interface BillingCasdoorPricingLookupInput extends BillingCasdoorRequestAuth {
+  owner: string;
+  pricingName: string;
+}
 
 export interface BillingCasdoorPlanDetail {
   owner: string;
@@ -250,6 +300,20 @@ export interface BillingCasdoorPlanDetail {
 }
 
 export type BillingCasdoorPlanResponse = BillingCasdoorApiResponse<BillingCasdoorPlanDetail>;
+
+export interface BillingCasdoorPlanLookupInput extends BillingCasdoorRequestAuth {
+  owner: string;
+  planName: string;
+  includeOption?: boolean;
+}
+
+export interface BillingCasdoorPlanProductResolution {
+  owner: string;
+  planName: string;
+  productId: string;
+  plan: BillingCasdoorPlanDetail;
+  pricing?: BillingCasdoorPricingDetail;
+}
 
 export interface BillingCasdoorAccountMultiFactorAuthDetail {
   enabled: boolean;
