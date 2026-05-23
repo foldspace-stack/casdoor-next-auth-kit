@@ -129,7 +129,7 @@
     <text class="note-text" x="22" y="50">The route at /auth/payment/success collects the full query string and loads the default generated paymentSuccessHandler from lib/billing/payment-success.ts, which also imports lib/billing/order-redirect.ts.</text>
     <text class="note-text" x="22" y="72">The route at /auth/payment/finished collects the same parameters and loads the default generated paymentFinishedHandler from lib/billing/payment-finished.ts, which also imports lib/billing/order-redirect.ts.</text>
     <text class="note-text" x="22" y="94">The host owns its own purchase page, QR scanning area, and payment status panel; the package only supplies hooks and handler inputs.</text>
-    <text class="note-text" x="22" y="116">Only route shells and app-root auth-config files follow app or src/app; lib/billing and prisma/auth-kit.prisma move under src/ in src/app projects, while env files stay at the project root.</text>
+    <text class="note-text" x="22" y="116">Only route shells and app-root auth-config files follow app or src/app; lib/billing, prisma/auth-kit.prisma, and env files stay at the project root.</text>
     <text class="note-text" x="22" y="138">Each handler can parse paymentOwner / paymentName / paymentId / orderId / params, write to DB, and return redirectTo / Response / void.</text>
   </g>
 

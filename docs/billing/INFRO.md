@@ -46,7 +46,7 @@ flowchart TD
 *   **核心价值**：Casdoor 可以继续维护很多产品，但单个项目只暴露自己允许买的那几个条目。`BillingProvider` 会用这个白名单过滤可购买列表，并在发起 purchase 时拒绝未配置项。
 
 *   **协议复用边界**：`packages/auth-kit/src/billing/casdoor-payment-session.ts` 负责商品 checkout、二维码会话、`get-payment`、`notify-payment` 和支付状态归一化；`packages/auth-kit/src/billing/casdoor-plan-product.ts` 负责 `get-pricing`、`get-plan` 和 plan 到 product 的解析；`packages/auth-kit/src/billing/casdoor-helpers.ts` 负责商品 ID 归一化和 provider 选择。宿主只接这些 helper 的输出，不把本地订单、积分发放或会员授予塞回协议层。
-*   **生成位置边界**：受管 route shells 和宿主 app root 下的 `/(auth-kit)/auth-config.ts` 会跟随 `app` / `src/app` 自动切换；`lib/billing/*` 和 `prisma/auth-kit.prisma` 会在 `src/app` 项目下自动生成到 `src/` 目录下，在普通 `app` 项目下保留根目录；`.env*` 始终固定在宿主项目根目录。
+*   **生成位置边界**：只有受管 route shells 和宿主 app root 下的 `/(auth-kit)/auth-config.ts` 会跟随 `app` / `src/app` 自动切换；`lib/billing/*`、`prisma/auth-kit.prisma` 和 `.env*` 仍然固定生成在宿主项目根目录，不会随着 app root 变化而移动。
 
 ### 📝 计划 (Plan)
 *   **定义**：**计划**定义了一个订阅服务的具体内容、功能和价格。
@@ -100,7 +100,7 @@ https://your-website.com/auth/payment/success?paymentId=payment_xxx&orderId=orde
 
 如果商品在 Casdoor 里显式配置了 Success URL，支付成功后 Casdoor 会把浏览器先带到这里，再由宿主处理器按需调用 `NotifyPayment` 完成支付确认。
 
-套件会默认生成宿主侧处理器文件 `lib/billing/payment-success.ts`，同时还会生成共享 helper `lib/billing/order-redirect.ts`；如果宿主使用的是 `src/app`，这些文件会分别生成到 `src/lib/billing/*`。宿主 app root 下的 `/(auth-kit)/auth-config.ts` 会直接导入 `paymentSuccessHandler`。默认处理器的签名如下：
+套件会默认生成宿主侧处理器文件 `lib/billing/payment-success.ts`，同时还会生成共享 helper `lib/billing/order-redirect.ts`；宿主 app root 下的 `/(auth-kit)/auth-config.ts` 会直接导入 `paymentSuccessHandler`。默认处理器的签名如下：
 
 ```ts
 export async function paymentSuccessHandler(input: {
@@ -122,7 +122,7 @@ export async function paymentSuccessHandler(input: {
 
 本仓库把这个固定回调路径统一收敛到宿主站内的 `/auth/payment/finished`，路由壳会把请求参数交给宿主自己实现的处理器，再由处理器决定最终跳转。
 
-套件会默认生成宿主侧处理器文件 `lib/billing/payment-finished.ts`，并同样直接导入 `lib/billing/order-redirect.ts`；如果宿主使用的是 `src/app`，这些文件会分别生成到 `src/lib/billing/*`。宿主 app root 下的 `/(auth-kit)/auth-config.ts` 会直接导入它并导出为 `paymentFinishedHandler`。签名与 success 处理器一致。
+套件会默认生成宿主侧处理器文件 `lib/billing/payment-finished.ts`，并同样直接导入 `lib/billing/order-redirect.ts`；宿主 app root 下的 `/(auth-kit)/auth-config.ts` 会直接导入它并导出为 `paymentFinishedHandler`。签名与 success 处理器一致。
 
 如果默认处理器没有写入业务逻辑，路由会打印日志并回落到首页 `/`。
 

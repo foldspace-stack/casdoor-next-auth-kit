@@ -348,7 +348,8 @@ export const config = { matcher: '/:path*' };
 
 - `APP_URL` 和 `NEXTAUTH_URL` 一致
 - 生产环境必须使用公网 HTTPS 地址
-- 本地开发可以使用 `http://localhost:5177`
+- 本地开发端口不是固定值，`5711`、`5177` 或其他端口都可能出现，必须以宿主工程自己的启动配置为准
+- `APP_URL` 和 `NEXTAUTH_URL` 需要填写宿主工程实际运行地址，例如 `http://localhost:3000`、`http://localhost:5177` 或 `https://your-domain.com`
 
 推荐示例：
 
@@ -360,8 +361,8 @@ NEXTAUTH_URL=https://dev-chuangxiaoju.agent-lattice.cn
 本地开发示例：
 
 ```env
-APP_URL=http://localhost:5177
-NEXTAUTH_URL=http://localhost:5177
+APP_URL=http://localhost:<your-port>
+NEXTAUTH_URL=http://localhost:<your-port>
 ```
 
 ### 常见故障
@@ -377,9 +378,10 @@ NEXTAUTH_URL=http://localhost:5177
 
 1. `APP_URL` 是否为真实公网 HTTPS
 2. `NEXTAUTH_URL` 是否与 `APP_URL` 保持一致
-3. FRP / Ingress / 网关是否把外部 HTTPS 请求错误地暴露成了内部 HTTP
-4. 浏览器实际访问地址是否和授权回调地址一致
-5. 宿主边缘层是否对认证路径做了 origin 规范（HTTPS → 公网 origin）
+3. 本地开发端口是否和宿主实际启动端口一致，避免把 `5177`、`5711` 之类示例值直接当成固定值
+4. FRP / Ingress / 网关是否把外部 HTTPS 请求错误地暴露成了内部 HTTP
+5. 浏览器实际访问地址是否和授权回调地址一致
+6. 宿主边缘层是否对认证路径做了 origin 规范（HTTPS → 公网 origin）
 
 ## UX 边界
 
@@ -394,6 +396,7 @@ NEXTAUTH_URL=http://localhost:5177
 - 宿主项目拥有 Prisma schema、迁移脚本和持久化实现的完全控制权
 - 业务特有的数据表和写入逻辑应保留在宿主项目中，不应混入认证套件
 - 套件通过接口约定宿主项目必须提供哪些字段（如 Casdoor 用户 ID、用户名等），宿主项目自行决定存储方式
+- 如果宿主使用 Drizzle，这里的 schema 输出应理解为 DDL / migration 片段，由宿主合并进自己的 Drizzle schema 或 SQL migration；Prisma 项目仍然使用 `prisma/auth-kit.prisma`
 - 默认生成的宿主 app root 下 `/(auth-kit)/auth-config.ts` 是自包含的，能够在没有宿主数据库、`@/lib/db` 或额外权限模块的情况下直接编译；billing 处理器会随宿主布局生成到 `lib/billing/payment-success.ts` 和 `lib/billing/payment-finished.ts`，或者在 `src/app` 项目下生成到 `src/lib/billing/payment-success.ts` 和 `src/lib/billing/payment-finished.ts`，`auth-config.ts` 会直接导入这两个默认文件。若宿主需要落库、角色同步或自定义管理员策略，可以再在对应 custom block 里接入自己的实现
 
 ## Skill 分发流程

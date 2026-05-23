@@ -2,7 +2,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 export type ManagedAppDir = 'app' | 'src/app';
-export type ManagedProjectDir = '' | 'src';
 
 const managedAppDirCandidates: ManagedAppDir[] = ['src/app', 'app'];
 const managedRouteGroup = '(auth-kit)';
@@ -78,14 +77,6 @@ export function buildManagedRoutePath(appDir: ManagedAppDir, ...segments: string
   return path.join(appDir, managedRouteGroup, ...segments);
 }
 
-export function resolveManagedProjectDir(appDir: ManagedAppDir): ManagedProjectDir {
-  return appDir === 'src/app' ? 'src' : '';
-}
-
-export function buildManagedProjectPath(projectDir: ManagedProjectDir, ...segments: string[]): string {
-  return path.join(projectDir, ...segments);
-}
-
 export function buildManagedRouteTargets(appDir: ManagedAppDir) {
   return {
     authConfig: buildManagedRoutePath(appDir, 'auth-config.ts'),
@@ -104,21 +95,6 @@ export function buildManagedRouteTargets(appDir: ManagedAppDir) {
     commerceRoute: buildManagedRoutePath(appDir, 'auth/api/commerce/[...path]/route.ts'),
     indexHtml: buildManagedRoutePath(appDir, 'index-html.ts'),
   };
-}
-
-export function buildManagedProjectTargets(appDir: ManagedAppDir) {
-  const projectDir = resolveManagedProjectDir(appDir);
-  return {
-    billingPaymentSuccess: buildManagedProjectPath(projectDir, 'lib/billing/payment-success.ts'),
-    billingPaymentFinished: buildManagedProjectPath(projectDir, 'lib/billing/payment-finished.ts'),
-    billingOrderRedirect: buildManagedProjectPath(projectDir, 'lib/billing/order-redirect.ts'),
-    prismaSchema: buildManagedProjectPath(projectDir, 'prisma/auth-kit.prisma'),
-  };
-}
-
-export function buildDeprecatedManagedProjectTargets(appDir: ManagedAppDir) {
-  const otherAppDir: ManagedAppDir = appDir === 'app' ? 'src/app' : 'app';
-  return [...new Set(Object.values(buildManagedProjectTargets(otherAppDir)))];
 }
 
 export function buildDeprecatedManagedRouteTargets(appDir: ManagedAppDir) {

@@ -5,10 +5,8 @@ import { fileURLToPath } from 'node:url';
 import { AUTH_KIT_ENV_FILES, getMissingManagedEnvKeys } from '../core/env.ts';
 import { exists, preserveCustomBlock, read, removePath, writeGeneratedFile, writeTextFile } from './fs.ts';
 import {
-  buildDeprecatedManagedProjectTargets,
   buildDeprecatedManagedRouteTargets,
   buildManagedRouteTargets,
-  buildManagedProjectTargets,
   resolveManagedAppDir,
   type ManagedAppDir,
 } from './project-layout.ts';
@@ -44,7 +42,6 @@ const canonicalSkillPaths = [
 const skillTarget = '.agents/skills/casdoor-next-auth-kit';
 function buildTargets(appDir: ManagedAppDir) {
   const managed = buildManagedRouteTargets(appDir);
-  const managedProject = buildManagedProjectTargets(appDir);
   return [
     [managed.authConfig, authConfigTemplate],
     [managed.authLoginRoute, authLoginRouteTemplate],
@@ -60,17 +57,16 @@ function buildTargets(appDir: ManagedAppDir) {
     [managed.callbackErrorButton, callbackErrorClearCookiesButtonTemplate],
     [managed.logoutRoute, logoutRouteTemplate],
     [managed.commerceRoute, commerceProxyRouteTemplate],
-    [managedProject.billingPaymentSuccess, billingPaymentSuccessHandlerTemplate],
-    [managedProject.billingPaymentFinished, billingPaymentFinishedHandlerTemplate],
-    [managedProject.billingOrderRedirect, billingOrderRedirectTemplate],
+    ['lib/billing/payment-success.ts', billingPaymentSuccessHandlerTemplate],
+    ['lib/billing/payment-finished.ts', billingPaymentFinishedHandlerTemplate],
+    ['lib/billing/order-redirect.ts', billingOrderRedirectTemplate],
     [managed.indexHtml, authIndexHtmlTemplate],
-    [managedProject.prismaSchema, prismaSchemaTemplate],
+    ['prisma/auth-kit.prisma', prismaSchemaTemplate],
   ] as const;
 }
 
 function buildDeprecatedTargets(projectRoot: string) {
-  const appDir = resolveManagedAppDir(projectRoot);
-  return [...buildDeprecatedManagedRouteTargets(appDir), ...buildDeprecatedManagedProjectTargets(appDir)];
+  return buildDeprecatedManagedRouteTargets(resolveManagedAppDir(projectRoot));
 }
 
 function logCreated(projectRoot: string, filePath: string) {
@@ -201,11 +197,7 @@ export async function checkProject(projectRoot = process.cwd()) {
   });
   const skillDir = path.join(projectRoot, skillTarget);
   const missingSkill = exists(path.join(skillDir, 'SKILL.md')) ? [] : [path.join(skillTarget, 'SKILL.md')];
-  const managedProject = buildManagedProjectTargets(appDir);
-  const missingProject = Object.values(managedProject)
-    .filter((rel) => !exists(path.join(projectRoot, rel)))
-    .map((rel) => rel);
-  const missing = [...missingRoutes, ...missingProject, ...missingEnv, ...missingSkill];
+  const missing = [...missingRoutes, ...missingEnv, ...missingSkill];
 
   if (missing.length > 0) {
     console.error('Missing generated files:');
