@@ -56,7 +56,7 @@
 - `skills/casdoor-next-auth-kit/`：分发到宿主项目的 skill 源目录。
 - `scripts/install-skill.mjs`：把 skill 安装到目标项目 `.agents/skills`。
 - 受管的 auth route shells 会跟随宿主项目的 app root 自动生成到对应的 `/(auth-kit)` route group 下，URL 不变但文件更集中。
-- `auth-config.ts`、`.env*` 由 CLI 受管并会写到宿主 app root 对应的受管目录里；`lib/billing/*` 和 `prisma/auth-kit.prisma` 仍然生成在宿主项目根目录，不受 `app` / `src/app` 选择影响。
+- `auth-config.ts`、`.env*` 由 CLI 受管并会写到宿主 app root 对应的受管目录里；`lib/billing/*` 和 `prisma/auth-kit.prisma` 会跟随宿主项目是否使用 `src/app` 一起切换到 `src/` 下或保留在根目录，不要手工挪动。
 - 受管 env 模板里的 `NEXT_PUBLIC_BILLING_PURCHASABLE_IDS` 默认示例值会写成 `membership-monthly,credits-50`，方便宿主在接入时直接看到订阅项和商品项各一个的白名单写法。
 - 宿主 app root 下的 `/(auth-kit)/callback/error/page.tsx` 和 `/(auth-kit)/callback/error/clear-domain-cookies-button.tsx` 也是受管内容，默认错误页必须带“清空当前域 Cookie”按钮，不要让宿主手工补这个能力。
 - 宿主 app root 下的 `/(auth-kit)/auth-config.ts` 必须显式导出 `authKitConfig`、`adapter`、`persistence`、`paymentSuccessHandler` 和 `paymentFinishedHandler`，不要只保留局部变量让 route 再去间接取值。
