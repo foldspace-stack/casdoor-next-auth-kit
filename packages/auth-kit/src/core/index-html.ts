@@ -55,6 +55,27 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
         var proxyPathPrefix = proxyPrefix.replace(/\/$/, '')
         var applicationId = ${JSON.stringify((options.organizationName || 'built-in') + '/' + (options.appName || '创小剧 AI'))}
 
+        function isResultPath(pathname) {
+          return pathname === '/result' || pathname.indexOf('/result/') === 0
+        }
+
+        function redirectToLoginEntry() {
+          window.location.replace(currentOrigin + '/auth/login?redirect=%2F')
+        }
+
+        function watchCurrentLocation() {
+          if (isResultPath(window.location.pathname)) {
+            redirectToLoginEntry()
+            return true
+          }
+
+          return false
+        }
+
+        if (watchCurrentLocation()) {
+          return
+        }
+
         function toProxyUrl(input) {
           try {
             var url = typeof input === 'string' ? new URL(input, window.location.href) : input instanceof URL ? input : null
@@ -179,6 +200,26 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
             return originalReplace(toProxyUrl(url))
           }
         }
+
+        if (window.history && typeof window.history.pushState === 'function') {
+          var originalPushState = window.history.pushState.bind(window.history)
+          window.history.pushState = function () {
+            var result = originalPushState.apply(this, arguments)
+            watchCurrentLocation()
+            return result
+          }
+        }
+
+        if (window.history && typeof window.history.replaceState === 'function') {
+          var originalReplaceState = window.history.replaceState.bind(window.history)
+          window.history.replaceState = function () {
+            var result = originalReplaceState.apply(this, arguments)
+            watchCurrentLocation()
+            return result
+          }
+        }
+
+        window.addEventListener('popstate', watchCurrentLocation)
 
         if (window.HTMLFormElement && window.HTMLFormElement.prototype) {
           var originalSubmit = window.HTMLFormElement.prototype.submit
