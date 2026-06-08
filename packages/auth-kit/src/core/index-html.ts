@@ -5,6 +5,20 @@ const DEFAULT_CASDOOR_ORIGIN = process.env.NEXT_PUBLIC_CASDOOR_SERVER_URL || 'ht
 
 const DEFAULT_ICON_HREF = 'https://cdn.casbin.org/img/favicon.png';
 const DEFAULT_MANIFEST_HREF = '/manifest.json';
+const DEFAULT_APP_NAME = '创小剧 AI';
+const DEFAULT_DESCRIPTION = '创小剧 AI 登录 - 一个支持 OAuth 2.0、OIDC、SAML 和 CAS 的身份与单点登录平台';
+
+function getDefaultIconHref(): string {
+  return process.env.DEFAULT_CASDOOR_ICON_HREF || DEFAULT_ICON_HREF;
+}
+
+function getDefaultAppName(): string {
+  return process.env.DEFAULT_CASDOOR_APP_NAME || DEFAULT_APP_NAME;
+}
+
+function getDefaultDescription(): string {
+  return process.env.DEFAULT_CASDOOR_DESCRIPTION || DEFAULT_DESCRIPTION;
+}
 
 function escapeHtmlAttribute(value: string): string {
   return value.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
@@ -14,10 +28,10 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
   const staticOrigin = options.staticOrigin || DEFAULT_CASDOOR_STATIC_ORIGIN;
   const casdoorOrigin = options.casdoorOrigin || DEFAULT_CASDOOR_ORIGIN;
   const apiProxyPrefix = options.apiProxyPrefix || '/auth/';
-  const appName = options.appName || '创小剧 AI';
+  const appName = options.appName || getDefaultAppName();
   const organizationName = options.organizationName || 'built-in';
-  const description = options.description || '创小剧 AI 登录 - 一个支持 OAuth 2.0、OIDC、SAML 和 CAS 的身份与单点登录平台';
-  const iconHref = options.iconHref || DEFAULT_ICON_HREF;
+  const description = options.description || getDefaultDescription();
+  const iconHref = options.iconHref || getDefaultIconHref();
   const manifestHref = options.manifestHref || DEFAULT_MANIFEST_HREF;
   const mainJs = `${staticOrigin}/static/js/main.5ddbc6ff.js`;
   const mainCss = `${staticOrigin}/static/css/main.f35879a1.css`;

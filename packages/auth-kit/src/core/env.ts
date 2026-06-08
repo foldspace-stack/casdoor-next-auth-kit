@@ -60,6 +60,27 @@ export const AUTH_KIT_ENV_VARIABLES: ManagedEnvVariableDefinition[] = [
     production: 'your-app-name',
   },
   {
+    key: 'DEFAULT_CASDOOR_APP_NAME',
+    description: 'index-html 默认 app name',
+    example: '创小剧 AI',
+    local: '创小剧 AI',
+    production: '创小剧 AI',
+  },
+  {
+    key: 'DEFAULT_CASDOOR_DESCRIPTION',
+    description: 'index-html 默认 description',
+    example: '创小剧 AI 登录 - 一个支持 OAuth 2.0、OIDC、SAML 和 CAS 的身份与单点登录平台',
+    local: '创小剧 AI 登录 - 一个支持 OAuth 2.0、OIDC、SAML 和 CAS 的身份与单点登录平台',
+    production: '创小剧 AI 登录 - 一个支持 OAuth 2.0、OIDC、SAML 和 CAS 的身份与单点登录平台',
+  },
+  {
+    key: 'DEFAULT_CASDOOR_ICON_HREF',
+    description: 'index-html 默认 icon 地址',
+    example: 'https://cdn.casbin.org/img/favicon.png',
+    local: 'https://cdn.casbin.org/img/favicon.png',
+    production: 'https://cdn.casbin.org/img/favicon.png',
+  },
+  {
     key: 'NEXT_PUBLIC_CASDOOR_ORGANIZATION_NAME',
     description: 'Casdoor organization name',
     example: 'your-org-name',
