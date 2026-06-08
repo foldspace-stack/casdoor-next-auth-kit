@@ -77,6 +77,13 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
               return currentOrigin + proxyPathPrefix + url.pathname.slice('/auth'.length) + url.search + url.hash
             }
 
+            if (
+              (url.origin === currentOrigin || url.origin === casdoorOrigin) &&
+              (url.pathname === '/result' || url.pathname.indexOf('/result/') === 0)
+            ) {
+              return currentOrigin + '/auth/login?redirect=%2F'
+            }
+
             if (url.origin === casdoorOrigin) {
               return currentOrigin + proxyPathPrefix + url.pathname + url.search + url.hash
             }
