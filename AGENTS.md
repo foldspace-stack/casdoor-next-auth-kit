@@ -84,7 +84,7 @@
 - `npx @foldspace-fe/casdoor-next-auth-kit update` 刷新受管文件，路径会继续跟随宿主 app root。
 - `npx @foldspace-fe/casdoor-next-auth-kit check` 校验受管文件是否齐全，同样使用自动识别出的 app root。
 - 生成的登录体验应保持在宿主站点内完成，Casdoor 页面只作为包内部代理的上游，不应直接暴露给最终用户。
-- `/auth/login`、`/auth/signup`、`/login/oauth/authorize` 和 `/signup/oauth/authorize` 进入时，服务端响应要先清理当前域里残留的认证 cookie（含 session、CSRF、oauth_state、pkce_code_verifier、auth_origin、auth_redirect），再继续进入同源授权流程，避免本地残留状态干扰新的登录/注册。
+- `/auth/login`、`/auth/signup`、`/login/oauth/authorize` 和 `/signup/oauth/authorize` 进入时，服务端响应要先清理当前域里残留的认证 cookie（含 session、CSRF、callback-url、state、oauth_state、pkce_code_verifier、auth_origin、auth_redirect），再继续进入同源授权流程，避免本地残留状态干扰新的登录/注册。
 - 宿主工程推荐把 `NEXT_PUBLIC_CASDOOR_APP_NAME` 和 `NEXT_PUBLIC_CASDOOR_ORGANIZATION_NAME` 视作同一个站点命名空间来配置，例如 `qixiaoju / qixiaoju`。
 - 宿主工程通过 `@foldspace-fe/casdoor-next-auth-kit/react` 读取认证状态和动作。
 - 宿主工程只负责建表和持久化，数据库字段与同步需求由包定义。
