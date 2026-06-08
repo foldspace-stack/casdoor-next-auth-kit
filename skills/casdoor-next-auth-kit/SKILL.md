@@ -115,7 +115,7 @@ npx @foldspace-fe/casdoor-next-auth-kit@latest check
 - `/auth/api/*` — Casdoor API 代理，所有个人操作的 API 请求通过此路径转发
 - billing 的购买页、二维码扫描区和支付状态面板都由宿主工程自己控制，套件只提供 headless hooks、Casdoor 购买适配器、支付回调 handler 和纯数据模型；`packages/auth-kit/src/core/index-html.ts` 不参与 billing 页面生成
 - `/auth/login`、`/auth/signup`、`/login/oauth/authorize` 和 `/signup/oauth/authorize` 进入时，服务端响应要在首跳里隐式清理当前域残留的认证 cookie（含 session、CSRF、callback-url、state、oauth_state、pkce_code_verifier、auth_origin、auth_redirect），再继续进入同源授权流程，避免本地残留状态干扰新的登录/注册；这里不需要额外显式提示页或手动清理步骤
-- `/signup/oauth/authorize` 的注册完成结果不应停留在 Casdoor 的 `/result/*` 页面，若同源授权壳里出现 `/result/*` 路径，要统一隐式重写回 `/auth/login?redirect=%2F`，让用户完成注册后自然回到登录页继续下一步
+- `/signup/oauth/authorize` 的注册完成结果不应停留在 Casdoor 的 `/result/*` 页面，`packages/auth-kit/src/core/index-html.ts` 会在页面加载时和前端 `history` 变更时持续监控当前路径，只要落到 `/result/*` 就统一隐式重写回 `/auth/login?redirect=%2F`，让用户完成注册后自然回到登录页继续下一步
 - `packages/auth-kit/src/core/index-html.ts` 的默认图标地址支持 `DEFAULT_CASDOOR_ICON_HREF` 环境变量覆盖；宿主未显式传 `iconHref` 时，先读环境变量，再回退到内置 favicon
 - `packages/auth-kit/src/core/index-html.ts` 的默认 `appName` 和 `description` 也支持 `DEFAULT_CASDOOR_APP_NAME` 和 `DEFAULT_CASDOOR_DESCRIPTION` 环境变量覆盖；宿主未显式传对应参数时，先读环境变量，再回退到内置文案
 
