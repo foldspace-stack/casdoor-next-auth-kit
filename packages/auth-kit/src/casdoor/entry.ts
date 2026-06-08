@@ -1,12 +1,13 @@
-import { NextResponse, type NextRequest } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server.js';
 import type { AuthKitConfig } from '../types';
-import { normalizeAuthKitConfig } from '../core/config';
-import { getRequestOrigin, setPublicOriginCookie } from '../core/public-origin';
-import { isSecureRequest } from '../core/request-security';
-import { createPkcePair } from '../core/pkce';
-import { generateStateToken, getPkceCookieName } from '../core/oauth-state';
-import { getAuthRedirectTarget, setAuthRedirectCookie } from '../core/auth-redirect';
-import { createAuthIndexHtml } from '../core/index-html';
+import { normalizeAuthKitConfig } from '../core/config.ts';
+import { getRequestOrigin, setPublicOriginCookie } from '../core/public-origin.ts';
+import { isSecureRequest } from '../core/request-security.ts';
+import { createPkcePair } from '../core/pkce.ts';
+import { generateStateToken, getPkceCookieName } from '../core/oauth-state.ts';
+import { getAuthRedirectTarget, setAuthRedirectCookie } from '../core/auth-redirect.ts';
+import { createAuthIndexHtml } from '../core/index-html.ts';
+import { clearAuthEntryCookies } from '../core/auth-entry-cookies.ts';
 
 function buildLocalAuthorizeUrl(
   origin: string,
@@ -44,6 +45,7 @@ async function createRedirectEntryResponse(
     buildLocalAuthorizeUrl(origin, normalized, { state, codeChallenge: challenge, kind }),
     307,
   );
+  clearAuthEntryCookies(request, response, normalized.appUrl);
   const redirectTarget = getAuthRedirectTarget(request);
   if (redirectTarget) {
     setAuthRedirectCookie(response, redirectTarget, secure);
@@ -75,6 +77,7 @@ async function createAuthorizePageResponse(request: NextRequest, config: AuthKit
       },
     },
   );
+  clearAuthEntryCookies(request, response, normalized.appUrl);
   setPublicOriginCookie(response, origin, secure);
   return response;
 }

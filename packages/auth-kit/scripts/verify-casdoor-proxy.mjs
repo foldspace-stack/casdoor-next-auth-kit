@@ -39,14 +39,15 @@ test('Casdoor proxy headers are whitelisted', () => {
     'accept-language',
     'authorization',
     'content-type',
+    'cookie',
     'x-requested-with',
   ]);
   assert.equal(headers.get('accept'), 'text/html');
   assert.equal(headers.get('accept-language'), 'zh-CN');
   assert.equal(headers.get('authorization'), 'Bearer token');
   assert.equal(headers.get('content-type'), 'application/json');
+  assert.match(headers.get('cookie') ?? '', /auth_origin=.*next-auth\.session-token=test/);
   assert.equal(headers.get('x-requested-with'), 'fetch');
-  assert.equal(headers.has('cookie'), false);
   assert.equal(headers.has('origin'), false);
   assert.equal(headers.has('referer'), false);
   assert.equal(headers.has('x-forwarded-host'), false);
