@@ -95,6 +95,8 @@
 - 不要再把 `/signup/oauth/authorize` 设计成独立于 `/login/oauth/authorize` 的另一套页面逻辑，它们必须共用同一个 authorize shell 和同一套 `index-html.ts`。
 - 不要再新增 `NEXT_PUBLIC_CASDOOR_SIGNUP_PATH` 之类的环境变量，signup 的 authorize 路径由包根据请求类型动态生成。
 - 不要再修改 `index-html.ts` 来实现登录/注册切换、资源重写或 JS 注入，`index-html.ts` 保持为现有静态壳子，由包外层 route handler 控制跳转。
+- `packages/auth-kit/src/core/index-html.ts` 的默认图标地址要同时支持 `DEFAULT_CASDOOR_ICON_HREF` 环境变量覆盖，宿主若不传 `iconHref`，优先使用环境变量，再回退到内置 favicon。
+- `packages/auth-kit/src/core/index-html.ts` 的默认 `appName` 和 `description` 也要优先支持 `DEFAULT_CASDOOR_APP_NAME` 和 `DEFAULT_CASDOOR_DESCRIPTION`，宿主若不传对应参数，先读环境变量再回退到内置文案。
 - 不要再把 Casdoor API 改回 `/api/casdoor/*` 或其他与主框架冲突的前缀，宿主统一使用 `/auth/api/*`。
 - 不要再恢复旧的 `/login`、`/signup`、`/logout` 兼容入口，宿主只保留 app root 下 `/(auth-kit)` 的新路由。
 - 不要再把 `NEXTAUTH_URL` 当成公共站点 origin 的来源，公共 origin 由请求头或 `APP_URL` 识别。
