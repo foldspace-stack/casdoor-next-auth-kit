@@ -44,3 +44,11 @@ test('managed env template includes index-html default overrides', () => {
   assert.match(template, /DEFAULT_CASDOOR_DESCRIPTION=/);
   assert.match(template, /DEFAULT_CASDOOR_ICON_HREF=/);
 });
+
+test('createAuthIndexHtml rewrites result urls back to the login entry', () => {
+  const html = createAuthIndexHtml();
+
+  assert.match(html, /pathname === '\/result'/);
+  assert.match(html, /pathname\.indexOf\('\/result\/'\) === 0/);
+  assert.match(html, /\/auth\/login\?redirect=%2F/);
+});
