@@ -41,8 +41,8 @@ npm install @foldspace-fe/casdoor-next-auth-kit
 - 生成的认证路由壳位于 `app/(auth-kit)` 下，保持就近放置但不改变 URL 结构
 - `/auth/login` — 宿主项目的登录入口路由
 - `/auth/signup` — 宿主项目的注册入口路由
-- `/login/oauth/authorize` — 应用内的 Casdoor 登录授权壳
-- `/signup/oauth/authorize` — 应用内的 Casdoor 注册授权壳
+- `/login/oauth/authorize` — 应用内的 Casdoor 登录授权壳，进入时会先清理当前域残留的认证 cookie，再继续渲染授权界面
+- `/signup/oauth/authorize` — 应用内的 Casdoor 注册授权壳，进入时会先清理当前域残留的认证 cookie，再继续渲染授权界面
 - 壳路由是同源包装器，用户看到的是宿主应用的统一体验，而非 Casdoor 原始页面
 - CLI 管理的宿主文件：
   - `app/auth/index-html.ts`
@@ -75,8 +75,8 @@ npx @foldspace-fe/casdoor-next-auth-kit@latest --version
 
 - `/auth/login` 作为宿主应用的登录入口路由
 - `/auth/signup` 作为宿主应用的注册入口路由
-- `/login/oauth/authorize` 作为宿主应用的登录授权壳
-- `/signup/oauth/authorize` 作为宿主应用的注册授权壳
+- `/login/oauth/authorize` 作为宿主应用的登录授权壳，进入时先清理当前域残留的认证 cookie
+- `/signup/oauth/authorize` 作为宿主应用的注册授权壳，进入时先清理当前域残留的认证 cookie
 - Casdoor API 请求通过 `/auth/api/*` 代理转发
 - 回调（callback）和注销（logout）保持为宿主路由
 - 用户应体验到连贯的应用内流程，而非直接跳转到 Casdoor 自身的 UI

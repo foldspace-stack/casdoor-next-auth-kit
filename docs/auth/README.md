@@ -5,7 +5,7 @@
 ## 覆盖范围
 
 - 登录和注册路由壳
-- 宿主应用内的 OAuth authorize 流程
+- 宿主应用内的 OAuth authorize 流程，`/login/oauth/authorize` 和 `/signup/oauth/authorize` 进入时会先清理当前域残留的认证 cookie
 - session、callback 和 logout 辅助能力
 - `@foldspace-fe/casdoor-next-auth-kit/react` 的认证 hooks 和 provider
 
