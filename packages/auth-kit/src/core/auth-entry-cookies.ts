@@ -7,17 +7,31 @@ export const AUTH_ENTRY_COOKIE_NAMES = [
   'oauth_state',
   'next-auth.session-token',
   '__Secure-next-auth.session-token',
+  '__Host-next-auth.session-token',
   'next-auth.csrf-token',
   '__Secure-next-auth.csrf-token',
   '__Host-next-auth.csrf-token',
+  'next-auth.callback-url',
+  '__Secure-next-auth.callback-url',
+  '__Host-next-auth.callback-url',
+  'next-auth.state',
+  '__Secure-next-auth.state',
+  '__Host-next-auth.state',
 ] as const;
 
 export const AUTH_ENTRY_COOKIE_PREFIXES = [
   'next-auth.session-token',
   '__Secure-next-auth.session-token',
+  '__Host-next-auth.session-token',
   'next-auth.csrf-token',
   '__Secure-next-auth.csrf-token',
   '__Host-next-auth.csrf-token',
+  'next-auth.callback-url',
+  '__Secure-next-auth.callback-url',
+  '__Host-next-auth.callback-url',
+  'next-auth.state',
+  '__Secure-next-auth.state',
+  '__Host-next-auth.state',
   'pkce_code_verifier',
 ] as const;
 
