@@ -100,7 +100,7 @@
 - `packages/auth-kit/src/core/index-html.ts` 的默认 `appName` 和 `description` 也要优先支持 `DEFAULT_CASDOOR_APP_NAME` 和 `DEFAULT_CASDOOR_DESCRIPTION`，宿主若不传对应参数，先读环境变量再回退到内置文案。
 - 不要再把 Casdoor API 改回 `/api/casdoor/*` 或其他与主框架冲突的前缀，宿主统一使用 `/auth/api/*`。
 - 不要再恢复旧的 `/login`、`/signup`、`/logout` 兼容入口，宿主只保留 app root 下 `/(auth-kit)` 的新路由。
-- 不要再把 `NEXTAUTH_URL` 当成公共站点 origin 的来源，公共 origin 由请求头或 `APP_URL` 识别。
+- 不要再把 `NEXTAUTH_URL` 当成公共站点 origin 的来源，公共 origin 优先由请求头、`referer`、`origin`、`x-forwarded-*` 和当前请求 URL 识别，`APP_URL` 只做最后兜底；不要再把这条规则改回“每个域名单独配置 APP_URL / NEXTAUTH_URL”的旧方案。
 - 不要再把 billing 回调设计成依赖 `.env` 里的 handler 模块路径；默认生成的 `lib/billing/payment-success.ts` 和 `lib/billing/payment-finished.ts` 就是宿主侧接入点，`auth-config.ts` 负责直接导入并导出对应 handler。
 - 不要再把 `/auth/payment/success` 和 `/auth/payment/finished` 退回成页面文件，它们必须保持为固定回调路径，由默认生成的 billing handler 文件承接业务逻辑和跳转。
 - 不要再让 billing 回调缺省成“静默空操作”；如果没有宿主业务逻辑，至少要保留日志和默认回退，方便排查 Casdoor 回跳链路是否真的走到了宿主。

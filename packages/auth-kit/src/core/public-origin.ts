@@ -1,14 +1,6 @@
 export const PUBLIC_ORIGIN_COOKIE_NAME = 'auth_origin';
 
 export function getRequestOrigin(request: Request, appUrl?: string): string {
-  if (appUrl) {
-    try {
-      return new URL(appUrl).origin;
-    } catch {
-      // ignore and fall back to request headers
-    }
-  }
-
   const referer = request.headers.get('referer');
   if (referer) {
     try {
@@ -31,6 +23,14 @@ export function getRequestOrigin(request: Request, appUrl?: string): string {
   const forwardedHost = request.headers.get('x-forwarded-host')?.split(',')[0]?.trim();
   if (forwardedProto && forwardedHost) {
     return `${forwardedProto}://${forwardedHost}`;
+  }
+
+  if (appUrl) {
+    try {
+      return new URL(appUrl).origin;
+    } catch {
+      // ignore and fall back to request url
+    }
   }
 
   return new URL(request.url).origin;

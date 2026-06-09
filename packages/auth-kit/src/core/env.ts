@@ -5,14 +5,14 @@ export const AUTH_KIT_ENV_FILES: ManagedEnvFile[] = ['.env', '.env.local', '.env
 export const AUTH_KIT_ENV_VARIABLES: ManagedEnvVariableDefinition[] = [
   {
     key: 'APP_URL',
-    description: '站点对外公开地址',
+    description: '站点对外公开地址（可留空，作为 request origin 的最后兜底）',
     example: 'https://your-domain.com',
     local: 'http://localhost:5177',
     production: 'https://your-domain.com',
   },
   {
     key: 'NEXTAUTH_URL',
-    description: 'NextAuth 回调地址',
+    description: 'NextAuth 回调地址（可留空，作为 request origin 的最后兜底）',
     example: 'http://localhost:5177',
     local: 'http://localhost:5177',
     production: 'https://your-domain.com',

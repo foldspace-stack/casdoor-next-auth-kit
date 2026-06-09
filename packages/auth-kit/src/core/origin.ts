@@ -8,9 +8,6 @@ export function normalizeOrigin(value: string | null | undefined): string | null
 }
 
 export function getRequestOrigin(request: Request, appUrl?: string): string {
-  const configured = normalizeOrigin(appUrl);
-  if (configured) return configured;
-
   const referer = normalizeOrigin(request.headers.get('referer'));
   if (referer) return referer;
 
@@ -22,6 +19,9 @@ export function getRequestOrigin(request: Request, appUrl?: string): string {
   if (forwardedProto && forwardedHost) {
     return forwardedProto + '://' + forwardedHost;
   }
+
+  const configured = normalizeOrigin(appUrl);
+  if (configured) return configured;
 
   return new URL(request.url).origin;
 }

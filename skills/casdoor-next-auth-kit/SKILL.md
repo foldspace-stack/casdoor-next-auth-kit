@@ -184,7 +184,7 @@ SaaS 订阅状态建议直接接 Casdoor 的 `get-pricing` / `get-plan` / `get-s
 
 1. **放行公开路径** — 无需认证即可访问的页面和资源
 2. **认证守卫** — 对非公开路径验证会话 token，未登录时重定向到 `/auth/login`
-3. **不在认证路径上做 origin 重写** — origin 规范由宿主的边缘层（FRP / Ingress / 网关）和套件内部的 API 代理头部清理共同完成
+3. **不在认证路径上做 origin 重写** — origin 规范优先由请求头自动识别，宿主的边缘层（FRP / Ingress / 网关）和套件内部的 API 代理头部清理只作为补充
 
 ### 公开路径清单
 
@@ -350,23 +350,24 @@ export const config = { matcher: '/:path*' };
 
 宿主工程必须保证：
 
-- `APP_URL` 和 `NEXTAUTH_URL` 一致
-- 生产环境必须使用公网 HTTPS 地址
-- 本地开发端口不是固定值，`5711`、`5177` 或其他端口都可能出现，必须以宿主工程自己的启动配置为准
-- `APP_URL` 和 `NEXTAUTH_URL` 需要填写宿主工程实际运行地址，例如 `http://localhost:3000`、`http://localhost:5177` 或 `https://your-domain.com`
+- `APP_URL` 和 `NEXTAUTH_URL` 都是可选兜底，不需要按每个部署域名单独配置
+- 套件会优先从请求头、`referer`、`origin`、`x-forwarded-*` 和当前请求 URL 识别 public origin
+- 如果宿主环境没有完整的转发头，再考虑补 `APP_URL` / `NEXTAUTH_URL` 作为最后兜底
+- 生产环境仍然建议使用公网 HTTPS 地址，但不需要把每个域名都手动写进 env
+- 不要把这条规则改回“每个域名单独配置 `APP_URL` / `NEXTAUTH_URL`”的旧方案
 
 推荐示例：
 
 ```env
-APP_URL=https://dev-chuangxiaoju.agent-lattice.cn
-NEXTAUTH_URL=https://dev-chuangxiaoju.agent-lattice.cn
+APP_URL=
+NEXTAUTH_URL=
 ```
 
 本地开发示例：
 
 ```env
-APP_URL=http://localhost:<your-port>
-NEXTAUTH_URL=http://localhost:<your-port>
+APP_URL=
+NEXTAUTH_URL=
 ```
 
 ### 常见故障
@@ -377,11 +378,17 @@ NEXTAUTH_URL=http://localhost:<your-port>
 - `redirect_uri` 变成了 `http://.../callback`
 - 本地正常，线上失败
 - 反向代理后回调地址不对
+- 多域名部署下某个域名没有单独配置 `APP_URL` / `NEXTAUTH_URL`
 
 优先检查：
 
-1. `APP_URL` 是否为真实公网 HTTPS
-2. `NEXTAUTH_URL` 是否与 `APP_URL` 保持一致
+1. 请求是否已经带上可识别的 `origin` / `referer` / `x-forwarded-*`
+2. 如果没有这些头，再考虑补 `APP_URL` / `NEXTAUTH_URL` 作为兜底
+
+优先检查：
+
+1. 请求是否已经带上可识别的 `origin` / `referer` / `x-forwarded-*`
+2. 如果没有这些头，再补 `APP_URL` / `NEXTAUTH_URL` 作为兜底
 3. 本地开发端口是否和宿主实际启动端口一致，避免把 `5177`、`5711` 之类示例值直接当成固定值
 4. FRP / Ingress / 网关是否把外部 HTTPS 请求错误地暴露成了内部 HTTP
 5. 浏览器实际访问地址是否和授权回调地址一致

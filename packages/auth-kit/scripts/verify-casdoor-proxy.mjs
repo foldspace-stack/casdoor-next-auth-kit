@@ -4,15 +4,15 @@ import test from 'node:test';
 import { buildCasdoorProxyRequestHeaders } from '../src/casdoor/proxy-headers.ts';
 import { getRequestOrigin } from '../src/core/origin.ts';
 
-test('APP_URL takes precedence over browser origin headers', () => {
+test('browser origin headers take precedence over APP_URL', () => {
   const request = new Request('http://dev-chuangxiaoju.agent-lattice.cn/auth/login', {
     headers: {
-      origin: 'http://dev-chuangxiaoju.agent-lattice.cn',
-      referer: 'http://dev-chuangxiaoju.agent-lattice.cn/login/oauth/authorize?foo=bar',
+      origin: 'https://dev-chuangxiaoju.agent-lattice.cn',
+      referer: 'https://dev-chuangxiaoju.agent-lattice.cn/login/oauth/authorize?foo=bar',
     },
   });
 
-  assert.equal(getRequestOrigin(request, 'https://dev-chuangxiaoju.agent-lattice.cn'), 'https://dev-chuangxiaoju.agent-lattice.cn');
+  assert.equal(getRequestOrigin(request, 'http://fallback.example.com'), 'https://dev-chuangxiaoju.agent-lattice.cn');
 });
 
 test('Casdoor proxy headers are whitelisted', () => {
