@@ -55,6 +55,10 @@ export function buildCasdoorProxyUrl(requestUrl: string, pathname: string): URL 
   return new URL(pathname, requestUrl);
 }
 
+export function buildCasdoorApiUrl(requestUrl: string, pathname: string): URL {
+  return new URL(pathname, requestUrl);
+}
+
 export function buildCasdoorCheckoutUrl(requestUrl: string, pathname: string): URL {
   return new URL(pathname, resolveCasdoorServerOrigin(requestUrl));
 }
@@ -200,7 +204,7 @@ export async function createCasdoorProductCheckoutSession(
   const normalizedProduct = normalizeCasdoorProductId(input.productId);
   const headers = buildCasdoorRequestHeaders(input);
 
-  const productUrl = buildCasdoorProxyUrl(input.requestUrl, '/auth/api/get-product');
+  const productUrl = buildCasdoorApiUrl(input.requestUrl, '/auth/api/get-product');
   productUrl.searchParams.set('id', `${normalizedProduct.owner}/${normalizedProduct.name}`);
 
   const productResponse = await fetcher(productUrl, { method: 'GET', headers });
@@ -230,7 +234,8 @@ export async function createCasdoorProductCheckoutSession(
     input.providerName,
   );
 
-  const buyUrl = buildCasdoorProxyUrl(input.requestUrl, '/auth/api/buy-product');
+  // 购买动作也先走宿主同源代理，避免前端或服务端直接碰 Casdoor 域名。
+  const buyUrl = buildCasdoorApiUrl(input.requestUrl, '/auth/api/buy-product');
   for (const [key, value] of buildCasdoorBuyProductParams(buyRequest).entries()) {
     buyUrl.searchParams.set(key, value);
   }
@@ -253,7 +258,15 @@ export async function createCasdoorProductCheckoutSession(
       };
 
   const paymentSessionId = payment?.name || paymentPage.paymentName;
-  const qrTarget = payment?.payUrl || paymentPage.checkoutUrl;
+  const qrTarget =
+    payment?.payUrl ||
+    paymentPage.checkoutUrl ||
+    normalized.redirectTo ||
+    paymentPage.successUrl;
+
+  if (!qrTarget) {
+    throw new Error(`Casdoor buy-product response did not return a usable payment target for ${input.productId}.`);
+  }
 
   return {
     provider: input.provider || buyRequest.providerName,
@@ -274,7 +287,7 @@ export async function fetchCasdoorPayment(
 ): Promise<BillingCasdoorPaymentDetail | null> {
   const fetcher = getFetch(input);
   const paymentId = normalizePaymentId(input.paymentId, input.paymentOwner);
-  const url = buildCasdoorProxyUrl(input.requestUrl, '/auth/api/get-payment');
+  const url = buildCasdoorApiUrl(input.requestUrl, '/auth/api/get-payment');
   url.searchParams.set('id', paymentId);
 
   const response = await fetcher(url, {
@@ -299,7 +312,7 @@ export async function notifyCasdoorPayment(
     throw new Error(`Invalid Casdoor payment id: ${paymentId}`);
   }
 
-  const url = buildCasdoorProxyUrl(input.requestUrl, `/auth/api/notify-payment/${paymentOwner}/${paymentName}`);
+  const url = buildCasdoorApiUrl(input.requestUrl, `/auth/api/notify-payment/${paymentOwner}/${paymentName}`);
   const response = await fetcher(url, {
     method: 'POST',
     headers: buildCasdoorRequestHeaders(input),

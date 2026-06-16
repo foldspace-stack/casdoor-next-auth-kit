@@ -8,6 +8,7 @@ import type {
 } from '../src/billing/types.ts';
 
 test('billing casdoor response models keep account application and payment separated', () => {
+  const paymentSuccessUrl = new URL('/payments/qixiaoju/payment_20260520_142003_6eae235/result', 'http://casdoor.local').toString();
   const accountResponse = {
     status: 'ok',
     msg: '',
@@ -104,7 +105,7 @@ test('billing casdoor response models keep account application and payment separ
       price: 0.01,
       outOrderId: 'payment_20260520_142003_6eae235',
       payUrl: 'weixin://wxpay/bizpayurl?pr=L23VNTnz3',
-      successUrl: 'https://auth.heyaai.com/payments/qixiaoju/payment_20260520_142003_6eae235/result',
+      successUrl: paymentSuccessUrl,
       state: 'Paid',
     },
     data2: null,
@@ -113,5 +114,6 @@ test('billing casdoor response models keep account application and payment separ
 
   assert.equal(accountResponse.data.displayName, 'Admin');
   assert.equal(applicationResponse.data.providers?.[0]?.provider?.displayName, 'Captcha Default');
+  assert.equal(new URL(paymentResponse.data.successUrl).pathname, new URL(paymentSuccessUrl).pathname);
   assert.equal(paymentResponse.data.state, 'Paid');
 });

@@ -18,8 +18,8 @@ function toUrl(input: RequestInfo | URL): URL {
 }
 
 test('creates a QR payment session from buy-product data.payUrl', async () => {
-  const previousServerUrl = process.env.NEXT_PUBLIC_CASDOOR_SERVER_URL;
-  process.env.NEXT_PUBLIC_CASDOOR_SERVER_URL = 'https://auth.heyaai.com';
+  const casdoorOrigin = 'http://casdoor.local';
+  const appOrigin = 'http://localhost:5177';
 
   const calls: Array<{ url: URL; init?: RequestInit }> = [];
   const fetchMock: typeof fetch = async (input, init) => {
@@ -63,7 +63,7 @@ test('creates a QR payment session from buy-product data.payUrl', async () => {
           name: 'payment_20260522_001416_f71e8f3',
           provider: '创小剧-微信支付',
           payUrl: 'weixin://wxpay/bizpayurl?pr=K1m5pOSz3',
-          successUrl: 'https://auth.heyaai.com/payments/qixiaoju/payment_20260522_001416_f71e8f3/result',
+          successUrl: `${casdoorOrigin}/payments/qixiaoju/payment_20260522_001416_f71e8f3/result`,
           state: 'Created',
         },
         data2: null,
@@ -72,33 +72,29 @@ test('creates a QR payment session from buy-product data.payUrl', async () => {
     );
   };
 
-  try {
-    const session = await createCasdoorProductCheckoutSession({
-      requestUrl: 'http://localhost:5177/user/membership',
-      cookieHeader: 'casdoor_session_id=session',
-      accessToken: 'access-token',
-      productId: 'qixiaoju/product_h24p63',
-      provider: 'wechat',
-      orderRef: 'order-1',
-      returnUrl: '/auth/payment/success',
-      fetcher: fetchMock,
-    });
+  const session = await createCasdoorProductCheckoutSession({
+    requestUrl: 'http://localhost:5177/user/membership',
+    cookieHeader: 'casdoor_session_id=session',
+    accessToken: 'access-token',
+    productId: 'qixiaoju/product_h24p63',
+    provider: 'wechat',
+    orderRef: 'order-1',
+    returnUrl: '/auth/payment/success',
+    fetcher: fetchMock,
+  });
 
-    assert.equal(session.providerName, '创小剧-微信支付');
-    assert.equal(session.paymentSessionId, 'payment_20260522_001416_f71e8f3');
-    assert.equal(
-      session.checkoutUrl,
-      'https://auth.heyaai.com/qrcode/qixiaoju/payment_20260522_001416_f71e8f3?providerName=%E5%88%9B%E5%B0%8F%E5%89%A7-%E5%BE%AE%E4%BF%A1%E6%94%AF%E4%BB%98&successUrl=http%3A%2F%2Flocalhost%3A5177%2Fauth%2Fpayment%2Fsuccess%3ForderId%3Dorder-1&payUrl=weixin%3A%2F%2Fwxpay%2Fbizpayurl%3Fpr%3DK1m5pOSz3',
-    );
-    assert.equal(
-      session.qrCodeUrl,
-      'https://api.qrserver.com/v1/create-qr-code/?size=480x480&data=weixin%3A%2F%2Fwxpay%2Fbizpayurl%3Fpr%3DK1m5pOSz3',
-    );
-    assert.equal(session.successUrl, 'http://localhost:5177/auth/payment/success?orderId=order-1');
-    assert.equal((session.raw as { data?: { name?: string } }).data?.name, 'payment_20260522_001416_f71e8f3');
-  } finally {
-    process.env.NEXT_PUBLIC_CASDOOR_SERVER_URL = previousServerUrl;
-  }
+  assert.equal(session.providerName, '创小剧-微信支付');
+  assert.equal(session.paymentSessionId, 'payment_20260522_001416_f71e8f3');
+  assert.equal(
+    session.checkoutUrl,
+    `${appOrigin}/qrcode/qixiaoju/payment_20260522_001416_f71e8f3?providerName=%E5%88%9B%E5%B0%8F%E5%89%A7-%E5%BE%AE%E4%BF%A1%E6%94%AF%E4%BB%98&successUrl=http%3A%2F%2Flocalhost%3A5177%2Fauth%2Fpayment%2Fsuccess%3ForderId%3Dorder-1&payUrl=weixin%3A%2F%2Fwxpay%2Fbizpayurl%3Fpr%3DK1m5pOSz3`,
+  );
+  assert.equal(
+    session.qrCodeUrl,
+    'https://api.qrserver.com/v1/create-qr-code/?size=480x480&data=weixin%3A%2F%2Fwxpay%2Fbizpayurl%3Fpr%3DK1m5pOSz3',
+  );
+  assert.equal(session.successUrl, 'http://localhost:5177/auth/payment/success?orderId=order-1');
+  assert.equal((session.raw as { data?: { name?: string } }).data?.name, 'payment_20260522_001416_f71e8f3');
 });
 
 test('normalizes QR code URLs', () => {
