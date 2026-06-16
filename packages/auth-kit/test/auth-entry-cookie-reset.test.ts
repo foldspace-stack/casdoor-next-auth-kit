@@ -76,7 +76,7 @@ test('login entry clears stale auth cookies before redirecting', async () => {
   assert.equal(hasCookieSet(cookies, 'oauth_state'), true);
   assert.equal(hasCookieSet(cookies, 'auth_origin'), true);
   assert.equal(hasCookieSet(cookies, 'auth_redirect'), true);
-  assert.equal(hasCookieSet(cookies, 'pkce_code_verifier.'), true);
+  assert.equal(hasCookieSet(cookies, 'pkce_code_verifier.'), false);
 });
 
 test('signup entry clears stale auth cookies before redirecting', async () => {
@@ -99,7 +99,7 @@ test('signup entry clears stale auth cookies before redirecting', async () => {
   assert.equal(hasCookieSet(cookies, 'oauth_state'), true);
   assert.equal(hasCookieSet(cookies, 'auth_origin'), true);
   assert.equal(hasCookieSet(cookies, 'auth_redirect'), true);
-  assert.equal(hasCookieSet(cookies, 'pkce_code_verifier.'), true);
+  assert.equal(hasCookieSet(cookies, 'pkce_code_verifier.'), false);
 });
 
 test('authorize entry clears stale auth cookies before returning html', async () => {

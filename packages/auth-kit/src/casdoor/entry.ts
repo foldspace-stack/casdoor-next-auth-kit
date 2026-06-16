@@ -3,8 +3,7 @@ import type { AuthKitConfig } from '../types';
 import { normalizeAuthKitConfig } from '../core/config.ts';
 import { getRequestOrigin, setPublicOriginCookie } from '../core/public-origin.ts';
 import { isSecureRequest } from '../core/request-security.ts';
-import { createPkcePair } from '../core/pkce.ts';
-import { generateStateToken, getPkceCookieName } from '../core/oauth-state.ts';
+import { generateStateToken } from '../core/oauth-state.ts';
 import { getAuthRedirectTarget, setAuthRedirectCookie } from '../core/auth-redirect.ts';
 import { createAuthIndexHtml } from '../core/index-html.ts';
 import { clearAuthEntryCookies } from '../core/auth-entry-cookies.ts';
@@ -12,7 +11,7 @@ import { clearAuthEntryCookies } from '../core/auth-entry-cookies.ts';
 function buildLocalAuthorizeUrl(
   origin: string,
   config: AuthKitConfig,
-  params: { state: string; codeChallenge: string; kind: 'login' | 'signup' },
+  params: { state: string; kind: 'login' | 'signup' },
 ): string {
   const normalized = normalizeAuthKitConfig(config);
   const authorizePath =
@@ -25,8 +24,7 @@ function buildLocalAuthorizeUrl(
   authorizeUrl.searchParams.set('redirect_uri', `${origin}${normalized.casdoor.redirectPath || '/callback'}`);
   authorizeUrl.searchParams.set('scope', 'profile');
   authorizeUrl.searchParams.set('state', params.state);
-  authorizeUrl.searchParams.set('code_challenge', params.codeChallenge);
-  authorizeUrl.searchParams.set('code_challenge_method', 'S256');
+  authorizeUrl.searchParams.set('kind', params.kind);
   return authorizeUrl.toString();
 }
 
@@ -39,10 +37,9 @@ async function createRedirectEntryResponse(
   const origin = getRequestOrigin(request, normalized.appUrl);
   const secure =
     normalized.cookie?.secure === 'auto' ? isSecureRequest(request, normalized.appUrl) : Boolean(normalized.cookie?.secure);
-  const { verifier, challenge } = await createPkcePair();
   const state = generateStateToken();
   const response = NextResponse.redirect(
-    buildLocalAuthorizeUrl(origin, normalized, { state, codeChallenge: challenge, kind }),
+    buildLocalAuthorizeUrl(origin, normalized, { state, kind }),
     307,
   );
   clearAuthEntryCookies(request, response, normalized.appUrl);
@@ -52,7 +49,6 @@ async function createRedirectEntryResponse(
   }
   setPublicOriginCookie(response, origin, secure);
   response.cookies.set('oauth_state', state, { httpOnly: true, sameSite: 'lax', secure, path: '/' });
-  response.cookies.set(getPkceCookieName(state), verifier, { httpOnly: true, sameSite: 'lax', secure, path: '/' });
   return response;
 }
 

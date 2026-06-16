@@ -109,12 +109,13 @@ npx @foldspace-fe/casdoor-next-auth-kit@latest check
 - `/auth/signup` — 宿主项目的注册入口路由，用户点击注册后进入此页面
 - `/login/oauth/authorize` — 同源登录授权壳，宿主项目渲染 Casdoor 的登录表单界面
 - `/signup/oauth/authorize` — 同源注册授权壳，宿主项目渲染 Casdoor 的注册表单界面
-- `/callback` — OAuth 回调路由，处理 Casdoor 认证成功后的回调
+- `/callback` — OAuth 回调路由，GET 时返回一个很小的回调桥接页，浏览器从 `sessionStorage` / `localStorage` 里取出 `PKCE verifier` 后再 POST 回同一个 `/callback`；POST 才处理 Casdoor 认证成功后的授权码交换，不再读取 legacy cookie verifier
 - `/callback/error` — 回调错误提示页，默认以视口居中、小尺寸卡片呈现错误信息，包含明显的错误状态视觉锚点，并提供“清空当前域 Cookie”按钮，帮助用户清理残留认证 cookie 后重新登录
 - `/logout` — 注销路由，优先用 `Clear-Site-Data: "cookies"` 清空当前域 cookie，再补一轮 `Set-Cookie` 删除兜底，并跳转到首页或 `AuthKitConfig.logoutRedirectPath`；如果目标路径和当前页相同，则按刷新处理
 - `/auth/api/*` — Casdoor API 代理，所有个人操作的 API 请求通过此路径转发
 - billing 的购买页、二维码扫描区和支付状态面板都由宿主工程自己控制，套件只提供 headless hooks、Casdoor 购买适配器、支付回调 handler 和纯数据模型；`packages/auth-kit/src/core/index-html.ts` 不参与 billing 页面生成
 - `/auth/login`、`/auth/signup`、`/login/oauth/authorize` 和 `/signup/oauth/authorize` 进入时，服务端响应要在首跳里隐式清理当前域残留的认证 cookie（含 session、CSRF、callback-url、state、oauth_state、pkce_code_verifier、auth_origin、auth_redirect），再继续进入同源授权流程，避免本地残留状态干扰新的登录/注册；这里不需要额外显式提示页或手动清理步骤
+- `/callback` 的 GET 首跳只负责返回回调桥接页，真正的 token exchange 放在 POST；PKCE verifier 只保存在浏览器 storage，不要再增加 cookie 读取的迁移兜底，因为 cookie 容量太大且这条链路已经废弃
 - `/signup/oauth/authorize` 的注册完成结果不应停留在 Casdoor 的 `/result/*` 页面，`packages/auth-kit/src/core/index-html.ts` 会在页面加载时和前端 `history` 变更时持续监控当前路径，只要落到 `/result/*` 就统一隐式重写回 `/auth/login?redirect=%2F`，让用户完成注册后自然回到登录页继续下一步
 - `packages/auth-kit/src/core/index-html.ts` 的默认图标地址支持 `DEFAULT_CASDOOR_ICON_HREF` 环境变量覆盖；宿主未显式传 `iconHref` 时，先读环境变量，再回退到内置 favicon
 - `packages/auth-kit/src/core/index-html.ts` 的默认 `appName` 和 `description` 也支持 `DEFAULT_CASDOOR_APP_NAME` 和 `DEFAULT_CASDOOR_DESCRIPTION` 环境变量覆盖；宿主未显式传对应参数时，先读环境变量，再回退到内置文案

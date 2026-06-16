@@ -44,6 +44,7 @@ export function callbackRouteTemplate() {
 export const dynamic = 'force-dynamic';
 
 export const GET = callbackHandler;
+export const POST = callbackHandler;
 `;
 }
 

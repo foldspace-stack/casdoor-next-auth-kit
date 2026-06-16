@@ -78,6 +78,7 @@
 - 如果宿主已有自己的会员计划 rows，但想少写映射样板，可以先用 `buildBillingSubscriptionCatalog()` 把计划数组转成 auth-kit 的 subscription catalog，再交给 `BillingProvider` 和 `useSubscribePlan`。
 - 生成的 `auth-config.ts` 必须同时兼容 `npx ... init` 和 `npx ... update`，不要让第一次生成能过、更新时却因为保留块或导入变化而编译失败。
 - 登录入口是宿主 app root 下 `/(auth-kit)/auth/login` 和 `/(auth-kit)/auth/signup`，授权壳子是宿主 app root 下 `/(auth-kit)/login/oauth/authorize`。
+- `PKCE verifier` 只走浏览器 `sessionStorage` / `localStorage` 和 `/callback` 的回调桥接页，不再通过 cookie 传递，也不要再补 legacy cookie 读取兜底。
 
 ## 对外约定
 
@@ -86,6 +87,7 @@
 - `npx @foldspace-fe/casdoor-next-auth-kit check` 校验受管文件是否齐全，同样使用自动识别出的 app root。
 - 生成的登录体验应保持在宿主站点内完成，Casdoor 页面只作为包内部代理的上游，不应直接暴露给最终用户。
 - `/auth/login`、`/auth/signup`、`/login/oauth/authorize` 和 `/signup/oauth/authorize` 进入时，服务端响应要先清理当前域里残留的认证 cookie（含 session、CSRF、callback-url、state、oauth_state、pkce_code_verifier、auth_origin、auth_redirect），再继续进入同源授权流程，避免本地残留状态干扰新的登录/注册。
+- `/callback` 的 GET 响应要返回一个很小的回调桥接页，由浏览器从 storage 里取出 `PKCE verifier` 后再 POST 回同一个 `/callback`；POST 才执行授权码交换，不要再从 cookie 里读取 verifier。
 - 宿主工程推荐把 `NEXT_PUBLIC_CASDOOR_APP_NAME` 和 `NEXT_PUBLIC_CASDOOR_ORGANIZATION_NAME` 视作同一个站点命名空间来配置，例如 `qixiaoju / qixiaoju`。
 - 宿主工程通过 `@foldspace-fe/casdoor-next-auth-kit/react` 读取认证状态和动作。
 - 宿主工程只负责建表和持久化，数据库字段与同步需求由包定义。

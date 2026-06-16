@@ -1,20 +1,21 @@
-import { NextResponse, type NextRequest } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server.js';
 import type { AuthBusinessAdapter, AuthKitConfig, AuthPersistenceAdapter, AuthUser } from '../types';
-import { normalizeAuthKitConfig } from '../core/config';
-import { getRequestOrigin, getStoredPublicOrigin, clearPublicOriginCookie } from '../core/public-origin';
-import { isSecureRequest } from '../core/request-security';
-import { getAuthRedirectTarget, clearAuthRedirectCookie } from '../core/auth-redirect';
+import { normalizeAuthKitConfig } from '../core/config.ts';
+import { getRequestOrigin, getStoredPublicOrigin, clearPublicOriginCookie } from '../core/public-origin.ts';
+import { isSecureRequest } from '../core/request-security.ts';
+import { getAuthRedirectTarget, clearAuthRedirectCookie } from '../core/auth-redirect.ts';
 import {
   decodeCasdoorAccessToken,
   exchangeCasdoorOAuthToken,
   fetchCasdoorUserInfo,
-} from './oauth';
-import { getCasdoorConfig } from './config';
-import { getPkceCookieName, verifyState } from '../core/oauth-state';
-import { encodeSessionToken } from '../core/session-token';
-import { isGlobalAdminEmail } from '../core/admin';
-import { resolvePostLoginRedirect } from '../core/redirect';
-import { buildAuthUserFromProfile } from '../core/auth-role';
+} from './oauth.ts';
+import { getCasdoorConfig } from './config.ts';
+import { buildCallbackBridgeScript } from '../core/pkce-storage.ts';
+import { getPkceCookieName, verifyState } from '../core/oauth-state.ts';
+import { encodeSessionToken } from '../core/session-token.ts';
+import { isGlobalAdminEmail } from '../core/admin.ts';
+import { resolvePostLoginRedirect } from '../core/redirect.ts';
+import { buildAuthUserFromProfile } from '../core/auth-role.ts';
 
 export interface CallbackHandlerOptions {
   config: AuthKitConfig;
@@ -22,20 +23,10 @@ export interface CallbackHandlerOptions {
   persistence?: AuthPersistenceAdapter;
 }
 
-function readCookieHeaderValue(cookieHeader: string | null, name: string): string | null {
-  if (!cookieHeader) {
-    return null;
-  }
-
-  for (const entry of cookieHeader.split(';')) {
-    const [rawName, ...valueParts] = entry.trim().split('=');
-    if (rawName === name) {
-      const value = valueParts.join('=').trim();
-      return value || null;
-    }
-  }
-
-  return null;
+interface CallbackExchangeBody {
+  code: string;
+  state: string;
+  verifier: string;
 }
 
 function getPublicOrigin(request: NextRequest, config: AuthKitConfig): string {
@@ -61,8 +52,144 @@ function rewriteToCallbackErrorPage(
   return NextResponse.redirect(targetUrl, 307);
 }
 
-function getPkceCodeVerifier(request: NextRequest, state: string): string | null {
-  return readCookieHeaderValue(request.headers.get('cookie'), getPkceCookieName(state));
+function sanitizeRedirectPath(value: string | null): string {
+  if (!value || !value.startsWith('/') || value.startsWith('//')) {
+    return '/user/account';
+  }
+
+  return value;
+}
+
+function buildCallbackBridgeHtml(): string {
+  const script = buildCallbackBridgeScript();
+
+  return String.raw`<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="description" content="正在完成登录回调" />
+    <title>正在完成登录</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background: #f8fafc;
+        color: #0f172a;
+        font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      body {
+        min-height: 100dvh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        box-sizing: border-box;
+      }
+
+      main {
+        width: min(100%, 420px);
+        border-radius: 28px;
+        padding: 28px 24px;
+        background: rgba(255, 255, 255, 0.96);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        box-shadow: 0 20px 48px rgba(15, 23, 42, 0.12);
+        text-align: center;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 16px;
+        padding: 6px 12px;
+        border-radius: 9999px;
+        background: rgba(59, 130, 246, 0.12);
+        color: #1d4ed8;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="badge">回调处理中</div>
+      <h1 style="margin: 0; font-size: 24px; line-height: 1.2;">正在完成登录</h1>
+      <p style="margin: 12px 0 0; line-height: 1.6; color: #334155;">浏览器正在把授权码和本地 verifier 发送给服务端，请稍候。</p>
+    </main>
+    <script>
+${script}
+    </script>
+  </body>
+</html>`;
+}
+
+function readCallbackExchangeBody(request: NextRequest): Promise<CallbackExchangeBody | null> {
+  return request
+    .json()
+    .then((value) => {
+      if (!value || typeof value !== 'object') {
+        return null;
+      }
+
+      const record = value as Record<string, unknown>;
+      const code = typeof record.code === 'string' ? record.code : '';
+      const state = typeof record.state === 'string' ? record.state : '';
+      const verifier = typeof record.verifier === 'string' ? record.verifier : '';
+
+      if (!code || !state || !verifier) {
+        return null;
+      }
+
+      return { code, state, verifier };
+    })
+    .catch(() => null);
+}
+
+function getRedirectTarget(request: NextRequest, user: AuthUser, adapter?: AuthBusinessAdapter): string {
+  const adapterRedirect = adapter?.resolvePostLoginRedirect?.(user);
+  if (adapterRedirect) {
+    return sanitizeRedirectPath(adapterRedirect);
+  }
+
+  const storedRedirect = getAuthRedirectTarget(request);
+  if (storedRedirect) {
+    return sanitizeRedirectPath(storedRedirect);
+  }
+
+  return sanitizeRedirectPath(resolvePostLoginRedirect(user, '/user/account'));
+}
+
+function mapProfileToAuthUser(profile: Awaited<ReturnType<typeof fetchCasdoorUserInfo>>, adapter?: AuthBusinessAdapter): AuthUser {
+  const typedProfile = profile as Awaited<ReturnType<typeof fetchCasdoorUserInfo>> & {
+    sub?: string;
+    picture?: string;
+    avatarUrl?: string;
+    role?: string;
+  };
+  const email = typedProfile.email || null;
+  const isAdmin =
+    Boolean(typedProfile.isAdmin) ||
+    Boolean(adapter?.isAdminEmail?.(email)) ||
+    isGlobalAdminEmail(email);
+
+  return buildAuthUserFromProfile(
+    {
+      id: typedProfile.id,
+      sub: typedProfile.sub,
+      name: typedProfile.name,
+      displayName: typedProfile.displayName,
+      email,
+      picture: typedProfile.picture,
+      avatarUrl: typedProfile.avatarUrl,
+      isAdmin: typedProfile.isAdmin,
+      role: typedProfile.role,
+    },
+    isAdmin,
+  );
 }
 
 function setNextAuthSessionCookies(response: NextResponse, sessionToken: string, isSecure: boolean): void {
@@ -92,109 +219,20 @@ function setNextAuthSessionCookies(response: NextResponse, sessionToken: string,
   }
 }
 
-function sanitizeRedirectPath(value: string | null): string {
-  if (!value || !value.startsWith('/') || value.startsWith('//')) {
-    return '/user/account';
-  }
-
-  return value;
-}
-
-function summarizeCookieHeader(cookieHeader: string | null): Record<string, unknown> {
-  if (!cookieHeader) {
-    return { present: false };
-  }
-
-  const cookieNames = cookieHeader
-    .split(';')
-    .map((entry) => entry.trim().split('=')[0])
-    .filter(Boolean);
-
-  return {
-    present: true,
-    count: cookieNames.length,
-    names: cookieNames,
-  };
-}
-
-export function mapProfileToAuthUser(profile: Awaited<ReturnType<typeof fetchCasdoorUserInfo>>, adapter?: AuthBusinessAdapter): AuthUser {
-  const typedProfile = profile as Awaited<ReturnType<typeof fetchCasdoorUserInfo>> & {
-    sub?: string;
-    picture?: string;
-    avatarUrl?: string;
-    role?: string;
-  };
-  const email = typedProfile.email || null;
-  const isAdmin =
-    Boolean(typedProfile.isAdmin) ||
-    Boolean(adapter?.isAdminEmail?.(email)) ||
-    isGlobalAdminEmail(email);
-
-  return buildAuthUserFromProfile(
-    {
-      id: typedProfile.id,
-      sub: typedProfile.sub,
-      name: typedProfile.name,
-      displayName: typedProfile.displayName,
-      email,
-      picture: typedProfile.picture,
-      avatarUrl: typedProfile.avatarUrl,
-      isAdmin: typedProfile.isAdmin,
-      role: typedProfile.role,
-    },
-    isAdmin,
-  );
-}
-
-function getRedirectTarget(request: NextRequest, user: AuthUser, adapter?: AuthBusinessAdapter): string {
-  const adapterRedirect = adapter?.resolvePostLoginRedirect?.(user);
-  if (adapterRedirect) {
-    return sanitizeRedirectPath(adapterRedirect);
-  }
-
-  const storedRedirect = getAuthRedirectTarget(request);
-  if (storedRedirect) {
-    return sanitizeRedirectPath(storedRedirect);
-  }
-
-  return sanitizeRedirectPath(resolvePostLoginRedirect(user, '/user/account'));
-}
-
-export async function createCallbackResponse(
+async function exchangeCallbackCode(
   request: NextRequest,
   options: CallbackHandlerOptions,
+  body: CallbackExchangeBody,
 ): Promise<NextResponse> {
   const normalized = normalizeAuthKitConfig(options.config);
   const publicOrigin = getPublicOrigin(request, normalized);
-  const url = new URL(request.url);
-  const code = url.searchParams.get('code');
-  const state = url.searchParams.get('state');
-  const error = url.searchParams.get('error');
-  const secure = normalized.cookie?.secure === 'auto'
-    ? isSecureRequest(request, normalized.appUrl)
-    : Boolean(normalized.cookie?.secure);
+  const secure =
+    normalized.cookie?.secure === 'auto'
+      ? isSecureRequest(request, normalized.appUrl)
+      : Boolean(normalized.cookie?.secure);
+  const stateIsValid = await verifyState(body.state);
 
-  if (error) {
-    return rewriteToCallbackErrorPage(
-      request,
-      normalized,
-      'Casdoor 返回了授权错误',
-      '授权服务器在回调阶段返回了错误信息。请返回首页或重新登录后再试。',
-      error,
-    );
-  }
-
-  if (!code) {
-    return rewriteToCallbackErrorPage(
-      request,
-      normalized,
-      '缺少授权码',
-      'Casdoor 回调没有带回 code，这通常意味着授权流程未完成。',
-      'no_code',
-    );
-  }
-
-  if (!state || !(await verifyState(state))) {
+  if (!stateIsValid) {
     return rewriteToCallbackErrorPage(
       request,
       normalized,
@@ -204,20 +242,9 @@ export async function createCallbackResponse(
     );
   }
 
-  const codeVerifier = getPkceCodeVerifier(request, state);
-  if (!codeVerifier) {
-    return rewriteToCallbackErrorPage(
-      request,
-      normalized,
-      '缺少 PKCE 校验值',
-      '回调请求里没有找到 pkce_code_verifier cookie。请重新从登录入口发起流程。',
-      'missing_pkce_code_verifier',
-    );
-  }
-
   const casdoorConfig = getCasdoorConfig(normalized);
   const redirectUri = `${publicOrigin}${casdoorConfig.casdoor.redirectPath}`;
-  const tokens = await exchangeCasdoorOAuthToken(casdoorConfig, code, redirectUri, codeVerifier);
+  const tokens = await exchangeCasdoorOAuthToken(casdoorConfig, body.code, redirectUri, body.verifier);
   const accessToken = tokens.access_token ?? tokens.accessToken ?? '';
 
   if (!accessToken) {
@@ -231,7 +258,6 @@ export async function createCallbackResponse(
   }
 
   const profile = await fetchCasdoorUserInfo(casdoorConfig, accessToken);
-
   const decodedAccessToken = decodeCasdoorAccessToken(accessToken) as { exp?: number } | null;
   const mappedUser = options.adapter?.onUserSync
     ? await options.adapter.onUserSync(profile, {
@@ -265,9 +291,21 @@ export async function createCallbackResponse(
     maxAge: normalized.session?.maxAgeSeconds,
   });
 
-  const response = NextResponse.redirect(new URL(getRedirectTarget(request, mappedUser, options.adapter), publicOrigin));
+  const redirectUrl = new URL(getRedirectTarget(request, mappedUser, options.adapter), publicOrigin).toString();
+  const response = NextResponse.json(
+    {
+      redirectUrl,
+    },
+    {
+      status: 200,
+      headers: {
+        'cache-control': 'no-store, max-age=0',
+      },
+    },
+  );
+
   setNextAuthSessionCookies(response, sessionToken, secure);
-  response.cookies.set(getPkceCookieName(state), '', {
+  response.cookies.set(getPkceCookieName(body.state), '', {
     path: '/',
     httpOnly: true,
     sameSite: 'lax',
@@ -286,8 +324,108 @@ export async function createCallbackResponse(
   return response;
 }
 
+export async function createCallbackResponse(
+  request: NextRequest,
+  options: CallbackHandlerOptions,
+): Promise<NextResponse> {
+  const normalized = normalizeAuthKitConfig(options.config);
+  const url = new URL(request.url);
+  const code = url.searchParams.get('code');
+  const state = url.searchParams.get('state');
+  const error = url.searchParams.get('error');
+
+  if (error) {
+    return rewriteToCallbackErrorPage(
+      request,
+      normalized,
+      'Casdoor 返回了授权错误',
+      '授权服务器在回调阶段返回了错误信息。请返回首页或重新登录后再试。',
+      error,
+    );
+  }
+
+  if (request.method === 'GET') {
+    if (!code) {
+      return rewriteToCallbackErrorPage(
+        request,
+        normalized,
+        '缺少授权码',
+        'Casdoor 回调没有带回 code，这通常意味着授权流程未完成。',
+        'no_code',
+      );
+    }
+
+    if (!state || !(await verifyState(state))) {
+      return rewriteToCallbackErrorPage(
+        request,
+        normalized,
+        '登录状态校验失败',
+        '回调中的 state 与本次登录流程不匹配，请重新发起登录。',
+        'invalid_state',
+      );
+    }
+
+    return new NextResponse(buildCallbackBridgeHtml(), {
+      status: 200,
+      headers: {
+        'content-type': 'text/html; charset=utf-8',
+        'cache-control': 'no-store, max-age=0',
+      },
+    });
+  }
+
+  if (request.method === 'POST') {
+    const body = await readCallbackExchangeBody(request);
+    const callbackBody = body ?? {
+      code: code ?? '',
+      state: state ?? '',
+      verifier: '',
+    };
+
+    if (!callbackBody.code) {
+      return rewriteToCallbackErrorPage(
+        request,
+        normalized,
+        '缺少授权码',
+        'Casdoor 回调没有带回 code，这通常意味着授权流程未完成。',
+        'no_code',
+      );
+    }
+
+    if (!callbackBody.state || !(await verifyState(callbackBody.state))) {
+      return rewriteToCallbackErrorPage(
+        request,
+        normalized,
+        '登录状态校验失败',
+        '回调中的 state 与本次登录流程不匹配，请重新发起登录。',
+        'invalid_state',
+      );
+    }
+
+    if (!callbackBody.verifier) {
+      return rewriteToCallbackErrorPage(
+        request,
+        normalized,
+        '缺少 PKCE 校验值',
+        '回调桥接页没有找到浏览器里保存的 verifier，请重新从登录入口开始。',
+        'missing_pkce_code_verifier',
+      );
+    }
+
+    return exchangeCallbackCode(request, options, callbackBody);
+  }
+
+  return rewriteToCallbackErrorPage(
+    request,
+    normalized,
+    '不支持的回调方法',
+    `当前回调只接受 GET 和 POST 请求，但收到的是 ${request.method || 'UNKNOWN'}。`,
+    'unsupported_method',
+  );
+}
+
 export function createCallbackHandler(options: CallbackHandlerOptions) {
-  return async function GET(request: NextRequest) {
+  return async function callbackHandler(request: NextRequest) {
     return createCallbackResponse(request, options);
   };
 }

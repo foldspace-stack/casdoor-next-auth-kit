@@ -1,4 +1,5 @@
 import type { AuthIndexHtmlOptions } from '../types';
+import { buildPkceAuthorizeBootstrapScript } from './pkce-storage.ts';
 
 const DEFAULT_CASDOOR_STATIC_ORIGIN = 'https://casdoor-static.foldspace.cn';
 const DEFAULT_CASDOOR_ORIGIN = process.env.NEXT_PUBLIC_CASDOOR_SERVER_URL || 'https://auth.heyaai.com';
@@ -200,6 +201,8 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
             return originalReplace(toProxyUrl(url))
           }
         }
+
+${buildPkceAuthorizeBootstrapScript(casdoorOrigin)}
 
         if (window.history && typeof window.history.pushState === 'function') {
           var originalPushState = window.history.pushState.bind(window.history)

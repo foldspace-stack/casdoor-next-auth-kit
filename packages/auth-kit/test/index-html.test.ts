@@ -55,3 +55,15 @@ test('createAuthIndexHtml rewrites result urls back to the login entry', () => {
   assert.match(html, /pathname\.indexOf\('\/result\/'\) === 0/);
   assert.match(html, /\/auth\/login\?redirect=%2F/);
 });
+
+test('createAuthIndexHtml injects browser pkce bootstrap logic for authorize pages', () => {
+  const html = createAuthIndexHtml();
+
+  assert.match(html, /buildStorageKey/);
+  assert.match(html, /crypto\.subtle\.digest\('SHA-256'/);
+  assert.match(html, /sessionStorage\.setItem/);
+  assert.match(html, /localStorage\.setItem/);
+  assert.match(html, /code_challenge_method/);
+  assert.match(html, /window\.location\.replace\(authorizeUrl\.toString\(\)\)/);
+  assert.match(html, /pkce_code_verifier/);
+});

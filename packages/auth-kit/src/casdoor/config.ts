@@ -1,5 +1,5 @@
 import type { AuthKitConfig } from '../types';
-import { normalizeAuthKitConfig } from '../core/config';
+import { normalizeAuthKitConfig } from '../core/config.ts';
 
 export function getCasdoorConfig(config: AuthKitConfig): AuthKitConfig {
   return normalizeAuthKitConfig(config);
