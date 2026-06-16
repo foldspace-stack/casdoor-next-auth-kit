@@ -336,6 +336,7 @@ export const config = { matcher: '/:path*' };
 ```
 
 > `/auth/api/*` 路径不需要宿主额外处理头部清理。套件的 `proxyRequest` 在转发给 Casdoor 时会自动删除 `origin`、`referer`、`x-forwarded-host`、`x-forwarded-port`、`x-forwarded-proto` 和 `forwarded`，并且会优先从 NextAuth 会话 cookie 里还原 `accessToken` 补上 `Authorization: Bearer ...`，确保上游能识别当前登录态时只看到干净且完整的请求头。
+> `/auth/api/login`、`/auth/api/signup`、`/auth/api/get-app-login`、`/auth/api/get-account` 和 `/auth/api/get-session` 属于导航/登录 bootstrap 接口，即使上游返回 3xx 也要原样透传，不能像数据 API 一样折叠成 `Please login first`；`buy-product`、`get-payment`、`notify-payment` 这类数据型接口仍保持 JSON 错误封装。
 
 ### 实现要求
 

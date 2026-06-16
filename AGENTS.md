@@ -108,6 +108,7 @@
 - 不要再把 `lib/billing/*` 当成宿主可选文件；这两个文件属于套件必须生成并维护的宿主接入层，缺失就意味着 `update` 不完整。
 - 不要再在 billing 模板里引入宿主工程不存在的 `@/lib/*`，除了默认生成的 `@/lib/billing/payment-success` 和 `@/lib/billing/payment-finished` 之外，不允许再加新的宿主硬依赖。
 - 不要再把宿主 app root 下的 `/(auth-kit)/auth-config.ts` 做成依赖多层间接导出的形式，route 文件必须能直接从这个文件拿到所需 handler 和配置对象。
+- 不要再把 `/auth/api/login`、`/auth/api/signup`、`/auth/api/get-app-login`、`/auth/api/get-account` 和 `/auth/api/get-session` 这类登录/导航 bootstrap 接口折叠成 `Please login first` 的 JSON 包装，它们必须原样透传上游 3xx；只有数据型 API 才保留 JSON 错误封装。
 - 不要再把宿主 app root 下的 `/(auth-kit)/callback/error/page.tsx` 做成纯文本错误页，默认错误页必须提供本地清 cookie 按钮，帮助用户清掉当前域下残留的 auth cookie。
 - 不要再把 billing 的默认生成文件改成“只在文档里提到、代码里不生成”的状态；文档、skill、AGENTS 和 CLI 生成结果必须同时存在。
 - 不要再把 billing 页面层补回套件内置路由壳，`/qrcode`、`/payments/.../result` 和其他购买结果页面都应该由宿主自己实现。

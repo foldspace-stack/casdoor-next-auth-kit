@@ -3,6 +3,14 @@ import type { AuthKitConfig } from '../types';
 import { buildCasdoorProxyRequestHeaders } from './proxy-headers.ts';
 import { decodeSessionToken } from '../core/session-token.ts';
 
+const PRESERVE_REDIRECT_PATHS = new Map<string, Set<string>>([
+  ['/login', new Set(['POST'])],
+  ['/signup', new Set(['POST'])],
+  ['/get-app-login', new Set(['GET'])],
+  ['/get-account', new Set(['GET'])],
+  ['/get-session', new Set(['GET'])],
+]);
+
 function buildUpstreamUrl(request: NextRequest, baseUrl: string, localPrefix: string, upstreamPrefix: string): string {
   const url = new URL(request.url);
   const upstreamPath = url.pathname.startsWith(localPrefix)
@@ -11,6 +19,33 @@ function buildUpstreamUrl(request: NextRequest, baseUrl: string, localPrefix: st
   const rewritten = new URL(upstreamPath, baseUrl);
   rewritten.search = url.search;
   return rewritten.toString();
+}
+
+function shouldPreserveUpstreamRedirect(request: NextRequest, localPrefix: string): boolean {
+  const pathname = new URL(request.url).pathname;
+  if (!pathname.startsWith(localPrefix)) {
+    return false;
+  }
+
+  const upstreamPath = pathname.slice(localPrefix.length) || '/';
+  const methods = PRESERVE_REDIRECT_PATHS.get(upstreamPath);
+  if (!methods) {
+    return false;
+  }
+
+  return methods.has(request.method.toUpperCase());
+}
+
+function cloneUpstreamResponse(upstream: Response): NextResponse {
+  const responseHeaders = new Headers(upstream.headers);
+  responseHeaders.delete('content-encoding');
+  responseHeaders.delete('content-length');
+  responseHeaders.delete('transfer-encoding');
+  responseHeaders.delete('connection');
+  return new NextResponse(upstream.body, {
+    status: upstream.status,
+    headers: responseHeaders,
+  });
 }
 
 async function proxyRequest(
@@ -56,6 +91,10 @@ async function proxyRequest(
   });
 
   if (options.suppressRedirects && upstream.status >= 300 && upstream.status < 400) {
+    if (shouldPreserveUpstreamRedirect(request, localPrefix)) {
+      return cloneUpstreamResponse(upstream);
+    }
+
     return NextResponse.json(
       {
         status: 'error',
@@ -66,15 +105,7 @@ async function proxyRequest(
     );
   }
 
-  const responseHeaders = new Headers(upstream.headers);
-  responseHeaders.delete('content-encoding');
-  responseHeaders.delete('content-length');
-  responseHeaders.delete('transfer-encoding');
-  responseHeaders.delete('connection');
-  return new NextResponse(upstream.body, {
-    status: upstream.status,
-    headers: responseHeaders,
-  });
+  return cloneUpstreamResponse(upstream);
 }
 
 export function createCasdoorApiProxyHandler(
