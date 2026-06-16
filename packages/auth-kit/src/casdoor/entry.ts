@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server.js';
 import type { AuthKitConfig } from '../types';
 import { normalizeAuthKitConfig } from '../core/config.ts';
+import { getRequestOrigin } from '../core/origin.ts';
 import { setPublicOriginCookie } from '../core/public-origin.ts';
 import { isSecureRequest } from '../core/request-security.ts';
 import { generateStateToken } from '../core/oauth-state.ts';
@@ -34,7 +35,10 @@ async function createRedirectEntryResponse(
   kind: 'login' | 'signup',
 ): Promise<NextResponse> {
   const normalized = normalizeAuthKitConfig(config);
-  const origin = new URL(request.url).origin;
+  // 这里必须按请求头动态推导 origin，不能再用 request.url 的 origin。
+  // Coolify / Traefik 场景下 request.url 可能落到容器内网主机名（例如 0.0.0.0:7273），
+  // 一旦把这个值写进 authorize / redirect_uri，登录就会跳到错误域名。
+  const origin = getRequestOrigin(request, normalized.appUrl);
   const secure =
     normalized.cookie?.secure === 'auto' ? isSecureRequest(request, normalized.appUrl) : Boolean(normalized.cookie?.secure);
   const state = generateStateToken();
@@ -54,7 +58,8 @@ async function createRedirectEntryResponse(
 
 async function createAuthorizePageResponse(request: NextRequest, config: AuthKitConfig): Promise<NextResponse> {
   const normalized = normalizeAuthKitConfig(config);
-  const origin = new URL(request.url).origin;
+  // 授权壳页也要沿用同一个动态 origin，保证后续回跳和公共 origin cookie 一致。
+  const origin = getRequestOrigin(request, normalized.appUrl);
   const secure =
     normalized.cookie?.secure === 'auto' ? isSecureRequest(request, normalized.appUrl) : Boolean(normalized.cookie?.secure);
   const response = new NextResponse(

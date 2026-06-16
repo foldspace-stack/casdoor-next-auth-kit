@@ -91,7 +91,7 @@ test('login entry keeps redirects on the current request origin even with an ext
   const response = await createLoginEntryResponse(request, authConfig as any);
 
   assert.equal(response.status, 307);
-  assert.match(response.headers.get('location') ?? '', /^http:\/\/localhost:5177\/login\/oauth\/authorize/);
+  assert.match(response.headers.get('location') ?? '', new RegExp(`^${casdoorOrigin}/login/oauth/authorize`));
 });
 
 test('signup entry clears stale auth cookies before redirecting', async () => {

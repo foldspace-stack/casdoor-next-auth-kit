@@ -1,12 +1,15 @@
 import { NextResponse, type NextRequest } from 'next/server.js';
 import type { AuthKitConfig } from '../types';
+import { getRequestOrigin } from '../core/origin.ts';
 import { isSecureRequest } from '../core/request-security.ts';
 import { clearAuthRedirectCookie } from '../core/auth-redirect.ts';
 import { clearPublicOriginCookie } from '../core/public-origin.ts';
 import { clearAuthEntryCookies } from '../core/auth-entry-cookies.ts';
 
 function resolveLogoutTargetUrl(request: NextRequest, config: AuthKitConfig): URL {
-  const origin = request.cookies.get('auth_origin')?.value ?? config.appUrl ?? new URL(request.url).origin;
+  // 退出跳转同样不能依赖 request.url；优先复用登录阶段写入的 auth_origin，
+  // 其次再按请求头动态推导，避免多域名或代理环境跳回 0.0.0.0 之类的容器地址。
+  const origin = request.cookies.get('auth_origin')?.value ?? getRequestOrigin(request, config.appUrl);
   const logoutRedirectPath = config.logoutRedirectPath ?? '/';
   return new URL(logoutRedirectPath, origin);
 }

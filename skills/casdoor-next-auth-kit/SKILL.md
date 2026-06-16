@@ -146,6 +146,7 @@ npx @foldspace-fe/casdoor-next-auth-kit@latest check
 - 支付相关代理会把上游 `origin` 统一改成 Casdoor origin，并按原站页面语义生成 `referer`：商品购买和商品查询使用 `/products/{owner}/{product}/buy`，支付查询使用 `/payments/{owner}/{payment}/result`，支付通知使用 `/qrcode/{owner}/{payment}`。不要改回宿主页面 referer，也不要简单改成 Casdoor 根路径。
 - `NEXT_PUBLIC_CASDOOR_SERVER_URL` / `CASDOOR_SERVER_URL` 必须配置成 Casdoor 的真实协议和域名。生产 Casdoor 是 HTTPS 时必须写 `https://...`，写成 `http://...` 会出现 `casdoor_session_id` 已转发但上游仍返回 `Please login first` 的问题。
 - `/auth/login`、`/auth/signup`、`/login/oauth/authorize` 和 `/signup/oauth/authorize` 进入时，服务端响应要在首跳里隐式清理当前域残留的认证 cookie（含 session、CSRF、callback-url、state、oauth_state、pkce_code_verifier、auth_origin、auth_redirect），再继续进入同源授权流程，避免本地残留状态干扰新的登录/注册；这里不需要额外显式提示页或手动清理步骤
+- `/auth/login`、`/auth/signup`、`/login/oauth/authorize`、`/signup/oauth/authorize` 和 `/logout` 这条链路里，origin 必须按请求头动态推导，不要再回退到 `request.url`、容器主机名或写死的单域名 `appUrl`；在 Coolify / Traefik / 多域名部署下，`request.url` 可能变成 `0.0.0.0:7273`，一旦写进 `authorize`、`redirect_uri` 或 logout target，就会把用户带出正确站点
 - `/callback` 的 GET 首跳只负责返回回调桥接页，真正的 token exchange 放在 POST；PKCE verifier 只保存在浏览器 storage，不要再增加 cookie 读取的迁移兜底，因为 cookie 容量太大且这条链路已经废弃
 - `/signup/oauth/authorize` 的注册完成结果不应停留在 Casdoor 的 `/result/*` 页面，`packages/auth-kit/src/core/index-html.ts` 会在页面加载时和前端 `history` 变更时持续监控当前路径，只要落到 `/result/*` 就统一隐式重写回 `/auth/login?redirect=%2F`，让用户完成注册后自然回到登录页继续下一步
 - `packages/auth-kit/src/core/index-html.ts` 的默认图标地址支持 `DEFAULT_CASDOOR_ICON_HREF` 环境变量覆盖；宿主未显式传 `iconHref` 时，先读环境变量，再回退到内置 favicon
