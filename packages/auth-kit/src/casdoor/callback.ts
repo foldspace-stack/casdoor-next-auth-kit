@@ -60,6 +60,21 @@ function sanitizeRedirectPath(value: string | null): string {
   return value;
 }
 
+function firstNonEmptyString(...values: Array<string | null | undefined>): string | null {
+  for (const value of values) {
+    if (typeof value !== 'string') {
+      continue;
+    }
+
+    const trimmed = value.trim();
+    if (trimmed) {
+      return trimmed;
+    }
+  }
+
+  return null;
+}
+
 function buildCallbackBridgeHtml(): string {
   const script = buildCallbackBridgeScript();
 
@@ -178,13 +193,13 @@ function mapProfileToAuthUser(profile: Awaited<ReturnType<typeof fetchCasdoorUse
 
   return buildAuthUserFromProfile(
     {
-      id: typedProfile.id,
-      sub: typedProfile.sub,
-      name: typedProfile.name,
-      displayName: typedProfile.displayName,
+      id: firstNonEmptyString(typedProfile.id, typedProfile.sub),
+      sub: firstNonEmptyString(typedProfile.sub, typedProfile.id),
+      name: firstNonEmptyString(typedProfile.name, typedProfile.displayName),
+      displayName: firstNonEmptyString(typedProfile.displayName, typedProfile.name),
       email,
-      picture: typedProfile.picture,
-      avatarUrl: typedProfile.avatarUrl,
+      picture: firstNonEmptyString(typedProfile.picture),
+      avatarUrl: firstNonEmptyString(typedProfile.avatarUrl),
       isAdmin: typedProfile.isAdmin,
       role: typedProfile.role,
     },

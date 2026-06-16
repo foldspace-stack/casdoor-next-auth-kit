@@ -29,6 +29,25 @@ export interface AuthUserSummaryShape {
   role: AuthSummaryRole;
 }
 
+function isLikelyEmail(value: string): boolean {
+  const trimmed = value.trim();
+  return trimmed.includes('@');
+}
+
+function pickPreferredName(...values: Array<string | null | undefined>): string | null {
+  const candidates = values
+    .filter((value): value is string => typeof value === 'string')
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  const preferred = candidates.find((value) => !isLikelyEmail(value));
+  return preferred ?? candidates[0] ?? null;
+}
+
 export function resolveAuthUserRole(role: string | null | undefined, isAdmin: boolean): AuthUserRole {
   if (role === 'admin' || role === 'user') {
     return role;
@@ -41,7 +60,7 @@ export function buildAuthUserFromProfile(profile: AuthUserLike, isAdmin: boolean
   const role = resolveAuthUserRole(profile.role, isAdmin);
   return {
     id: profile.sub || profile.id || profile.email || 'casdoor-user',
-    name: profile.name || profile.displayName || null,
+    name: pickPreferredName(profile.name, profile.displayName, profile.email),
     email: profile.email || null,
     image: profile.picture || profile.avatarUrl || null,
     isAdmin: isAdmin || role === 'admin',
@@ -64,7 +83,7 @@ export function buildAuthUserFromToken(
   const role = resolveAuthUserRole(token.role, isAdmin);
   return {
     id: token.userId || token.sub || token.id || token.email || 'casdoor-user',
-    name: token.name ?? null,
+    name: pickPreferredName(token.name, token.displayName, token.email),
     email: token.email ?? null,
     image: token.picture ?? null,
     isAdmin: isAdmin || role === 'admin',
@@ -81,7 +100,7 @@ export function buildAuthUserSummary(user: AuthUserLike | null | undefined): Aut
 
   return {
     id: user?.id ?? null,
-    name: user?.name || '登录',
+    name: pickPreferredName(user?.name, user?.displayName, user?.email) || '登录',
     email: user?.email ?? null,
     image: user?.image ?? user?.picture ?? null,
     isAuthenticated,

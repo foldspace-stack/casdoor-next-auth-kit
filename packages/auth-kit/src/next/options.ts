@@ -6,6 +6,7 @@ import { normalizeAuthKitConfig } from '../core/config';
 import { decodeSessionToken, encodeSessionToken } from '../core/session-token';
 import { isGlobalAdminEmail } from '../core/admin';
 import { buildAuthUserFromToken } from '../core/auth-role';
+import { decodeCasdoorAccessToken } from '../casdoor/oauth';
 
 export interface NextAuthRouteOptions {
   config: AuthKitConfig;
@@ -17,6 +18,7 @@ export interface NextAuthRouteOptions {
 export interface AuthTokenPayload extends JWT {
   id?: string;
   name?: string;
+  displayName?: string;
   email?: string;
   picture?: string | null;
   userId?: string;
@@ -30,6 +32,8 @@ export interface AuthTokenPayload extends JWT {
 
 export interface AuthSessionUser {
   id?: string;
+  name?: string | null;
+  displayName?: string | null;
   isAdmin?: boolean;
   role?: AuthUserRole;
   tokenBalance?: number;
@@ -40,6 +44,24 @@ export interface AuthSession extends Session {
   accessToken?: string;
   expiresAt?: number;
   user?: AuthSessionUser & NonNullable<Session['user']>;
+}
+
+function isLikelyEmail(value: string | null | undefined): boolean {
+  return typeof value === 'string' && value.includes('@');
+}
+
+function pickPreferredName(...values: Array<string | null | undefined>): string | null {
+  const candidates = values
+    .filter((value): value is string => typeof value === 'string')
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  const preferred = candidates.find((value) => !isLikelyEmail(value));
+  return preferred ?? candidates[0] ?? null;
 }
 
 export function resolveAuthUserFromToken(token: AuthTokenPayload, adapter?: AuthBusinessAdapter): AuthUser {
@@ -88,15 +110,48 @@ export function createNextAuthOptions(options: NextAuthRouteOptions): NextAuthOp
           typedToken.expiresAt = account.expires_at ? account.expires_at * 1000 : undefined;
         }
 
+        if (typedToken.accessToken) {
+          const decodedAccessToken = decodeCasdoorAccessToken(typedToken.accessToken) as
+            | {
+                name?: string;
+                displayName?: string;
+                email?: string;
+                sub?: string;
+                id?: string;
+                isAdmin?: boolean;
+                role?: AuthUserRole;
+                tokenBalance?: number;
+                isVip?: boolean;
+              }
+            | null;
+
+          if (decodedAccessToken) {
+            typedToken.name = typedToken.name || decodedAccessToken.name || typedToken.displayName;
+            typedToken.displayName = typedToken.displayName || decodedAccessToken.displayName || decodedAccessToken.name;
+            typedToken.email = typedToken.email || decodedAccessToken.email;
+            typedToken.userId = typedToken.userId || decodedAccessToken.sub || decodedAccessToken.id;
+            typedToken.isAdmin = Boolean(typedToken.isAdmin ?? decodedAccessToken.isAdmin);
+            typedToken.role =
+              decodedAccessToken.role === 'admin' || decodedAccessToken.role === 'user'
+                ? decodedAccessToken.role
+                : typedToken.role;
+            typedToken.tokenBalance = typedToken.tokenBalance ?? decodedAccessToken.tokenBalance;
+            typedToken.isVip = typedToken.isVip ?? decodedAccessToken.isVip;
+          }
+        }
+
         if (profile && typeof profile === 'object') {
           const typedProfile = profile as Partial<AuthUser> & {
             sub?: string;
             id?: string;
             picture?: string;
+            displayName?: string;
           };
 
           typedToken.userId = typedProfile.id || typedProfile.sub || typedToken.userId;
           typedToken.name = typedProfile.name || typedToken.name;
+          typedToken.displayName =
+            (typedProfile as { displayName?: string }).displayName || typedToken.displayName;
           typedToken.email = typedProfile.email || typedToken.email;
           typedToken.picture = typedProfile.image || typedProfile.picture || typedToken.picture;
           typedToken.isAdmin = Boolean(typedProfile.isAdmin ?? typedToken.isAdmin);
@@ -130,9 +185,17 @@ export function createNextAuthOptions(options: NextAuthRouteOptions): NextAuthOp
 
         typedSession.accessToken = typedToken.accessToken;
         typedSession.expiresAt = typedToken.expiresAt;
+        const sessionName = pickPreferredName(
+          typedToken.name,
+          typedToken.displayName,
+          resolvedUser.name,
+          typedSession.user?.name,
+          typedToken.email,
+        );
         typedSession.user = {
           ...(typedSession.user || {}),
-          name: typedSession.user?.name || resolvedUser.name,
+          name: sessionName,
+          displayName: sessionName,
           email: typedSession.user?.email || resolvedUser.email,
           image: typedSession.user?.image || resolvedUser.image,
           id: resolvedUser.id,

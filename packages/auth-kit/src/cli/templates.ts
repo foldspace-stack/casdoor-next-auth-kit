@@ -346,26 +346,40 @@ export const adapter: AuthBusinessAdapter = {
   onUserSync: async (profile, tokens) => {
     const accessToken = tokens.accessToken ?? tokens.access_token ?? '';
     const decodedAccessToken = accessToken ? decodeCasdoorAccessToken(accessToken) : null;
-    const email =
-      profile.email ??
-      (typeof decodedAccessToken?.email === 'string' ? decodedAccessToken.email : null);
+    const pickNonEmptyString = (...values: Array<string | null | undefined>) => {
+      for (const value of values) {
+        if (typeof value !== 'string') {
+          continue;
+        }
+
+        const trimmed = value.trim();
+        if (trimmed) {
+          return trimmed;
+        }
+      }
+
+      return null;
+    };
+    const email = pickNonEmptyString(
+      profile.email,
+      typeof decodedAccessToken?.email === 'string' ? decodedAccessToken.email : null,
+    );
     const isAdmin =
       Boolean(profile.isAdmin) ||
       Boolean(decodedAccessToken?.isAdmin) ||
       isGlobalAdminEmail(email);
 
     return {
-      id: String(
-        profile.id ??
-          profile.sub ??
-          (typeof decodedAccessToken?.sub === 'string' ? decodedAccessToken.sub : null) ??
-          (typeof decodedAccessToken?.id === 'string' ? decodedAccessToken.id : null) ??
-          email ??
-          'casdoor-user',
-      ),
-      name: profile.name ?? profile.displayName ?? null,
+      id: pickNonEmptyString(
+        profile.id,
+        profile.sub,
+        typeof decodedAccessToken?.sub === 'string' ? decodedAccessToken.sub : null,
+        typeof decodedAccessToken?.id === 'string' ? decodedAccessToken.id : null,
+        email,
+      ) || 'casdoor-user',
+      name: pickNonEmptyString(profile.displayName, profile.name),
       email,
-      image: profile.picture ?? profile.avatarUrl ?? null,
+      image: pickNonEmptyString(profile.picture, profile.avatarUrl),
       isAdmin,
       role: isAdmin ? 'admin' : 'user',
       tokenBalance: 2580,
