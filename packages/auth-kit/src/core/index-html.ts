@@ -2,7 +2,8 @@ import type { AuthIndexHtmlOptions } from '../types';
 import { buildPkceAuthorizeBootstrapScript } from './pkce-storage.ts';
 
 const DEFAULT_CASDOOR_STATIC_ORIGIN = 'https://casdoor-static.foldspace.cn';
-const DEFAULT_CASDOOR_ORIGIN = process.env.NEXT_PUBLIC_CASDOOR_SERVER_URL || 'https://auth.heyaai.com';
+const DEFAULT_CASDOOR_ORIGIN =
+  process.env.NEXT_PUBLIC_CASDOOR_SERVER_URL || process.env.CASDOOR_SERVER_URL || '';
 
 const DEFAULT_ICON_HREF = 'https://cdn.casbin.org/img/favicon.png';
 const DEFAULT_MANIFEST_HREF = '/manifest.json';
@@ -200,6 +201,50 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
           window.location.replace = function (url) {
             return originalReplace(toProxyUrl(url))
           }
+        }
+
+        if (window.history && typeof window.history.replaceState === 'function') {
+          try {
+            var originalHistoryReplaceState = window.history.replaceState.bind(window.history)
+            window.history.replaceState = function () {
+              if (arguments.length > 2) {
+                arguments[2] = toProxyUrl(arguments[2])
+              }
+              return originalHistoryReplaceState.apply(this, arguments)
+            }
+          } catch (error) {
+            console.warn('[casdoor-next-auth-kit] history.replaceState patch failed', error)
+          }
+        }
+
+        if (window.history && typeof window.history.pushState === 'function') {
+          try {
+            var originalHistoryPushState = window.history.pushState.bind(window.history)
+            window.history.pushState = function () {
+              if (arguments.length > 2) {
+                arguments[2] = toProxyUrl(arguments[2])
+              }
+              return originalHistoryPushState.apply(this, arguments)
+            }
+          } catch (error) {
+            console.warn('[casdoor-next-auth-kit] history.pushState patch failed', error)
+          }
+        }
+
+        try {
+          var locationDescriptor = Object.getOwnPropertyDescriptor(Location.prototype, 'href')
+          if (locationDescriptor && locationDescriptor.configurable && locationDescriptor.set) {
+            Object.defineProperty(Location.prototype, 'href', {
+              configurable: true,
+              enumerable: locationDescriptor.enumerable,
+              get: locationDescriptor.get,
+              set: function (value) {
+                return locationDescriptor.set.call(this, toProxyUrl(value))
+              },
+            })
+          }
+        } catch (error) {
+          console.warn('[casdoor-next-auth-kit] location href patch failed', error)
         }
 
 ${buildPkceAuthorizeBootstrapScript(casdoorOrigin)}

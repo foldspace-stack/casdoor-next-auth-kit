@@ -7,11 +7,19 @@ export function getPkceStorageKey(state: string): string {
   return `${pkceStoragePrefix}.${digest}`;
 }
 
+function base64UrlFromBinarySource(binarySource: string): string {
+  return btoa(binarySource).split('+').join('-').split('/').join('_').split('=').join('');
+}
+
 export function buildPkceAuthorizeBootstrapScript(casdoorOrigin: string): string {
   return String.raw`
         (function () {
           var casdoorOrigin = ${JSON.stringify(casdoorOrigin)}
           var storagePrefix = ${JSON.stringify(pkceStoragePrefix)}
+
+          function base64UrlFromBinarySource(binarySource) {
+            return btoa(binarySource).split('+').join('-').split('/').join('_').split('=').join('')
+          }
 
           async function buildStorageKey(state) {
             var digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(state))
@@ -20,7 +28,7 @@ export function buildPkceAuthorizeBootstrapScript(casdoorOrigin: string): string
             for (var index = 0; index < digestBytes.length; index++) {
               binary += String.fromCharCode(digestBytes[index])
             }
-            return storagePrefix + '.' + btoa(binary).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/g, '')
+            return storagePrefix + '.' + base64UrlFromBinarySource(binary)
           }
 
           async function createVerifierPair() {
@@ -36,7 +44,7 @@ export function buildPkceAuthorizeBootstrapScript(casdoorOrigin: string): string
             for (var index = 0; index < digestBytes.length; index++) {
               binary += String.fromCharCode(digestBytes[index])
             }
-            var challenge = btoa(binary).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/g, '')
+            var challenge = base64UrlFromBinarySource(binary)
             return { verifier: verifier, challenge: challenge }
           }
 
@@ -69,7 +77,7 @@ export function buildPkceAuthorizeBootstrapScript(casdoorOrigin: string): string
             var pair = await createVerifierPair()
             await savePkceVerifier(state, pair.verifier)
 
-            var authorizeUrl = new URL(pathname, casdoorOrigin)
+            var authorizeUrl = new URL(pathname, window.location.origin)
             authorizeUrl.search = window.location.search
             authorizeUrl.searchParams.set('code_challenge', pair.challenge)
             authorizeUrl.searchParams.set('code_challenge_method', 'S256')
@@ -88,6 +96,10 @@ export function buildCallbackBridgeScript(): string {
   return String.raw`
         (function () {
           var storagePrefix = ${JSON.stringify(pkceStoragePrefix)}
+
+          function base64UrlFromBinarySource(binarySource) {
+            return btoa(binarySource).split('+').join('-').split('/').join('_').split('=').join('')
+          }
 
           function buildErrorUrl(title, message, details) {
             var url = new URL('/callback/error', window.location.origin)
@@ -110,13 +122,15 @@ export function buildCallbackBridgeScript(): string {
             for (var index = 0; index < digestBytes.length; index++) {
               binary += String.fromCharCode(digestBytes[index])
             }
-            return storagePrefix + '.' + btoa(binary).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/g, '')
+            return storagePrefix + '.' + base64UrlFromBinarySource(binary)
           }
 
           async function postVerifier() {
             var params = new URLSearchParams(window.location.search)
             var code = params.get('code')
             var state = params.get('state')
+            var key = null
+            var verifier = null
 
             if (!code) {
               window.location.replace(buildErrorUrl('缺少授权码', 'Casdoor 回调没有带回 code，这通常意味着授权流程未完成。', 'no_code'))
@@ -128,12 +142,20 @@ export function buildCallbackBridgeScript(): string {
               return
             }
 
-            var key = await getStorageKey(state)
-            var verifier = null
+            try {
+              key = await getStorageKey(state)
+            } catch (error) {
+              console.error('[casdoor-next-auth-kit] callback bridge key failed', error)
+              window.location.replace(buildErrorUrl('回调交换失败', '浏览器桥接页无法生成 verifier key，请重新发起登录。', 'callback_exchange_failed:get_storage_key:' + (error && error.message ? error.message : 'unknown_error')))
+              return
+            }
+
             try {
               verifier = sessionStorage.getItem(key) || localStorage.getItem(key)
             } catch (error) {
-              verifier = null
+              console.error('[casdoor-next-auth-kit] callback bridge storage failed', error)
+              window.location.replace(buildErrorUrl('回调交换失败', '浏览器桥接页无法读取本地 verifier，请重新发起登录。', 'callback_exchange_failed:read_storage:' + (error && error.message ? error.message : 'unknown_error')))
+              return
             }
 
             if (!verifier) {
@@ -141,11 +163,18 @@ export function buildCallbackBridgeScript(): string {
               return
             }
 
-            var response = await fetch(window.location.pathname, {
-              method: 'POST',
-              headers: { 'content-type': 'application/json' },
-              body: JSON.stringify({ code: code, state: state, verifier: verifier }),
-            })
+            var response = null
+            try {
+              response = await fetch(window.location.pathname, {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ code: code, state: state, verifier: verifier }),
+              })
+            } catch (error) {
+              console.error('[casdoor-next-auth-kit] callback bridge fetch failed', error)
+              window.location.replace(buildErrorUrl('回调交换失败', '浏览器桥接页无法向服务端提交授权码，请重新发起登录。', 'callback_exchange_failed:fetch:' + (error && error.message ? error.message : 'unknown_error')))
+              return
+            }
 
             try {
               sessionStorage.removeItem(key)
@@ -159,14 +188,17 @@ export function buildCallbackBridgeScript(): string {
             }
 
             if (!response.ok) {
-              throw new Error('Callback exchange failed')
+              window.location.replace(buildErrorUrl('回调交换失败', '服务端没有成功完成授权码交换，请重新发起登录。', 'callback_exchange_failed:response_not_ok:' + response.status))
+              return
             }
 
             var payload = null
             try {
               payload = await response.json()
             } catch (error) {
-              payload = null
+              console.error('[casdoor-next-auth-kit] callback bridge json failed', error)
+              window.location.replace(buildErrorUrl('回调交换失败', '服务端返回了非 JSON 响应，请重新发起登录。', 'callback_exchange_failed:json:' + (error && error.message ? error.message : 'unknown_error')))
+              return
             }
 
             window.location.replace((payload && payload.redirectUrl) || response.url || '/')

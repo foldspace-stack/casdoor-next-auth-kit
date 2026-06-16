@@ -21,11 +21,13 @@ test('authorize bootstrap script stores verifier in browser storage and appends 
   assert.match(script, /localStorage\.setItem/);
   assert.match(script, /code_challenge_method/);
   assert.match(script, /window\.location\.replace\(authorizeUrl\.toString\(\)\)/);
+  assert.match(script, /split\('\+'\)\.join\('-'\)\.split\('\/'\)\.join\('_'\)\.split\('='\)\.join\(''\)/);
 });
 
 test('callback bridge script posts verifier back to the callback endpoint', () => {
   const script = buildCallbackBridgeScript();
 
+  assert.match(script, /function base64UrlFromBinarySource/);
   assert.match(script, /fetch\(window\.location\.pathname/);
   assert.match(script, /method: 'POST'/);
   assert.match(script, /verifier/);
