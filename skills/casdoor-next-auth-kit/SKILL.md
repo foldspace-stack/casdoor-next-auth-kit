@@ -50,6 +50,15 @@ pnpm --dir packages/auth-kit test
 
 如果 guard 失败，优先修实现或文档，不要绕过 guard；除非 Casdoor 上游协议真的变化，并且同步更新 `.x.http` 级别的原站请求依据和对应测试。
 
+仓库还配置了原生 Git pre-commit hook：
+
+- hook 文件：`.githooks/pre-commit`
+- 安装命令：`pnpm hooks:install`
+- 自动安装：根 `package.json` 的 `prepare` 会执行 `scripts/install-git-hooks.mjs`，把 `core.hooksPath` 指到 `.githooks`
+- 触发范围：当暂存区包含支付代理、cookie 白名单、相关测试、guard 脚本、skill 文档、auth-kit package 脚本或 CI 配置时，pre-commit 会自动执行 `pnpm --dir packages/auth-kit test`
+
+不要用 `git commit --no-verify` 绕过这个 hook。若必须临时绕过，需要在提交说明或 PR 描述中写明原因，并补跑 `pnpm --dir packages/auth-kit test` 的结果。
+
 ## 源码仓库
 
 - 仓库路径：`/root/projects/foldspace-stack/casdoor-next-auth-kit`

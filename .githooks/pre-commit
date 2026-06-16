@@ -1,0 +1,27 @@
+#!/usr/bin/env sh
+set -eu
+
+changed_files="$(git diff --cached --name-only --diff-filter=ACMR)"
+
+should_check_payment_proxy=0
+for file in $changed_files; do
+  case "$file" in
+    packages/auth-kit/src/casdoor/proxy.ts|\
+    packages/auth-kit/src/casdoor/proxy-headers.ts|\
+    packages/auth-kit/test/casdoor-proxy.test.ts|\
+    packages/auth-kit/test/proxy-headers.test.ts|\
+    packages/auth-kit/scripts/guard-payment-proxy.mjs|\
+    packages/auth-kit/package.json|\
+    skills/casdoor-next-auth-kit/SKILL.md|\
+    .github/workflows/ci.yml)
+      should_check_payment_proxy=1
+      ;;
+  esac
+done
+
+if [ "$should_check_payment_proxy" -eq 0 ]; then
+  exit 0
+fi
+
+echo "Running payment proxy guard before commit..."
+pnpm --dir packages/auth-kit test

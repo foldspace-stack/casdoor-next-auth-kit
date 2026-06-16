@@ -11,6 +11,8 @@
     "check": "pnpm --filter demo check",
     "build:auth-kit": "pnpm --filter @foldspace-fe/casdoor-next-auth-kit build",
     "build:demo": "pnpm --filter demo build",
-    "skill:install": "node scripts/install-skill.mjs"
+    "skill:install": "node scripts/install-skill.mjs",
+    "hooks:install": "node scripts/install-git-hooks.mjs",
+    "prepare": "node scripts/install-git-hooks.mjs"
   }
 }
