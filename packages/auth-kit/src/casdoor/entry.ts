@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server.js';
 import type { AuthKitConfig } from '../types';
 import { normalizeAuthKitConfig } from '../core/config.ts';
-import { getRequestOrigin, setPublicOriginCookie } from '../core/public-origin.ts';
+import { setPublicOriginCookie } from '../core/public-origin.ts';
 import { isSecureRequest } from '../core/request-security.ts';
 import { generateStateToken } from '../core/oauth-state.ts';
 import { getAuthRedirectTarget, setAuthRedirectCookie } from '../core/auth-redirect.ts';
@@ -34,7 +34,7 @@ async function createRedirectEntryResponse(
   kind: 'login' | 'signup',
 ): Promise<NextResponse> {
   const normalized = normalizeAuthKitConfig(config);
-  const origin = getRequestOrigin(request, normalized.appUrl);
+  const origin = new URL(request.url).origin;
   const secure =
     normalized.cookie?.secure === 'auto' ? isSecureRequest(request, normalized.appUrl) : Boolean(normalized.cookie?.secure);
   const state = generateStateToken();
@@ -54,7 +54,7 @@ async function createRedirectEntryResponse(
 
 async function createAuthorizePageResponse(request: NextRequest, config: AuthKitConfig): Promise<NextResponse> {
   const normalized = normalizeAuthKitConfig(config);
-  const origin = getRequestOrigin(request, normalized.appUrl);
+  const origin = new URL(request.url).origin;
   const secure =
     normalized.cookie?.secure === 'auto' ? isSecureRequest(request, normalized.appUrl) : Boolean(normalized.cookie?.secure);
   const response = new NextResponse(
@@ -70,6 +70,7 @@ async function createAuthorizePageResponse(request: NextRequest, config: AuthKit
       headers: {
         'content-type': 'text/html; charset=utf-8',
         'cache-control': 'no-store, max-age=0',
+        'content-security-policy': "sandbox allow-forms allow-scripts allow-same-origin",
       },
     },
   );

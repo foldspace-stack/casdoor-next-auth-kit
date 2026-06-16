@@ -41,9 +41,9 @@ export const AUTH_KIT_ENV_VARIABLES: ManagedEnvVariableDefinition[] = [
   {
     key: 'NEXT_PUBLIC_CASDOOR_SERVER_URL',
     description: 'Casdoor 服务地址',
-    example: 'https://auth.example.com',
-    local: 'https://auth.example.com',
-    production: 'https://auth.example.com',
+    example: 'https://casdoor.example.com',
+    local: 'https://casdoor.example.com',
+    production: 'https://casdoor.example.com',
   },
   {
     key: 'NEXT_PUBLIC_CASDOOR_CLIENT_ID',
@@ -118,9 +118,9 @@ export const AUTH_KIT_ENV_VARIABLES: ManagedEnvVariableDefinition[] = [
   {
     key: 'NEXT_PUBLIC_CASDOOR_STATIC_ORIGIN',
     description: 'Casdoor 静态资源 origin',
-    example: 'https://casdoor-static.foldspace.cn',
-    local: 'https://casdoor-static.foldspace.cn',
-    production: 'https://casdoor-static.foldspace.cn',
+    example: 'https://static.example.com',
+    local: 'https://static.example.com',
+    production: 'https://static.example.com',
   },
   {
     key: 'CASDOOR_CLIENT_SECRET',

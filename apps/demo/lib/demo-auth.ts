@@ -4,7 +4,7 @@ export const demoAuthConfig: AuthKitConfig = {
   appUrl: process.env.APP_URL ?? 'http://localhost:3000',
   nextauthSecret: process.env.NEXTAUTH_SECRET ?? 'demo-secret',
   casdoor: {
-    serverUrl: process.env.CASDOOR_SERVER_URL ?? 'https://auth.example.com',
+    serverUrl: process.env.NEXT_PUBLIC_CASDOOR_SERVER_URL ?? process.env.CASDOOR_SERVER_URL ?? 'http://localhost:5177',
     clientId: process.env.CASDOOR_CLIENT_ID ?? 'client-id',
     clientSecret: process.env.CASDOOR_CLIENT_SECRET ?? 'client-secret',
     appName: process.env.CASDOOR_APP_NAME ?? 'demo-app',

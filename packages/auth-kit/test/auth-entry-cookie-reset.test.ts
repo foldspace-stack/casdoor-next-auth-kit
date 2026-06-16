@@ -79,6 +79,21 @@ test('login entry clears stale auth cookies before redirecting', async () => {
   assert.equal(hasCookieSet(cookies, 'pkce_code_verifier.'), false);
 });
 
+test('login entry keeps redirects on the current request origin even with an external referer', async () => {
+  const casdoorOrigin = new URL(authConfig.casdoor.serverUrl).origin;
+  const request = new NextRequest('http://localhost:5177/auth/login', {
+    headers: {
+      cookie: staleCookieHeader,
+      referer: `${casdoorOrigin}/login/oauth/authorize`,
+    },
+  });
+
+  const response = await createLoginEntryResponse(request, authConfig as any);
+
+  assert.equal(response.status, 307);
+  assert.match(response.headers.get('location') ?? '', /^http:\/\/localhost:5177\/login\/oauth\/authorize/);
+});
+
 test('signup entry clears stale auth cookies before redirecting', async () => {
   const request = new NextRequest('http://localhost:5177/auth/signup', {
     headers: { cookie: staleCookieHeader },
@@ -120,4 +135,5 @@ test('authorize entry clears stale auth cookies before returning html', async ()
   assert.equal(hasCookieDelete(cookies, 'next-auth.state'), true);
   assert.equal(hasCookieDelete(cookies, 'pkce_code_verifier.old-digest'), true);
   assert.equal(hasCookieSet(cookies, 'auth_origin'), true);
+  assert.match(response.headers.get('content-security-policy') ?? '', /sandbox allow-forms allow-scripts allow-same-origin/);
 });
