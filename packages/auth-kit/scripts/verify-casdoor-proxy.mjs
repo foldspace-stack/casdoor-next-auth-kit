@@ -23,7 +23,7 @@ test('Casdoor proxy headers are whitelisted', () => {
       authorization: 'Bearer token',
       'content-type': 'application/json',
       'x-requested-with': 'fetch',
-      cookie: 'auth_origin=http://dev-chuangxiaoju.agent-lattice.cn; next-auth.session-token=test',
+      cookie: 'auth_origin=http://dev-chuangxiaoju.agent-lattice.cn; next-auth.session-token=test; casdoor_session_id=session; casdoor_access_token=token',
       origin: 'http://dev-chuangxiaoju.agent-lattice.cn',
       referer: 'http://dev-chuangxiaoju.agent-lattice.cn/login/oauth/authorize?foo=bar',
       'x-forwarded-host': 'dev-chuangxiaoju.agent-lattice.cn',
@@ -40,16 +40,18 @@ test('Casdoor proxy headers are whitelisted', () => {
     'authorization',
     'content-type',
     'cookie',
+    'origin',
+    'referer',
     'x-requested-with',
   ]);
   assert.equal(headers.get('accept'), 'text/html');
   assert.equal(headers.get('accept-language'), 'zh-CN');
   assert.equal(headers.get('authorization'), 'Bearer token');
   assert.equal(headers.get('content-type'), 'application/json');
-  assert.match(headers.get('cookie') ?? '', /auth_origin=.*next-auth\.session-token=test/);
+  assert.equal(headers.get('cookie'), 'casdoor_session_id=session; casdoor_access_token=token');
+  assert.equal(headers.get('origin'), 'http://dev-chuangxiaoju.agent-lattice.cn');
+  assert.equal(headers.get('referer'), 'http://dev-chuangxiaoju.agent-lattice.cn/login/oauth/authorize?foo=bar');
   assert.equal(headers.get('x-requested-with'), 'fetch');
-  assert.equal(headers.has('origin'), false);
-  assert.equal(headers.has('referer'), false);
   assert.equal(headers.has('x-forwarded-host'), false);
   assert.equal(headers.has('x-forwarded-port'), false);
   assert.equal(headers.has('x-forwarded-proto'), false);
