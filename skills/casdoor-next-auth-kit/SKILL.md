@@ -32,6 +32,24 @@ metadata:
 
 在完成明显代码改动后，建议先跑 `pnpm lint`、`pnpm type-check` 和 `pnpm build`，再考虑提交或发布；这样可以尽早发现格式、类型和打包层面的回归。
 
+### 支付代理防回归护栏
+
+`packages/auth-kit` 的 `pnpm test` 已接入 `scripts/guard-payment-proxy.mjs`。这个脚本会在单测前做静态规则检查，防止下面这些改动被悄悄改回去：
+
+- 重新引入 `RAW_COOKIE_FORWARD_PATHS` / `shouldForwardRawCookies`，让支付接口转发整段浏览器 cookie
+- 把 `next-auth.session-token`、`__Secure-next-auth.session-token` 或分片 cookie 加进 Casdoor 默认 cookie 白名单
+- 移除 `buildCasdoorReferer()`，或把 `buy-product/get-product/get-payment/notify-payment` 的 referer 改回宿主页面、Casdoor 根路径或其它非原站页面
+- 移除从 `NEXT_PUBLIC_CASDOOR_SERVER_URL` / `CASDOOR_SERVER_URL` 推导 Casdoor origin 的逻辑
+- 从 skill 文档里删除同域 `/auth/api/*`、最小 Casdoor cookie、HTTPS Casdoor URL 和 Casdoor 原站 checkout 请求形态的说明
+
+维护 `packages/auth-kit/src/casdoor/proxy.ts`、`packages/auth-kit/src/casdoor/proxy-headers.ts` 或支付相关文档时，必须运行：
+
+```bash
+pnpm --dir packages/auth-kit test
+```
+
+如果 guard 失败，优先修实现或文档，不要绕过 guard；除非 Casdoor 上游协议真的变化，并且同步更新 `.x.http` 级别的原站请求依据和对应测试。
+
 ## 源码仓库
 
 - 仓库路径：`/root/projects/foldspace-stack/casdoor-next-auth-kit`
@@ -114,6 +132,10 @@ npx @foldspace-fe/casdoor-next-auth-kit@latest check
 - `/logout` — 注销路由，优先用 `Clear-Site-Data: "cookies"` 清空当前域 cookie，再补一轮 `Set-Cookie` 删除兜底，并跳转到首页或 `AuthKitConfig.logoutRedirectPath`；如果目标路径和当前页相同，则按刷新处理
 - `/auth/api/*` — Casdoor API 代理，所有个人操作的 API 请求通过此路径转发
 - billing 的购买页、二维码扫描区和支付状态面板都由宿主工程自己控制，套件只提供 headless hooks、Casdoor 购买适配器、支付回调 handler 和纯数据模型；`packages/auth-kit/src/core/index-html.ts` 不参与 billing 页面生成
+- 支付相关请求必须保持“浏览器只访问宿主同域 `/auth/api/*`，服务端代理再转到 Casdoor `/api/*`”的模型。不要让前端直接请求 `NEXT_PUBLIC_CASDOOR_SERVER_URL` 下的 `/api/buy-product`、`/api/get-product`、`/api/get-payment` 或 `notify-payment`，否则会重新引入跨域登录态、外域跳转和 cookie 体积问题。
+- `/auth/api/buy-product`、`/auth/api/get-product`、`/auth/api/get-payment`、`/auth/api/notify-payment/*` 转发时只能携带 Casdoor 最小会话 cookie：`casdoor_session_id` 和必要时的 `casdoor_access_token`。不要把 `next-auth.session-token`、`__Secure-next-auth.session-token` 或它们的分片 cookie 转给 Casdoor；这些 JWT 分片会让请求头持续膨胀，而且不是 Casdoor 原站支付接口需要的凭证。
+- 支付相关代理会把上游 `origin` 统一改成 Casdoor origin，并按原站页面语义生成 `referer`：商品购买和商品查询使用 `/products/{owner}/{product}/buy`，支付查询使用 `/payments/{owner}/{payment}/result`，支付通知使用 `/qrcode/{owner}/{payment}`。不要改回宿主页面 referer，也不要简单改成 Casdoor 根路径。
+- `NEXT_PUBLIC_CASDOOR_SERVER_URL` / `CASDOOR_SERVER_URL` 必须配置成 Casdoor 的真实协议和域名。生产 Casdoor 是 HTTPS 时必须写 `https://...`，写成 `http://...` 会出现 `casdoor_session_id` 已转发但上游仍返回 `Please login first` 的问题。
 - `/auth/login`、`/auth/signup`、`/login/oauth/authorize` 和 `/signup/oauth/authorize` 进入时，服务端响应要在首跳里隐式清理当前域残留的认证 cookie（含 session、CSRF、callback-url、state、oauth_state、pkce_code_verifier、auth_origin、auth_redirect），再继续进入同源授权流程，避免本地残留状态干扰新的登录/注册；这里不需要额外显式提示页或手动清理步骤
 - `/callback` 的 GET 首跳只负责返回回调桥接页，真正的 token exchange 放在 POST；PKCE verifier 只保存在浏览器 storage，不要再增加 cookie 读取的迁移兜底，因为 cookie 容量太大且这条链路已经废弃
 - `/signup/oauth/authorize` 的注册完成结果不应停留在 Casdoor 的 `/result/*` 页面，`packages/auth-kit/src/core/index-html.ts` 会在页面加载时和前端 `history` 变更时持续监控当前路径，只要落到 `/result/*` 就统一隐式重写回 `/auth/login?redirect=%2F`，让用户完成注册后自然回到登录页继续下一步
@@ -174,6 +196,8 @@ const billingCatalog = {
 ```
 
 商品购买的包内适配器会优先读取 Casdoor 商品详情，再按 `owner/name` 解析商品 ID，并自动选择可用 provider 后调用 `buy-product` 兼容接口；宿主只需要提供允许购买的商品 id 和相应的 Casdoor 接口 loader。loader 约定使用 Casdoor 的标准响应 envelope，然后从 `data` 中取出商品、组织、账号、应用或支付记录。`buy-product` 如果返回 `status: "error"`，包内会把 `msg` 里的错误信息和错误码透传到宿主的 `onPurchaseError` / `onPurchaseComplete`。`useBillingProductDetail` 会把商品详情里的 `providers` 和 `providerObjs` 暴露给宿主，`useBillingProductPurchaseOptions` 可以直接拿到商品详情、当前 provider 选择、当前选中 provider 对象和 setter，适合商品详情页按支付方式展示不同购买参数；宿主选中的 `providerName` 也可以直接传给 `purchaseProduct.run({ key, providerName })`，让包内适配器按这个 provider 下单。这个 hook 只是给单选场景提供默认态，如果宿主想同时渲染两个不同的支付入口，直接遍历 `providerObjs` 就行，`selectedProvider` 不会限制 UI 结构。`productId` 推荐写成 `owner/name` 形式，例如 `qixiaoju/创小剧积分包-50`，和 `GET /api/get-product?id=qixiaoju/创小剧积分包-50` 的查询值保持一致。支付结果轮询和 `get-account` / `get-application` / `get-payment` 这类浏览器侧查询，优先请求 `/auth/api/*` 同域代理；只有服务端或明确启用 CORS 的特殊场景，才考虑直接连 `NEXT_PUBLIC_CASDOOR_SERVER_URL` origin 的 `/api/*`。
+
+支付 checkout 的请求形态要贴近 Casdoor 原站：`buy-product` 是无 body 的 `POST`，参数放在 query string，例如 `id`、`providerName`、`pricingName`、`planName`、`userName`、`paymentEnv`、`customPrice`。宿主可以附加自己的 `orderRef`、`orderId`、`orderCode`、`amountCents` 等追踪参数，但不要把 JSON body 当成 Casdoor 标准输入，也不要依赖 `x-requested-with` 作为登录态依据。二维码弹窗需要从返回的 `data.payUrl` / `data.successUrl` / `data.name` 归一化出 `qrCodeUrl`、`checkoutUrl` 和 `paymentSessionId`。
 
 SaaS 订阅状态建议直接接 Casdoor 的 `get-pricing` / `get-plan` / `get-subscription` / `get-subscriptions`，产品购买后的订单列表和订单状态建议直接接 Casdoor 的 `get-order` / `get-orders` / `get-payment`。宿主本地的 `BillingSubscriptionState`、`BillingOrderHistoryItem`、`BillingPurchaseStatus` 只应该是归一化展示层，不应该成为真相源；如果宿主需要展示订阅计划价格、计划列表、订单详情或支付明细，优先从这些 Casdoor 查询 loader 里取 `data`。订阅 catalog 条目和商品 catalog 条目可以共存，但 UI 和购买参数生成要保持两个分支各自独立。
 
@@ -336,8 +360,9 @@ export async function proxy(request: NextRequest) {
 export const config = { matcher: '/:path*' };
 ```
 
-> `/auth/api/*` 路径不需要宿主额外处理头部清理。套件的 `proxyRequest` 在转发给 Casdoor 时会自动删除 `origin`、`referer`、`x-forwarded-host`、`x-forwarded-port`、`x-forwarded-proto` 和 `forwarded`，并且会优先从 NextAuth 会话 cookie 里还原 `accessToken` 补上 `Authorization: Bearer ...`，确保上游能识别当前登录态时只看到干净且完整的请求头。
-> `/auth/api/login`、`/auth/api/signup`、`/auth/api/get-app-login`、`/auth/api/get-account` 和 `/auth/api/get-session` 属于导航/登录 bootstrap 接口，即使上游返回 3xx 也要原样透传，不能像数据 API 一样折叠成 `Please login first`；`buy-product`、`get-payment`、`notify-payment` 这类数据型接口仍保持 JSON 错误封装。
+> `/auth/api/*` 路径不需要宿主额外处理头部清理。套件的 `proxyRequest` 在转发给 Casdoor 时会从 `NEXT_PUBLIC_CASDOOR_SERVER_URL` / `CASDOOR_SERVER_URL` 解析真实 Casdoor origin，并把上游请求头改写成 Casdoor origin。支付相关接口还会按 Casdoor 原站页面生成 referer，例如 `/products/{owner}/{product}/buy`、`/payments/{owner}/{payment}/result` 和 `/qrcode/{owner}/{payment}`。不要在宿主 `proxy.ts` 里二次改写这些头，也不要把它们改回宿主页面来源。
+> `/auth/api/*` 的 cookie 默认只转发 `casdoor_session_id` 和 `casdoor_access_token`。即使套件能从 NextAuth 会话 cookie 里还原 `accessToken` 并补上 `Authorization: Bearer ...`，也不能把 `next-auth.session-token` 或分片 cookie 原样传给 Casdoor；这会重新触发大 cookie 问题，并可能让支付接口返回 `Please login first`。
+> `/auth/api/login`、`/auth/api/signup`、`/auth/api/get-app-login`、`/auth/api/get-account` 和 `/auth/api/get-session` 属于导航/登录 bootstrap 接口，即使上游返回 3xx 也要跟随上游跳转并把 `Set-Cookie` 带回宿主同域，不能像数据 API 一样折叠成 `Please login first`；`buy-product`、`get-payment`、`notify-payment` 这类数据型接口仍保持 JSON 错误封装，绝不 302 到外域登录页。
 
 ### 实现要求
 
@@ -347,6 +372,7 @@ export const config = { matcher: '/:path*' };
 - 不要修改宿主 app root 下的 `/(auth-kit)` 受管路由壳
 - 不要在 `proxy.ts` 里硬编码 Casdoor 域名
 - 不要在认证路径上做 origin 307 重写——origin 规范由边缘层和套件代理头部清理共同完成
+- 不要在宿主业务代码里绕过 `/auth/api/*` 直连 Casdoor 支付 API。用户登录态、cookie 白名单、referer 和外域跳转收敛都在套件代理里完成。
 
 ### 与环境变量的关系
 
