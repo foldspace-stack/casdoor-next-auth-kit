@@ -81,6 +81,96 @@ test('casdoor api proxy derives authorization from nextauth session token', asyn
   assert.equal(response.status, 200);
 });
 
+test('casdoor api proxy strips chunked nextauth cookies from payment requests', async () => {
+  const originalFetch = global.fetch;
+  global.fetch = (async (_url: RequestInfo | URL, init?: RequestInit) => {
+    const headers = init?.headers as Headers | undefined;
+    assert.equal(headers?.get('origin'), 'https://casdoor.local');
+    assert.equal(headers?.get('referer'), 'https://casdoor.local/products/qixiaoju/points-500/buy');
+    assert.equal(headers?.get('cookie'), 'casdoor_session_id=session-id; casdoor_access_token=casdoor-access-token');
+    assert.equal(headers?.get('cookie')?.includes('next-auth.session-token'), false);
+    assert.equal(headers?.get('cookie')?.includes('__Secure-next-auth.session-token'), false);
+    assert.equal(headers?.get('cookie')?.includes('unrelated='), false);
+
+    return new Response(JSON.stringify({ status: 'ok', msg: 'success', data: null, data2: null, data3: null }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    });
+  }) as never;
+
+  try {
+    const handler = createCasdoorApiProxyHandler(
+      {
+        ...createAuthKitConfig(),
+        casdoor: {
+          ...createAuthKitConfig().casdoor,
+          serverUrl: 'https://casdoor.local',
+        },
+      },
+      '/auth/api',
+      '/api',
+    );
+
+    const request = new NextRequest('http://localhost:3000/auth/api/buy-product?id=qixiaoju%2Fpoints-500&providerName=wechat', {
+      method: 'POST',
+      headers: {
+        cookie: [
+          'next-auth.session-token.0=chunk-0',
+          'next-auth.session-token.1=chunk-1',
+          '__Secure-next-auth.session-token.0=secure-chunk-0',
+          'casdoor_session_id=session-id',
+          'casdoor_access_token=casdoor-access-token',
+          'unrelated=value',
+        ].join('; '),
+      },
+    });
+
+    const response = await handler(request);
+    assert.equal(response.status, 200);
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
+test('casdoor api proxy keeps Casdoor page referers for payment APIs', async () => {
+  const originalFetch = global.fetch;
+  const referers: string[] = [];
+  global.fetch = (async (_url: RequestInfo | URL, init?: RequestInit) => {
+    const headers = init?.headers as Headers | undefined;
+    referers.push(headers?.get('referer') || '');
+    return new Response(JSON.stringify({ status: 'ok', msg: 'success', data: null, data2: null, data3: null }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    });
+  }) as never;
+
+  try {
+    const handler = createCasdoorApiProxyHandler(
+      {
+        ...createAuthKitConfig(),
+        casdoor: {
+          ...createAuthKitConfig().casdoor,
+          serverUrl: 'https://casdoor.local',
+        },
+      },
+      '/auth/api',
+      '/api',
+    );
+
+    await handler(new NextRequest('http://localhost:3000/auth/api/get-product?id=qixiaoju%2Fpoints-500'));
+    await handler(new NextRequest('http://localhost:3000/auth/api/get-payment?id=qixiaoju%2Fpayment_1'));
+    await handler(new NextRequest('http://localhost:3000/auth/api/notify-payment/qixiaoju/payment_1', { method: 'POST' }));
+
+    assert.deepEqual(referers, [
+      'https://casdoor.local/products/qixiaoju/points-500/buy',
+      'https://casdoor.local/payments/qixiaoju/payment_1/result',
+      'https://casdoor.local/qrcode/qixiaoju/payment_1',
+    ]);
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
 test('casdoor api proxy follows upstream redirect for login entry without exposing external location', async () => {
   const originalFetch = global.fetch;
   let callCount = 0;
