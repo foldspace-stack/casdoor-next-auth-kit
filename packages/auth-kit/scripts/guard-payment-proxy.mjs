@@ -52,7 +52,7 @@ assertRule(
 );
 
 assertRule(
-  proxyHeadersSource.includes('支付 / buy-product 路径不要使用这个选项') &&
+  proxyHeadersSource.includes('支付接口不要使用 includeAllCookies') &&
     proxyHeadersSource.includes('当前 createCasdoorApiProxyHandler 不应为支付路径打开 includeAllCookies'),
   'includeAllCookies must remain documented as forbidden for payment APIs',
 );
