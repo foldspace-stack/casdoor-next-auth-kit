@@ -38,9 +38,10 @@ metadata:
 
 - 重新引入 `RAW_COOKIE_FORWARD_PATHS` / `shouldForwardRawCookies`，让支付接口转发整段浏览器 cookie
 - 把 `next-auth.session-token`、`__Secure-next-auth.session-token` 或分片 cookie 加进 Casdoor 默认 cookie 白名单
+- 移除服务端从 NextAuth 会话里的 Casdoor `accessToken` 补 `Authorization: Bearer ...` 或最小 `casdoor_access_token` 的逻辑，又退回只依赖浏览器里偶发存在的 Casdoor cookie
 - 移除 `buildCasdoorReferer()`，或把 `buy-product/get-product/get-payment/notify-payment` 的 referer 改回宿主页面、Casdoor 根路径或其它非原站页面
 - 移除从 `NEXT_PUBLIC_CASDOOR_SERVER_URL` / `CASDOOR_SERVER_URL` 推导 Casdoor origin 的逻辑
-- 从 skill 文档里删除同域 `/auth/api/*`、最小 Casdoor cookie、HTTPS Casdoor URL 和 Casdoor 原站 checkout 请求形态的说明
+- 从 skill 文档里删除同域 `/auth/api/*`、最小 Casdoor cookie、服务端 accessToken 补齐、HTTPS Casdoor URL 和 Casdoor 原站 checkout 请求形态的说明
 
 维护 `packages/auth-kit/src/casdoor/proxy.ts`、`packages/auth-kit/src/casdoor/proxy-headers.ts` 或支付相关文档时，必须运行：
 
@@ -143,6 +144,7 @@ npx @foldspace-fe/casdoor-next-auth-kit@latest check
 - billing 的购买页、二维码扫描区和支付状态面板都由宿主工程自己控制，套件只提供 headless hooks、Casdoor 购买适配器、支付回调 handler 和纯数据模型；`packages/auth-kit/src/core/index-html.ts` 不参与 billing 页面生成
 - 支付相关请求必须保持“浏览器只访问宿主同域 `/auth/api/*`，服务端代理再转到 Casdoor `/api/*`”的模型。不要让前端直接请求 `NEXT_PUBLIC_CASDOOR_SERVER_URL` 下的 `/api/buy-product`、`/api/get-product`、`/api/get-payment` 或 `notify-payment`，否则会重新引入跨域登录态、外域跳转和 cookie 体积问题。
 - `/auth/api/buy-product`、`/auth/api/get-product`、`/auth/api/get-payment`、`/auth/api/notify-payment/*` 转发时只能携带 Casdoor 最小会话 cookie：`casdoor_session_id` 和必要时的 `casdoor_access_token`。不要把 `next-auth.session-token`、`__Secure-next-auth.session-token` 或它们的分片 cookie 转给 Casdoor；这些 JWT 分片会让请求头持续膨胀，而且不是 Casdoor 原站支付接口需要的凭证。
+- 服务端发起支付 checkout 或个人资料转发时，不能假设浏览器一定持有 `casdoor_access_token` cookie。可以从当前 NextAuth 会话中取 Casdoor `accessToken`，补 `Authorization: Bearer ...`，并在最小 cookie 白名单内补一个 `casdoor_access_token`；这不等于转发 NextAuth cookie，仍然禁止把 `next-auth.session-token` 分片传给 Casdoor。
 - 支付相关代理会把上游 `origin` 统一改成 Casdoor origin，并按原站页面语义生成 `referer`：商品购买和商品查询使用 `/products/{owner}/{product}/buy`，支付查询使用 `/payments/{owner}/{payment}/result`，支付通知使用 `/qrcode/{owner}/{payment}`。不要改回宿主页面 referer，也不要简单改成 Casdoor 根路径。
 - `NEXT_PUBLIC_CASDOOR_SERVER_URL` / `CASDOOR_SERVER_URL` 必须配置成 Casdoor 的真实协议和域名。生产 Casdoor 是 HTTPS 时必须写 `https://...`，写成 `http://...` 会出现 `casdoor_session_id` 已转发但上游仍返回 `Please login first` 的问题。
 - `/auth/login`、`/auth/signup`、`/login/oauth/authorize` 和 `/signup/oauth/authorize` 进入时，服务端响应要在首跳里隐式清理当前域残留的认证 cookie（含 session、CSRF、callback-url、state、oauth_state、pkce_code_verifier、auth_origin、auth_redirect），再继续进入同源授权流程，避免本地残留状态干扰新的登录/注册；这里不需要额外显式提示页或手动清理步骤
@@ -205,7 +207,7 @@ const billingCatalog = {
 };
 ```
 
-商品购买的包内适配器会优先读取 Casdoor 商品详情，再按 `owner/name` 解析商品 ID，并自动选择可用 provider 后调用 `buy-product` 兼容接口；宿主只需要提供允许购买的商品 id 和相应的 Casdoor 接口 loader。loader 约定使用 Casdoor 的标准响应 envelope，然后从 `data` 中取出商品、组织、账号、应用或支付记录。`buy-product` 如果返回 `status: "error"`，包内会把 `msg` 里的错误信息和错误码透传到宿主的 `onPurchaseError` / `onPurchaseComplete`。`useBillingProductDetail` 会把商品详情里的 `providers` 和 `providerObjs` 暴露给宿主，`useBillingProductPurchaseOptions` 可以直接拿到商品详情、当前 provider 选择、当前选中 provider 对象和 setter，适合商品详情页按支付方式展示不同购买参数；宿主选中的 `providerName` 也可以直接传给 `purchaseProduct.run({ key, providerName })`，让包内适配器按这个 provider 下单。这个 hook 只是给单选场景提供默认态，如果宿主想同时渲染两个不同的支付入口，直接遍历 `providerObjs` 就行，`selectedProvider` 不会限制 UI 结构。`productId` 推荐写成 `owner/name` 形式，例如 `qixiaoju/创小剧积分包-50`，和 `GET /api/get-product?id=qixiaoju/创小剧积分包-50` 的查询值保持一致。支付结果轮询和 `get-account` / `get-application` / `get-payment` 这类浏览器侧查询，优先请求 `/auth/api/*` 同域代理；只有服务端或明确启用 CORS 的特殊场景，才考虑直接连 `NEXT_PUBLIC_CASDOOR_SERVER_URL` origin 的 `/api/*`。
+商品购买的包内适配器会优先读取 Casdoor 商品详情，再按 `owner/name` 解析商品 ID，并自动选择可用 provider 后调用 `buy-product` 兼容接口；宿主只需要提供允许购买的商品 id 和相应的 Casdoor 接口 loader。loader 约定使用 Casdoor 的标准响应 envelope，然后从 `data` 中取出商品、组织、账号、应用或支付记录。`buy-product` 如果返回 `status: "error"`，包内会把 `msg` 里的错误信息和错误码透传到宿主的 `onPurchaseError` / `onPurchaseComplete`。`useBillingProductDetail` 会把商品详情里的 `providers` 和 `providerObjs` 暴露给宿主，`useBillingProductPurchaseOptions` 可以直接拿到商品详情、当前 provider 选择、当前选中 provider 对象和 setter，适合商品详情页按支付方式展示不同购买参数；宿主选中的 `providerName` 也可以直接传给 `purchaseProduct.run({ key, providerName })`，让包内适配器按这个 provider 下单。这个 hook 只是给单选场景提供默认态，如果宿主想同时渲染两个不同的支付入口，直接遍历 `providerObjs` 就行，`selectedProvider` 不会限制 UI 结构。`productId` 推荐写成 `owner/name` 形式，例如 `qixiaoju/创小剧积分包-50`，和 `GET /api/get-product?id=qixiaoju/创小剧积分包-50` 的查询值保持一致。支付结果轮询和 `get-account` / `get-application` / `get-payment` 这类浏览器侧查询，优先请求 `/auth/api/*` 同域代理；只有服务端或明确启用 CORS 的特殊场景，才考虑直接连 `NEXT_PUBLIC_CASDOOR_SERVER_URL` origin 的 `/api/*`。如果线上 Coolify / Traefik / 多域名部署中，宿主服务端 self-fetch 本域 `/auth/api/*` 返回 `Please login first` 或网络失败，服务端可以兜底直连 Casdoor `/api/*`；这个兜底必须只使用 `NEXT_PUBLIC_CASDOOR_SERVER_URL` / `CASDOOR_SERVER_URL` 推导上游 origin，并继续套用最小 cookie 白名单和服务端 accessToken 补齐规则，浏览器请求路径仍保持宿主同源。
 
 支付 checkout 的请求形态要贴近 Casdoor 原站：`buy-product` 是无 body 的 `POST`，参数放在 query string，例如 `id`、`providerName`、`pricingName`、`planName`、`userName`、`paymentEnv`、`customPrice`。宿主可以附加自己的 `orderRef`、`orderId`、`orderCode`、`amountCents` 等追踪参数，但不要把 JSON body 当成 Casdoor 标准输入，也不要依赖 `x-requested-with` 作为登录态依据。二维码弹窗需要从返回的 `data.payUrl` / `data.successUrl` / `data.name` 归一化出 `qrCodeUrl`、`checkoutUrl` 和 `paymentSessionId`。
 
@@ -445,6 +447,7 @@ NEXTAUTH_URL=
 - 宿主项目拥有 Prisma schema、迁移脚本和持久化实现的完全控制权
 - 业务特有的数据表和写入逻辑应保留在宿主项目中，不应混入认证套件
 - 套件通过接口约定宿主项目必须提供哪些字段（如 Casdoor 用户 ID、用户名等），宿主项目自行决定存储方式
+- Casdoor `User.name` 是登录名/用户主键，宿主账号页保存“昵称”或展示名时只能写 `displayName`，不能把 `displayName` 回写到 `name`。`realName`、`jobTitle`、`companyName`、`companyAddress`、`companyCode` 等不在 Casdoor 个人接口里的扩展字段应由宿主自己的 `users` 表或业务表保存，不要强塞进 Casdoor 标准用户对象。
 - 如果宿主使用 Drizzle，这里的 schema 输出应理解为 DDL / migration 片段，由宿主合并进自己的 Drizzle schema 或 SQL migration；Prisma 项目仍然使用 `prisma/auth-kit.prisma`
 - 默认生成的宿主 app root 下 `/(auth-kit)/auth-config.ts` 是自包含的，能够在没有宿主数据库、`@/lib/db` 或额外权限模块的情况下直接编译；billing 处理器会随宿主布局生成到 `lib/billing/payment-success.ts` 和 `lib/billing/payment-finished.ts`，或者在 `src/app` 项目下生成到 `src/lib/billing/payment-success.ts` 和 `src/lib/billing/payment-finished.ts`，`auth-config.ts` 会直接导入这两个默认文件。若宿主需要落库、角色同步或自定义管理员策略，可以再在对应 custom block 里接入自己的实现
 
