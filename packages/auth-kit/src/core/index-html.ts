@@ -75,13 +75,9 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
             return
           }
 
-          footer.innerHTML = window.DEFAULT_CASDOOR_POWERED_BY_HTML
-        }
-
-        if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', applyPoweredByHtml, { once: true })
-        } else {
-          applyPoweredByHtml()
+          if (footer.innerHTML !== window.DEFAULT_CASDOOR_POWERED_BY_HTML) {
+            footer.innerHTML = window.DEFAULT_CASDOOR_POWERED_BY_HTML
+          }
         }
 
         function isResultPath(pathname) {
@@ -355,8 +351,9 @@ ${buildPkceAuthorizeBootstrapScript(casdoorOrigin)}
             mutations.forEach(function (mutation) {
               mutation.addedNodes.forEach(rewriteElement)
             })
+            applyPoweredByHtml()
           })
-          observer.observe(document.documentElement, { childList: true, subtree: true })
+          observer.observe(document.documentElement, { childList: true, subtree: true, characterData: true })
         }
       })()
     </script>
