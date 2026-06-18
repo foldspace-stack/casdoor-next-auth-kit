@@ -20,10 +20,11 @@ test('createAuthIndexHtml reads DEFAULT_CASDOOR defaults when options are omitte
     assert.match(html, /Env Demo Description/);
     assert.match(html, /https:\/\/example\.com\/custom-icon\.png/);
     assert.match(html, /Powered by Env Footer/);
-    assert.match(html, /window\.DEFAULT_CASDOOR_POWERED_BY_HTML = ".*Powered by Env Footer.*"/);
+    assert.match(html, /window\.DEFAULT_CASDOOR_POWERED_BY_HTML = '<span>Powered by Env Footer<\/span>'/);
     assert.match(html, /getElementById\('footer'\)/);
+    assert.match(html, /footer\.innerHTML === window\.DEFAULT_CASDOOR_POWERED_BY_HTML/);
     assert.match(html, /footer\.innerHTML = window\.DEFAULT_CASDOOR_POWERED_BY_HTML/);
-    assert.match(html, /footer\.innerHTML !== window\.DEFAULT_CASDOOR_POWERED_BY_HTML/);
+    assert.match(html, /applyPoweredByHtml\(\)/);
     assert.match(html, /observer\.observe\(document\.documentElement, \{ childList: true, subtree: true, characterData: true \}\)/);
     assert.doesNotMatch(html, /https:\/\/cdn\.casbin\.org\/img\/favicon\.png/);
   } finally {

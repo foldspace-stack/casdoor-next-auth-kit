@@ -102,7 +102,7 @@
 - `packages/auth-kit/src/core/index-html.ts` 的默认图标地址要同时支持 `DEFAULT_CASDOOR_ICON_HREF` 环境变量覆盖，宿主若不传 `iconHref`，优先使用环境变量，再回退到内置 favicon。
 - `packages/auth-kit/src/core/index-html.ts` 的默认 `appName` 和 `description` 也要优先支持 `DEFAULT_CASDOOR_APP_NAME` 和 `DEFAULT_CASDOOR_DESCRIPTION`，宿主若不传对应参数，先读环境变量再回退到内置文案。
 - `packages/auth-kit/src/core/index-html.ts` 的底部 `powered by` HTML 片段也要支持 `DEFAULT_CASDOOR_POWERED_BY_HTML` 环境变量覆盖，宿主若不传对应片段，优先使用环境变量，再回退到空字符串。
-- `packages/auth-kit/src/core/index-html.ts` 还要持续监听 `#footer` 的变化；当 `window.DEFAULT_CASDOOR_POWERED_BY_HTML` 存在时，只要 footer 被改动就重新把 `<footer id="footer">...</footer>` 的内部恢复成该 HTML 片段。
+- `packages/auth-kit/src/core/index-html.ts` 还要持续监听 `#footer` 的变化；当 `window.DEFAULT_CASDOOR_POWERED_BY_HTML` 存在时，只要 footer 被改动就重新把 `<footer id="footer">...</footer>` 的内部恢复成该 HTML 片段，并且用内容比较避免重复写入造成观察器自触发死循环。
 - 不要再把 Casdoor API 改回 `/api/casdoor/*` 或其他与主框架冲突的前缀，宿主统一使用 `/auth/api/*`。
 - 不要再恢复旧的 `/login`、`/signup`、`/logout` 兼容入口，宿主只保留 app root 下 `/(auth-kit)` 的新路由。
 - 不要再把 `NEXTAUTH_URL` 当成公共站点 origin 的来源，公共 origin 优先由请求头、`referer`、`origin`、`x-forwarded-*` 和当前请求 URL 识别，`APP_URL` 只做最后兜底；不要再把这条规则改回“每个域名单独配置 APP_URL / NEXTAUTH_URL”的旧方案。

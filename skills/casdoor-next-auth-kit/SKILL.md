@@ -154,7 +154,7 @@ npx @foldspace-fe/casdoor-next-auth-kit@latest check
 - `packages/auth-kit/src/core/index-html.ts` 的默认图标地址支持 `DEFAULT_CASDOOR_ICON_HREF` 环境变量覆盖；宿主未显式传 `iconHref` 时，先读环境变量，再回退到内置 favicon
 - `packages/auth-kit/src/core/index-html.ts` 的默认 `appName` 和 `description` 也支持 `DEFAULT_CASDOOR_APP_NAME` 和 `DEFAULT_CASDOOR_DESCRIPTION` 环境变量覆盖；宿主未显式传对应参数时，先读环境变量，再回退到内置文案
 - `packages/auth-kit/src/core/index-html.ts` 的底部 `powered by` HTML 片段也支持 `DEFAULT_CASDOOR_POWERED_BY_HTML` 环境变量覆盖；宿主未显式传对应片段时，先读环境变量，再回退到空字符串
-- `packages/auth-kit/src/core/index-html.ts` 还会持续监听 `#footer` 的变化，若 `window.DEFAULT_CASDOOR_POWERED_BY_HTML` 存在，只要 footer 被改动就重新把内部恢复成该 HTML 片段
+- `packages/auth-kit/src/core/index-html.ts` 还会持续监听 `#footer` 的变化，若 `window.DEFAULT_CASDOOR_POWERED_BY_HTML` 存在，只要 footer 被改动就重新把内部恢复成该 HTML 片段，并通过内容比较避免重复写入导致观察器自触发死循环
 
 入口路由（login/signup）负责将用户引导至授权壳，授权壳在同源 iframe 或内嵌组件中渲染 Casdoor 界面，避免用户感知到离开宿主应用。
 

@@ -30,6 +30,17 @@ function escapeHtmlAttribute(value: string): string {
   return value.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 }
 
+function escapeJavaScriptSingleQuotedString(value: string): string {
+  return value
+    .replaceAll('\\', '\\\\')
+    .replaceAll("'", "\\'")
+    .replaceAll('\r', '\\r')
+    .replaceAll('\n', '\\n')
+    .replaceAll('\u2028', '\\u2028')
+    .replaceAll('\u2029', '\\u2029')
+    .replaceAll('</script>', '<\\/script>');
+}
+
 export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string {
   const staticOrigin = options.staticOrigin || DEFAULT_CASDOOR_STATIC_ORIGIN;
   const casdoorOrigin = options.casdoorOrigin || DEFAULT_CASDOOR_ORIGIN;
@@ -63,7 +74,7 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
         var proxyPathPrefix = proxyPrefix.replace(/\/$/, '')
         var applicationId = ${JSON.stringify((options.organizationName || 'built-in') + '/' + (options.appName || '创小剧 AI'))}
 
-        window.DEFAULT_CASDOOR_POWERED_BY_HTML = ${JSON.stringify(poweredByHtml)}
+        window.DEFAULT_CASDOOR_POWERED_BY_HTML = '${escapeJavaScriptSingleQuotedString(poweredByHtml)}'
 
         function applyPoweredByHtml() {
           if (!window.DEFAULT_CASDOOR_POWERED_BY_HTML) {
@@ -75,9 +86,17 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
             return
           }
 
-          if (footer.innerHTML !== window.DEFAULT_CASDOOR_POWERED_BY_HTML) {
-            footer.innerHTML = window.DEFAULT_CASDOOR_POWERED_BY_HTML
+          if (footer.innerHTML === window.DEFAULT_CASDOOR_POWERED_BY_HTML) {
+            return
           }
+
+          footer.innerHTML = window.DEFAULT_CASDOOR_POWERED_BY_HTML
+        }
+
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', applyPoweredByHtml, { once: true })
+        } else {
+          applyPoweredByHtml()
         }
 
         function isResultPath(pathname) {
