@@ -51,6 +51,7 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
     <meta name="theme-color" content="#000000" />
     <link rel="icon" href="/casdoor_favicon.ico" type="image/x-icon"/>
     <meta name="description" content="${escapeHtmlAttribute(description)}" />
+    <link rel="apple-touch-icon" href="${escapeHtmlAttribute(iconHref)}" />
     <link rel="manifest" href="${escapeHtmlAttribute(manifestHref)}" />
     <title>${escapeHtmlAttribute(appName)}</title>
     <script>
@@ -61,7 +62,28 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
         var proxyPrefix = ${JSON.stringify(apiProxyPrefix)}
         var proxyPathPrefix = proxyPrefix.replace(/\/$/, '')
         var applicationId = ${JSON.stringify((options.organizationName || 'built-in') + '/' + (options.appName || '创小剧 AI'))}
-        window.DEFAULT_CASDOOR_POWERED_BY_HTML = '${poweredByHtml}';
+
+        window.DEFAULT_CASDOOR_POWERED_BY_HTML = ${JSON.stringify(poweredByHtml)}
+
+        function applyPoweredByHtml() {
+          if (!window.DEFAULT_CASDOOR_POWERED_BY_HTML) {
+            return
+          }
+
+          var footer = document.getElementById('footer')
+          if (!footer) {
+            return
+          }
+
+          footer.innerHTML = window.DEFAULT_CASDOOR_POWERED_BY_HTML
+        }
+
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', applyPoweredByHtml, { once: true })
+        } else {
+          applyPoweredByHtml()
+        }
+
         function isResultPath(pathname) {
           return pathname === '/result' || pathname.indexOf('/result/') === 0
         }
