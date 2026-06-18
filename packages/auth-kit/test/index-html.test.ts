@@ -24,8 +24,9 @@ test('createAuthIndexHtml reads DEFAULT_CASDOOR defaults when options are omitte
     assert.match(html, /getElementById\('footer'\)/);
     assert.match(html, /footer\.innerHTML === window\.DEFAULT_CASDOOR_POWERED_BY_HTML/);
     assert.match(html, /footer\.innerHTML = window\.DEFAULT_CASDOOR_POWERED_BY_HTML/);
-    assert.match(html, /applyPoweredByHtml\(\)/);
-    assert.match(html, /observer\.observe\(document\.documentElement, \{ childList: true, subtree: true, characterData: true \}\)/);
+    assert.match(html, /function watchPoweredByFooter\(\)/);
+    assert.match(html, /footerObserver\.observe\(footer, \{ childList: true, subtree: true, characterData: true \}\)/);
+    assert.match(html, /documentObserver\.observe\(document\.documentElement, \{ childList: true, subtree: true \}\)/);
     assert.doesNotMatch(html, /https:\/\/cdn\.casbin\.org\/img\/favicon\.png/);
   } finally {
     if (previousAppName === undefined) {

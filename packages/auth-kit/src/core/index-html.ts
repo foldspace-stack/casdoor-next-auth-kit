@@ -99,6 +99,79 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
           applyPoweredByHtml()
         }
 
+        function watchPoweredByFooter() {
+          if (!window.MutationObserver) {
+            return
+          }
+
+          var footerObserver = null
+          var documentObserver = null
+
+          function syncPoweredByFooter() {
+            if (!window.DEFAULT_CASDOOR_POWERED_BY_HTML) {
+              return
+            }
+
+            var footer = document.getElementById('footer')
+            if (!footer) {
+              return
+            }
+
+            if (footer.innerHTML === window.DEFAULT_CASDOOR_POWERED_BY_HTML) {
+              return
+            }
+
+            if (footerObserver) {
+              footerObserver.disconnect()
+            }
+
+            footer.innerHTML = window.DEFAULT_CASDOOR_POWERED_BY_HTML
+
+            if (footerObserver) {
+              footerObserver.observe(footer, { childList: true, subtree: true, characterData: true })
+            }
+          }
+
+          function attachFooterObserver(footer) {
+            if (!footer) {
+              return
+            }
+
+            if (footerObserver) {
+              footerObserver.disconnect()
+            }
+
+            footerObserver = new MutationObserver(function () {
+              syncPoweredByFooter()
+            })
+            footerObserver.observe(footer, { childList: true, subtree: true, characterData: true })
+            syncPoweredByFooter()
+          }
+
+          function findAndWatchFooter() {
+            var footer = document.getElementById('footer')
+            if (footer) {
+              if (documentObserver) {
+                documentObserver.disconnect()
+                documentObserver = null
+              }
+              attachFooterObserver(footer)
+              return true
+            }
+
+            return false
+          }
+
+          if (findAndWatchFooter()) {
+            return
+          }
+
+          documentObserver = new MutationObserver(function () {
+            findAndWatchFooter()
+          })
+          documentObserver.observe(document.documentElement, { childList: true, subtree: true })
+        }
+
         function isResultPath(pathname) {
           return pathname === '/result' || pathname.indexOf('/result/') === 0
         }
@@ -365,15 +438,7 @@ ${buildPkceAuthorizeBootstrapScript(casdoorOrigin)}
           rewriteElement(document.body)
         }
 
-        if (window.MutationObserver) {
-          var observer = new MutationObserver(function (mutations) {
-            mutations.forEach(function (mutation) {
-              mutation.addedNodes.forEach(rewriteElement)
-            })
-            applyPoweredByHtml()
-          })
-          observer.observe(document.documentElement, { childList: true, subtree: true, characterData: true })
-        }
+        watchPoweredByFooter()
       })()
     </script>
     <script defer="defer" src="${escapeHtmlAttribute(mainJs)}"></script>
