@@ -22,6 +22,10 @@ function getDefaultDescription(): string {
   return process.env.DEFAULT_CASDOOR_DESCRIPTION || DEFAULT_DESCRIPTION;
 }
 
+function getPoweredByHtml(): string {
+  return process.env.DEFAULT_CASDOOR_POWERED_BY_HTML || '';
+}
+
 function escapeHtmlAttribute(value: string): string {
   return value.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 }
@@ -35,6 +39,7 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
   const description = options.description || getDefaultDescription();
   const iconHref = options.iconHref || getDefaultIconHref();
   const manifestHref = options.manifestHref || DEFAULT_MANIFEST_HREF;
+  const poweredByHtml = getPoweredByHtml();
   const mainJs = `${staticOrigin}/static/js/main.5ddbc6ff.js`;
   const mainCss = `${staticOrigin}/static/css/main.f35879a1.css`;
 
@@ -57,7 +62,7 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
         var proxyPrefix = ${JSON.stringify(apiProxyPrefix)}
         var proxyPathPrefix = proxyPrefix.replace(/\/$/, '')
         var applicationId = ${JSON.stringify((options.organizationName || 'built-in') + '/' + (options.appName || '创小剧 AI'))}
-
+        window.DEFAULT_CASDOOR_POWERED_BY_HTML = '${poweredByHtml}';
         function isResultPath(pathname) {
           return pathname === '/result' || pathname.indexOf('/result/') === 0
         }
@@ -340,7 +345,7 @@ ${buildPkceAuthorizeBootstrapScript(casdoorOrigin)}
   <body>
     <noscript>你需要启用 JavaScript 才能继续。</noscript>
     <div id="root"></div>
-  </body>
+      </body>
 </html>
 `;
 }

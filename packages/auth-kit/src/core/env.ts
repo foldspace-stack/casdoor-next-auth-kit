@@ -81,6 +81,13 @@ export const AUTH_KIT_ENV_VARIABLES: ManagedEnvVariableDefinition[] = [
     production: 'https://cdn.casbin.org/img/favicon.png',
   },
   {
+    key: 'DEFAULT_CASDOOR_POWERED_BY_HTML',
+    description: 'index-html 默认 powered by HTML 片段',
+    example: '',
+    local: '',
+    production: '',
+  },
+  {
     key: 'NEXT_PUBLIC_CASDOOR_ORGANIZATION_NAME',
     description: 'Casdoor organization name',
     example: 'your-org-name',

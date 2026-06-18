@@ -8,15 +8,18 @@ test('createAuthIndexHtml reads DEFAULT_CASDOOR defaults when options are omitte
   const previousAppName = process.env.DEFAULT_CASDOOR_APP_NAME;
   const previousDescription = process.env.DEFAULT_CASDOOR_DESCRIPTION;
   const previousIconHref = process.env.DEFAULT_CASDOOR_ICON_HREF;
+  const previousPoweredByHtml = process.env.DEFAULT_CASDOOR_POWERED_BY_HTML;
   process.env.DEFAULT_CASDOOR_APP_NAME = 'Env Demo App';
   process.env.DEFAULT_CASDOOR_DESCRIPTION = 'Env Demo Description';
   process.env.DEFAULT_CASDOOR_ICON_HREF = 'https://example.com/custom-icon.png';
+  process.env.DEFAULT_CASDOOR_POWERED_BY_HTML = '<span>Powered by Env Footer</span>';
 
   try {
     const html = createAuthIndexHtml();
     assert.match(html, /Env Demo App/);
     assert.match(html, /Env Demo Description/);
     assert.match(html, /https:\/\/example\.com\/custom-icon\.png/);
+    assert.match(html, /Powered by Env Footer/);
     assert.doesNotMatch(html, /https:\/\/cdn\.casbin\.org\/img\/favicon\.png/);
   } finally {
     if (previousAppName === undefined) {
@@ -34,6 +37,11 @@ test('createAuthIndexHtml reads DEFAULT_CASDOOR defaults when options are omitte
     } else {
       process.env.DEFAULT_CASDOOR_ICON_HREF = previousIconHref;
     }
+    if (previousPoweredByHtml === undefined) {
+      delete process.env.DEFAULT_CASDOOR_POWERED_BY_HTML;
+    } else {
+      process.env.DEFAULT_CASDOOR_POWERED_BY_HTML = previousPoweredByHtml;
+    }
   }
 });
 
@@ -43,6 +51,7 @@ test('managed env template includes index-html default overrides', () => {
   assert.match(template, /DEFAULT_CASDOOR_APP_NAME=/);
   assert.match(template, /DEFAULT_CASDOOR_DESCRIPTION=/);
   assert.match(template, /DEFAULT_CASDOOR_ICON_HREF=/);
+  assert.match(template, /DEFAULT_CASDOOR_POWERED_BY_HTML=/);
 });
 
 test('createAuthIndexHtml rewrites result urls back to the login entry', () => {
