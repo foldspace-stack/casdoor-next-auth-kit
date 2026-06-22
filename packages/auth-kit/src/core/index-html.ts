@@ -104,6 +104,8 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
             return
           }
 
+          // Casdoor renders #footer after the shell is loaded. Keep this scoped
+          // to the footer node and disconnect during writes to avoid observer loops.
           var footerObserver = null
           var documentObserver = null
 
@@ -176,6 +178,10 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
           return pathname === '/result' || pathname.indexOf('/result/') === 0
         }
 
+        function isAuthEntryPath(pathname) {
+          return pathname === '/auth/login' || pathname === '/auth/signup'
+        }
+
         function getAuthRedirectTarget() {
           var cookies = document.cookie ? document.cookie.split(';') : []
           for (var index = 0; index < cookies.length; index++) {
@@ -227,17 +233,32 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
           window.location.replace(currentOrigin + '/auth/login?redirect=' + encodeURIComponent(redirectTarget))
         }
 
+        var authEntryNavigationStarted = false
+
+        function redirectToServerAuthEntry() {
+          if (authEntryNavigationStarted) {
+            return
+          }
+
+          authEntryNavigationStarted = true
+          // /auth/login and /auth/signup can be pushed by Casdoor's SPA router.
+          // Force a document navigation so Next's route handler can continue OAuth.
+          window.location.replace(currentOrigin + window.location.pathname + window.location.search + window.location.hash)
+        }
+
         async function watchCurrentLocation() {
           if (isResultPath(window.location.pathname)) {
             redirectToLoginEntry()
             return true
           }
 
-          if (
-            (window.location.pathname === '/auth/login' || window.location.pathname === '/auth/signup') &&
-            await hasActiveSession()
-          ) {
-            window.location.replace(currentOrigin + '/user/account')
+          if (isAuthEntryPath(window.location.pathname)) {
+            if (await hasActiveSession()) {
+              window.location.replace(currentOrigin + '/user/account')
+              return true
+            }
+
+            redirectToServerAuthEntry()
             return true
           }
 

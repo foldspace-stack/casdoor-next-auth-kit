@@ -68,6 +68,19 @@ test('createAuthIndexHtml rewrites result urls back to the login entry', () => {
   assert.match(html, /\/auth\/login\?redirect=%2F/);
 });
 
+test('createAuthIndexHtml forces SPA auth entry routes through Next route handlers', () => {
+  const html = createAuthIndexHtml();
+
+  assert.match(html, /function isAuthEntryPath\(pathname\)/);
+  assert.match(html, /pathname === '\/auth\/login'/);
+  assert.match(html, /pathname === '\/auth\/signup'/);
+  assert.match(html, /var authEntryNavigationStarted = false/);
+  assert.match(html, /function redirectToServerAuthEntry\(\)/);
+  assert.match(html, /window\.location\.pathname \+ window\.location\.search \+ window\.location\.hash/);
+  assert.match(html, /Next's route handler can continue OAuth/);
+  assert.match(html, /window\.location\.replace\(currentOrigin \+ '\/user\/account'\)/);
+});
+
 test('createAuthIndexHtml injects browser pkce bootstrap logic for authorize pages', () => {
   const html = createAuthIndexHtml();
 
