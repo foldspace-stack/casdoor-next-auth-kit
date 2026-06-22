@@ -150,12 +150,12 @@ npx @foldspace-fe/casdoor-next-auth-kit@latest check
 - `/auth/login`、`/auth/signup`、`/login/oauth/authorize` 和 `/signup/oauth/authorize` 进入时，服务端响应要在首跳里隐式清理当前域残留的认证 cookie（含 session、CSRF、callback-url、state、oauth_state、pkce_code_verifier、auth_origin、auth_redirect），再继续进入同源授权流程，避免本地残留状态干扰新的登录/注册；这里不需要额外显式提示页或手动清理步骤
 - `/auth/login`、`/auth/signup`、`/login/oauth/authorize`、`/signup/oauth/authorize` 和 `/logout` 这条链路里，origin 必须按请求头动态推导，不要再回退到 `request.url`、容器主机名或写死的单域名 `appUrl`；在 Coolify / Traefik / 多域名部署下，`request.url` 可能变成 `0.0.0.0:7273`，一旦写进 `authorize`、`redirect_uri` 或 logout target，就会把用户带出正确站点
 - `/callback` 的 GET 首跳只负责返回回调桥接页，真正的 token exchange 放在 POST；PKCE verifier 只保存在浏览器 storage，不要再增加 cookie 读取的迁移兜底，因为 cookie 容量太大且这条链路已经废弃
-- `/signup/oauth/authorize` 的注册完成结果不应停留在 Casdoor 的 `/result/*` 页面，`packages/auth-kit/src/core/index-html.ts` 会在页面加载时和前端 `history` 变更时持续监控当前路径，只要落到 `/result/*` 就统一隐式重写回 `/auth/login?redirect=%2F`，让用户完成注册后自然回到登录页继续下一步
-- Casdoor 的注册成功页可能通过前端路由把同一个静态壳地址改成 `/auth/login?redirect=...` 或 `/auth/signup?redirect=...`，这时不会触发 Next.js route handler。`packages/auth-kit/src/core/index-html.ts` 必须在 `history.pushState` / `replaceState` / `popstate` 后继续 watch：若已有宿主 NextAuth 会话则跳 `/user/account`，否则强制整页导航到当前 `/auth/login` 或 `/auth/signup`，让服务端重新进入 OAuth 流程。不要只依赖服务端入口处理这类地址。
+- `/signup/oauth/authorize` 的注册完成结果不应停留在 Casdoor 的 `/result/*` 页面，`packages/auth-kit/src/core/index-html.ts` 会在页面加载时和前端 `history` 变更时持续监控当前路径，只要落到 `/result/*` 就统一隐式跳回宿主首页 `/`，不要再改回 `/auth/login?redirect=%2F`
+- Casdoor 可能通过前端路由把同一个静态壳地址改成 `/auth/login?redirect=...` 或 `/auth/signup?redirect=...`，这时不会触发 Next.js route handler。`packages/auth-kit/src/core/index-html.ts` 必须在 `history.pushState` / `replaceState` / `popstate` 后继续 watch：若带有同源 `redirect` / `returnTo` 参数则直接按该路径跳转；若已有宿主 NextAuth 会话则跳 `/user/account`。不要只依赖服务端入口处理这类地址。
 - `packages/auth-kit/src/core/index-html.ts` 的默认图标地址支持 `DEFAULT_CASDOOR_ICON_HREF` 环境变量覆盖；宿主未显式传 `iconHref` 时，先读环境变量，再回退到内置 favicon
 - `packages/auth-kit/src/core/index-html.ts` 的默认 `appName` 和 `description` 也支持 `DEFAULT_CASDOOR_APP_NAME` 和 `DEFAULT_CASDOOR_DESCRIPTION` 环境变量覆盖；宿主未显式传对应参数时，先读环境变量，再回退到内置文案
 - `packages/auth-kit/src/core/index-html.ts` 的底部 `powered by` HTML 片段也支持 `DEFAULT_CASDOOR_POWERED_BY_HTML` 环境变量覆盖；宿主未显式传对应片段时，先读环境变量，再回退到空字符串。示例配置可以直接写成 `DEFAULT_CASDOOR_POWERED_BY_HTML="Powered by <a href='https://heyaai.com' target='_blank'>鹤芽</a>"`，页面里会通过 `footer.innerHTML = window.DEFAULT_CASDOOR_POWERED_BY_HTML` 渲染成实际链接
-- `packages/auth-kit/src/core/index-html.ts` 还会持续监听 `#footer` 的变化，若 `window.DEFAULT_CASDOOR_POWERED_BY_HTML` 存在，只要 footer 被改动就重新把内部恢复成该 HTML 片段，并且监听要收窄成 footer 专属 observer，写入时临时断开再恢复，避免全局监听导致 authorize 页初始化卡死或自触发死循环
+- `packages/auth-kit/src/core/index-html.ts` 还会持续监听 `#footer` 的变化，若 `window.DEFAULT_CASDOOR_POWERED_BY_HTML` 存在，只要 footer 被改动就重新把内部恢复成该 HTML 片段。Casdoor SPA 可能会整体重建 footer，所以允许保留一个轻量 document observer 只用于发现 footer 替换；真正写入和 characterData 监听必须收窄到 footer 专属 observer，写入时临时断开再恢复，避免全局监听导致 authorize 页初始化卡死或自触发死循环
 
 入口路由（login/signup）负责将用户引导至授权壳，授权壳在同源 iframe 或内嵌组件中渲染 Casdoor 界面，避免用户感知到离开宿主应用。
 

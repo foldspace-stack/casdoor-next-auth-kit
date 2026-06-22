@@ -23,8 +23,12 @@ test('createAuthIndexHtml reads DEFAULT_CASDOOR defaults when options are omitte
     assert.match(html, /footer\.innerHTML === window\.DEFAULT_CASDOOR_POWERED_BY_HTML/);
     assert.match(html, /footer\.innerHTML = window\.DEFAULT_CASDOOR_POWERED_BY_HTML/);
     assert.match(html, /function watchPoweredByFooter\(\)/);
+    assert.match(html, /var watchedFooter = null/);
+    assert.match(html, /footer !== watchedFooter/);
+    assert.match(html, /watchedFooter = footer/);
     assert.match(html, /footerObserver\.observe\(footer, \{ childList: true, subtree: true, characterData: true \}\)/);
     assert.match(html, /documentObserver\.observe\(document\.documentElement, \{ childList: true, subtree: true \}\)/);
+    assert.doesNotMatch(html, /documentObserver\.disconnect\(\)/);
     assert.doesNotMatch(html, /https:\/\/cdn\.casbin\.org\/img\/favicon\.png/);
   } finally {
     if (previousAppName === undefined) {
@@ -54,30 +58,34 @@ test('managed env template includes index-html default overrides', () => {
   assert.match(template, /DEFAULT_CASDOOR_POWERED_BY_HTML=/);
 });
 
-test('createAuthIndexHtml rewrites result urls back to the login entry', () => {
+test('createAuthIndexHtml rewrites result urls back to home', () => {
   const html = createAuthIndexHtml();
 
   assert.match(html, /function watchCurrentLocation\(\)/);
-  assert.match(html, /function getAuthRedirectTarget\(\)/);
-  assert.match(html, /document\.cookie/);
-  assert.match(html, /auth_redirect/);
   assert.match(html, /window\.history\.pushState/);
   assert.match(html, /window\.history\.replaceState/);
   assert.match(html, /pathname === '\/result'/);
   assert.match(html, /pathname\.indexOf\('\/result\/'\) === 0/);
-  assert.match(html, /\/auth\/login\?redirect=%2F/);
+  assert.match(html, /function redirectToHome\(\)/);
+  assert.match(html, /var homeUrl = currentOrigin \+ '\/'/);
+  assert.match(html, /window\.location\.replace\(homeUrl\)/);
+  assert.match(html, /window\.setTimeout\(function \(\) \{/);
+  assert.match(html, /window\.location\.href = homeUrl/);
+  assert.match(html, /return currentOrigin \+ '\/'/);
+  assert.doesNotMatch(html, /\/auth\/login\?redirect=%2F/);
 });
 
-test('createAuthIndexHtml forces SPA auth entry routes through Next route handlers', () => {
+test('createAuthIndexHtml handles SPA auth entry redirects without relying on Next route handlers', () => {
   const html = createAuthIndexHtml();
 
   assert.match(html, /function isAuthEntryPath\(pathname\)/);
   assert.match(html, /pathname === '\/auth\/login'/);
   assert.match(html, /pathname === '\/auth\/signup'/);
-  assert.match(html, /var authEntryNavigationStarted = false/);
-  assert.match(html, /function redirectToServerAuthEntry\(\)/);
-  assert.match(html, /window\.location\.pathname \+ window\.location\.search \+ window\.location\.hash/);
-  assert.match(html, /Next's route handler can continue OAuth/);
+  assert.match(html, /function getCurrentAuthEntryRedirectTarget\(\)/);
+  assert.match(html, /currentUrl\.searchParams\.get\('redirect'\)/);
+  assert.match(html, /currentUrl\.searchParams\.get\('returnTo'\)/);
+  assert.match(html, /Casdoor's SPA can push \/auth\/login\?redirect=\.\.\. without a document request/);
+  assert.match(html, /window\.location\.replace\(currentOrigin \+ authEntryRedirectTarget\)/);
   assert.match(html, /window\.location\.replace\(currentOrigin \+ '\/user\/account'\)/);
 });
 

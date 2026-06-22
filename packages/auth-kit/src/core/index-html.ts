@@ -188,32 +188,30 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
           return pathname === '/auth/login' || pathname === '/auth/signup'
         }
 
-        function getAuthRedirectTarget() {
-          var cookies = document.cookie ? document.cookie.split(';') : []
-          for (var index = 0; index < cookies.length; index++) {
-            var part = cookies[index].trim()
-            if (!part) {
-              continue
-            }
-            var separatorIndex = part.indexOf('=')
-            var name = separatorIndex >= 0 ? part.slice(0, separatorIndex) : part
-            if (name !== 'auth_redirect') {
-              continue
+        function redirectToHome() {
+          var homeUrl = currentOrigin + '/'
+          window.location.replace(homeUrl)
+          window.setTimeout(function () {
+            window.location.href = homeUrl
+          }, 100)
+        }
+
+        function getCurrentAuthEntryRedirectTarget() {
+          try {
+            var currentUrl = new URL(window.location.href)
+            if (!isAuthEntryPath(currentUrl.pathname)) {
+              return null
             }
 
-            var value = separatorIndex >= 0 ? part.slice(separatorIndex + 1) : ''
-            try {
-              value = decodeURIComponent(value)
-            } catch (error) {
-              // ignore invalid encoding and fall back to the raw cookie value
+            var redirect = currentUrl.searchParams.get('redirect') || currentUrl.searchParams.get('returnTo')
+            if (redirect && redirect.startsWith('/') && !redirect.startsWith('//')) {
+              return redirect
             }
-
-            if (value && value.startsWith('/') && !value.startsWith('//')) {
-              return value
-            }
+          } catch (error) {
+            return null
           }
 
-          return '/'
+          return null
         }
 
         async function hasActiveSession() {
@@ -234,27 +232,17 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
           }
         }
 
-        function redirectToLoginEntry() {
-          var redirectTarget = getAuthRedirectTarget()
-          window.location.replace(currentOrigin + '/auth/login?redirect=' + encodeURIComponent(redirectTarget))
-        }
-
-        var authEntryNavigationStarted = false
-
-        function redirectToServerAuthEntry() {
-          if (authEntryNavigationStarted) {
-            return
-          }
-
-          authEntryNavigationStarted = true
-          // /auth/login and /auth/signup can be pushed by Casdoor's SPA router.
-          // Force a document navigation so Next's route handler can continue OAuth.
-          window.location.replace(currentOrigin + window.location.pathname + window.location.search + window.location.hash)
-        }
-
         async function watchCurrentLocation() {
           if (isResultPath(window.location.pathname)) {
-            redirectToLoginEntry()
+            redirectToHome()
+            return true
+          }
+
+          var authEntryRedirectTarget = getCurrentAuthEntryRedirectTarget()
+          if (authEntryRedirectTarget) {
+            // Casdoor's SPA can push /auth/login?redirect=... without a document request.
+            // Handle that frontend route here; the Next route handler will not run.
+            window.location.replace(currentOrigin + authEntryRedirectTarget)
             return true
           }
 
@@ -263,9 +251,6 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
               window.location.replace(currentOrigin + '/user/account')
               return true
             }
-
-            redirectToServerAuthEntry()
-            return true
           }
 
           return false
@@ -299,7 +284,7 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
               (url.origin === currentOrigin || url.origin === casdoorOrigin) &&
               (url.pathname === '/result' || url.pathname.indexOf('/result/') === 0)
             ) {
-              return currentOrigin + '/auth/login?redirect=%2F'
+              return currentOrigin + '/'
             }
 
             if (url.origin === casdoorOrigin) {
