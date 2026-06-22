@@ -7,6 +7,7 @@ import {
   createLoginEntryResponse,
   createSignupEntryResponse,
 } from '../src/casdoor/entry.ts';
+import { encodeSessionToken } from '../src/core/session-token.ts';
 
 const authConfig = {
   appUrl: 'http://localhost:5177',
@@ -90,6 +91,35 @@ test('login entry persists redirect query into auth_redirect cookie', async () =
   assert.equal(response.status, 307);
   assert.equal(hasCookieSet(cookies, 'auth_redirect'), true);
   assert.ok(cookies.some((cookie) => cookie.name === 'auth_redirect' && cookie.value === '/user/account'));
+});
+
+test('login entry returns directly to redirect target when session cookie already exists', async () => {
+  const sessionToken = await encodeSessionToken({
+    token: {
+      id: 'user-1',
+      userId: 'user-1',
+      name: 'Test User',
+      email: 'test@example.com',
+    },
+    secret: authConfig.nextauthSecret,
+  });
+
+  const request = new NextRequest('http://localhost:5177/auth/login?redirect=%2F', {
+    headers: {
+      cookie: [
+        `next-auth.session-token=${sessionToken}`,
+        'auth_redirect=%2F',
+      ].join('; '),
+    },
+  });
+
+  const response = await createLoginEntryResponse(request, authConfig as any);
+  const cookies = getResponseCookies(response);
+
+  assert.equal(response.status, 307);
+  assert.equal(response.headers.get('location'), 'http://localhost:5177/');
+  assert.equal(cookies.some((cookie) => cookie.name === 'oauth_state'), false);
+  assert.equal(cookies.some((cookie) => cookie.name === 'auth_redirect'), false);
 });
 
 test('login entry keeps redirects on the current request origin even with an external referer', async () => {

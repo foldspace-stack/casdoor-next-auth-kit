@@ -8,6 +8,7 @@ import { generateStateToken } from '../core/oauth-state.ts';
 import { getAuthRedirectTarget, setAuthRedirectCookie } from '../core/auth-redirect.ts';
 import { createAuthIndexHtml } from '../core/index-html.ts';
 import { clearAuthEntryCookies } from '../core/auth-entry-cookies.ts';
+import { decodeSessionToken } from '../core/session-token.ts';
 
 function buildLocalAuthorizeUrl(
   origin: string,
@@ -29,6 +30,36 @@ function buildLocalAuthorizeUrl(
   return authorizeUrl.toString();
 }
 
+async function hasValidSessionToken(request: NextRequest, secret: string): Promise<boolean> {
+  const directSessionCookieNames = [
+    '__Secure-next-auth.session-token',
+    'next-auth.session-token',
+    '__Host-next-auth.session-token',
+  ] as const;
+
+  const directToken = directSessionCookieNames
+    .map((name) => request.cookies.get(name)?.value)
+    .find((value): value is string => Boolean(value));
+
+  if (directToken && (await decodeSessionToken({ token: directToken, secret }))) {
+    return true;
+  }
+
+  const chunkedToken = request
+    .cookies
+    .getAll()
+    .filter((cookie) =>
+      cookie.name.startsWith('__Secure-next-auth.session-token.') ||
+      cookie.name.startsWith('next-auth.session-token.') ||
+      cookie.name.startsWith('__Host-next-auth.session-token.')
+    )
+    .sort((left, right) => left.name.localeCompare(right.name, undefined, { numeric: true }))
+    .map((cookie) => cookie.value)
+    .join('');
+
+  return Boolean(chunkedToken && (await decodeSessionToken({ token: chunkedToken, secret })));
+}
+
 async function createRedirectEntryResponse(
   request: NextRequest,
   config: AuthKitConfig,
@@ -42,11 +73,6 @@ async function createRedirectEntryResponse(
   const secure =
     normalized.cookie?.secure === 'auto' ? isSecureRequest(request, normalized.appUrl) : Boolean(normalized.cookie?.secure);
   const state = generateStateToken();
-  const response = NextResponse.redirect(
-    buildLocalAuthorizeUrl(origin, normalized, { state, kind }),
-    307,
-  );
-  clearAuthEntryCookies(request, response, normalized.appUrl);
   const redirectTarget = (() => {
     const requestUrl = new URL(request.url);
     const redirect = requestUrl.searchParams.get('redirect') || requestUrl.searchParams.get('returnTo');
@@ -55,6 +81,16 @@ async function createRedirectEntryResponse(
     }
     return getAuthRedirectTarget(request);
   })();
+
+  if (await hasValidSessionToken(request, normalized.nextauthSecret)) {
+    return NextResponse.redirect(new URL(redirectTarget || '/', origin), 307);
+  }
+
+  const response = NextResponse.redirect(
+    buildLocalAuthorizeUrl(origin, normalized, { state, kind }),
+    307,
+  );
+  clearAuthEntryCookies(request, response, normalized.appUrl);
   if (redirectTarget) {
     setAuthRedirectCookie(response, redirectTarget, secure);
   }
