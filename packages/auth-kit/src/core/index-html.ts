@@ -62,7 +62,7 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
     <meta name="theme-color" content="#000000" />
     <link rel="icon" href="/casdoor_favicon.ico" type="image/x-icon"/>
     <meta name="description" content="${escapeHtmlAttribute(description)}" />
-    <link rel="apple-touch-icon" href="${escapeHtmlAttribute(iconHref)}" />
+    <link rel="apple-touch-icon" href="/casdoor_favicon.ico" />
     <link rel="manifest" href="${escapeHtmlAttribute(manifestHref)}" />
     <title>${escapeHtmlAttribute(appName)}</title>
     <script>
