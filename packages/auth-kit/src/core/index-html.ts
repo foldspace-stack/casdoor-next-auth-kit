@@ -60,10 +60,8 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#000000" />
-    <!--  恒定为 /casdoor_favicon.ico 不要改回去 -->
     <link rel="icon" href="/casdoor_favicon.ico" type="image/x-icon"/>
     <meta name="description" content="${escapeHtmlAttribute(description)}" />
-    <!--  恒定为 /casdoor_favicon.ico 不要改回去 -->
     <link rel="apple-touch-icon" href="/casdoor_favicon.ico" />
     <link rel="manifest" href="${escapeHtmlAttribute(manifestHref)}" />
     <title>${escapeHtmlAttribute(appName)}</title>
