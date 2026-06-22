@@ -65,6 +65,9 @@ test('createAuthIndexHtml rewrites result urls back to the login entry', () => {
   const html = createAuthIndexHtml();
 
   assert.match(html, /function watchCurrentLocation\(\)/);
+  assert.match(html, /function getAuthRedirectTarget\(\)/);
+  assert.match(html, /document\.cookie/);
+  assert.match(html, /auth_redirect/);
   assert.match(html, /window\.history\.pushState/);
   assert.match(html, /window\.history\.replaceState/);
   assert.match(html, /pathname === '\/result'/);

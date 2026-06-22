@@ -47,7 +47,14 @@ async function createRedirectEntryResponse(
     307,
   );
   clearAuthEntryCookies(request, response, normalized.appUrl);
-  const redirectTarget = getAuthRedirectTarget(request);
+  const redirectTarget = (() => {
+    const requestUrl = new URL(request.url);
+    const redirect = requestUrl.searchParams.get('redirect') || requestUrl.searchParams.get('returnTo');
+    if (redirect && redirect.startsWith('/') && !redirect.startsWith('//')) {
+      return redirect;
+    }
+    return getAuthRedirectTarget(request);
+  })();
   if (redirectTarget) {
     setAuthRedirectCookie(response, redirectTarget, secure);
   }

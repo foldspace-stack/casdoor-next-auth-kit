@@ -79,6 +79,19 @@ test('login entry clears stale auth cookies before redirecting', async () => {
   assert.equal(hasCookieSet(cookies, 'pkce_code_verifier.'), false);
 });
 
+test('login entry persists redirect query into auth_redirect cookie', async () => {
+  const request = new NextRequest('http://localhost:5177/auth/login?redirect=%2Fuser%2Faccount', {
+    headers: { cookie: staleCookieHeader },
+  });
+
+  const response = await createLoginEntryResponse(request, authConfig as any);
+  const cookies = getResponseCookies(response);
+
+  assert.equal(response.status, 307);
+  assert.equal(hasCookieSet(cookies, 'auth_redirect'), true);
+  assert.ok(cookies.some((cookie) => cookie.name === 'auth_redirect' && cookie.value === '/user/account'));
+});
+
 test('login entry keeps redirects on the current request origin even with an external referer', async () => {
   const casdoorOrigin = new URL(authConfig.casdoor.serverUrl).origin;
   const request = new NextRequest('http://localhost:5177/auth/login', {

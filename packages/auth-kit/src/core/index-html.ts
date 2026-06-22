@@ -176,8 +176,37 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
           return pathname === '/result' || pathname.indexOf('/result/') === 0
         }
 
+        function getAuthRedirectTarget() {
+          var cookies = document.cookie ? document.cookie.split(';') : []
+          for (var index = 0; index < cookies.length; index++) {
+            var part = cookies[index].trim()
+            if (!part) {
+              continue
+            }
+            var separatorIndex = part.indexOf('=')
+            var name = separatorIndex >= 0 ? part.slice(0, separatorIndex) : part
+            if (name !== 'auth_redirect') {
+              continue
+            }
+
+            var value = separatorIndex >= 0 ? part.slice(separatorIndex + 1) : ''
+            try {
+              value = decodeURIComponent(value)
+            } catch (error) {
+              // ignore invalid encoding and fall back to the raw cookie value
+            }
+
+            if (value && value.startsWith('/') && !value.startsWith('//')) {
+              return value
+            }
+          }
+
+          return '/'
+        }
+
         function redirectToLoginEntry() {
-          window.location.replace(currentOrigin + '/auth/login?redirect=%2F')
+          var redirectTarget = getAuthRedirectTarget()
+          window.location.replace(currentOrigin + '/auth/login?redirect=' + encodeURIComponent(redirectTarget))
         }
 
         function watchCurrentLocation() {
