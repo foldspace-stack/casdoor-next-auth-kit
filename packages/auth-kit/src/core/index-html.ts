@@ -204,6 +204,36 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
           return '/'
         }
 
+        function hasSessionCookie() {
+          if (!document.cookie) {
+            return false
+          }
+
+          return (
+            document.cookie.indexOf('next-auth.session-token') >= 0 ||
+            document.cookie.indexOf('__Secure-next-auth.session-token') >= 0 ||
+            document.cookie.indexOf('__Host-next-auth.session-token') >= 0
+          )
+        }
+
+        function getLoginRedirectTarget() {
+          try {
+            var currentUrl = new URL(window.location.href)
+            if (currentUrl.pathname !== '/auth/login' && currentUrl.pathname !== '/auth/signup') {
+              return null
+            }
+
+            var redirect = currentUrl.searchParams.get('redirect') || currentUrl.searchParams.get('returnTo')
+            if (redirect && redirect.startsWith('/') && !redirect.startsWith('//')) {
+              return redirect
+            }
+          } catch (error) {
+            return null
+          }
+
+          return null
+        }
+
         function redirectToLoginEntry() {
           var redirectTarget = getAuthRedirectTarget()
           window.location.replace(currentOrigin + '/auth/login?redirect=' + encodeURIComponent(redirectTarget))
@@ -212,6 +242,12 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
         function watchCurrentLocation() {
           if (isResultPath(window.location.pathname)) {
             redirectToLoginEntry()
+            return true
+          }
+
+          var loginRedirectTarget = getLoginRedirectTarget()
+          if (loginRedirectTarget && hasSessionCookie()) {
+            window.location.replace(currentOrigin + loginRedirectTarget)
             return true
           }
 
