@@ -104,10 +104,12 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
             return
           }
 
-          // Casdoor renders #footer after the shell is loaded. Keep this scoped
-          // to the footer node and disconnect during writes to avoid observer loops.
+          // Casdoor may render and later replace #footer through its SPA runtime.
+          // Keep content writes scoped to #footer, while a light document observer
+          // only detects footer replacement.
           var footerObserver = null
           var documentObserver = null
+          var watchedFooter = null
 
           function syncPoweredByFooter() {
             if (!window.DEFAULT_CASDOOR_POWERED_BY_HTML) {
@@ -116,6 +118,16 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
 
             var footer = document.getElementById('footer')
             if (!footer) {
+              if (footerObserver) {
+                footerObserver.disconnect()
+                footerObserver = null
+              }
+              watchedFooter = null
+              return
+            }
+
+            if (footer !== watchedFooter) {
+              attachFooterObserver(footer)
               return
             }
 
@@ -143,6 +155,7 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
               footerObserver.disconnect()
             }
 
+            watchedFooter = footer
             footerObserver = new MutationObserver(function () {
               syncPoweredByFooter()
             })
@@ -153,10 +166,6 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
           function findAndWatchFooter() {
             var footer = document.getElementById('footer')
             if (footer) {
-              if (documentObserver) {
-                documentObserver.disconnect()
-                documentObserver = null
-              }
               attachFooterObserver(footer)
               return true
             }
@@ -164,14 +173,11 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
             return false
           }
 
-          if (findAndWatchFooter()) {
-            return
-          }
-
           documentObserver = new MutationObserver(function () {
-            findAndWatchFooter()
+            syncPoweredByFooter()
           })
           documentObserver.observe(document.documentElement, { childList: true, subtree: true })
+          findAndWatchFooter()
         }
 
         function isResultPath(pathname) {
