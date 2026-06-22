@@ -159,8 +159,8 @@ export function createNextAuthOptions(options: NextAuthRouteOptions): NextAuthOp
             typedProfile.role === 'admin' || typedProfile.role === 'user'
               ? typedProfile.role
               : typedToken.role ?? (typedToken.isAdmin ? 'admin' : 'user');
-          typedToken.tokenBalance = typedProfile.tokenBalance ?? typedToken.tokenBalance ?? 2580;
-          typedToken.isVip = typedProfile.isVip ?? typedToken.isVip ?? true;
+          typedToken.tokenBalance = typedProfile.tokenBalance ?? typedToken.tokenBalance ?? 0;
+          typedToken.isVip = typedProfile.isVip ?? typedToken.isVip ?? false;
         }
 
         return typedToken;

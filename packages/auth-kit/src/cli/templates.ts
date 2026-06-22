@@ -382,8 +382,8 @@ export const adapter: AuthBusinessAdapter = {
       image: pickNonEmptyString(profile.picture, profile.avatarUrl),
       isAdmin,
       role: isAdmin ? 'admin' : 'user',
-      tokenBalance: 2580,
-      isVip: true,
+      tokenBalance: 0,
+      isVip: false,
     };
   },
   isAdminEmail: isGlobalAdminEmail,

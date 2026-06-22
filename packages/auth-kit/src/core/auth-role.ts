@@ -65,8 +65,8 @@ export function buildAuthUserFromProfile(profile: AuthUserLike, isAdmin: boolean
     image: profile.picture || profile.avatarUrl || null,
     isAdmin: isAdmin || role === 'admin',
     role,
-    tokenBalance: Number(profile.tokenBalance ?? 2580),
-    isVip: Boolean(profile.isVip ?? true),
+    tokenBalance: Number(profile.tokenBalance ?? 0),
+    isVip: Boolean(profile.isVip ?? false),
   };
 }
 
@@ -88,8 +88,8 @@ export function buildAuthUserFromToken(
     image: token.picture ?? null,
     isAdmin: isAdmin || role === 'admin',
     role,
-    tokenBalance: Number(token.tokenBalance ?? 2580),
-    isVip: Boolean(token.isVip ?? true),
+    tokenBalance: Number(token.tokenBalance ?? 0),
+    isVip: Boolean(token.isVip ?? false),
   };
 }
 
@@ -105,8 +105,8 @@ export function buildAuthUserSummary(user: AuthUserLike | null | undefined): Aut
     image: user?.image ?? user?.picture ?? null,
     isAuthenticated,
     isAdmin,
-    tokenBalance: Number(user?.tokenBalance ?? 2580),
-    isVip: Boolean(user?.isVip ?? true),
+    tokenBalance: Number(user?.tokenBalance ?? 0),
+    isVip: Boolean(user?.isVip ?? false),
     role,
   };
 }

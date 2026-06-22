@@ -16,4 +16,6 @@ test('generated auth-config wires admin sync and role persistence', () => {
   assert.match(text, /role: isAdmin \? 'admin' : 'user'/);
   assert.match(text, /async syncAuthUser\(user\)/);
   assert.match(text, /await syncUserRecord\(user\);/);
+  assert.match(text, /tokenBalance: 0/);
+  assert.match(text, /isVip: false/);
 });

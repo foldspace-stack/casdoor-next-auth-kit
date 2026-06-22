@@ -30,8 +30,8 @@ test('admin profile keeps role=admin through callback, token resolution, and hoo
     email: 'admin@example.com',
     isAdmin: true,
     role: 'admin',
-    tokenBalance: 2580,
-    isVip: true,
+    tokenBalance: 0,
+    isVip: false,
   };
 
   const resolved = buildAuthUserFromToken(token, true);
@@ -45,8 +45,8 @@ test('admin profile keeps role=admin through callback, token resolution, and hoo
     image: null,
     isAdmin: false,
     role: 'admin',
-    tokenBalance: 2580,
-    isVip: true,
+    tokenBalance: 0,
+    isVip: false,
   });
 
   assert.equal(summary.role, 'admin');
@@ -65,8 +65,8 @@ test('token displayName is used when name is missing', () => {
       email: 'cxj_test_u202606082@chuangxiaoju.com',
       isAdmin: false,
       role: 'user',
-      isVip: true,
-      tokenBalance: 2580,
+      isVip: false,
+      tokenBalance: 0,
     },
     false,
   );
@@ -79,8 +79,8 @@ test('token displayName is used when name is missing', () => {
     email: 'cxj_test_u202606082@chuangxiaoju.com',
     isAdmin: false,
     role: 'user',
-    tokenBalance: 2580,
-    isVip: true,
+    tokenBalance: 0,
+    isVip: false,
   });
 
   assert.equal(summary.name, 'cxj_test_u202606082');
@@ -107,8 +107,8 @@ test('email-like names fall back to displayName for summaries and profiles', () 
     email: 'cxj_test_u202606082@chuangxiaoju.com',
     isAdmin: false,
     role: 'user',
-    tokenBalance: 2580,
-    isVip: true,
+    tokenBalance: 0,
+    isVip: false,
   });
 
   assert.equal(summary.name, 'cxj_test_u202606082');
