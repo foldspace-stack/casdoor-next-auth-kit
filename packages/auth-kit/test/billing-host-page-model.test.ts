@@ -41,7 +41,7 @@ test('billing casdoor response models keep account application and payment separ
     data: {
       owner: 'admin',
       name: 'qixiaoju',
-      displayName: '企小剧',
+      displayName: '创小剧',
       clientId: 'client-123',
       clientSecret: 'secret-123',
       redirectUris: ['https://example.com/callback'],
@@ -83,7 +83,7 @@ test('billing casdoor response models keep account application and payment separ
       organizationObj: {
         owner: 'admin',
         name: 'qixiaoju',
-        displayName: '企小剧',
+        displayName: '创小剧',
       },
     },
     data2: null,
