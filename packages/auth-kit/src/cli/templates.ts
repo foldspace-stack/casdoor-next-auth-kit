@@ -31,6 +31,8 @@ export const GET = authorizeHandler;
 
 export function loginOauthFallbackRouteTemplate() {
   return `import { NextResponse } from 'next/server';
+import { getRequestOrigin } from '@foldspace-fe/casdoor-next-auth-kit';
+import { authKitConfig } from '../../../auth-config';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,7 +40,10 @@ export function GET(request: Request) {
   // 兜底处理 /login/oauth/undefined 等异常授权壳路径。
   // 真正的登录授权壳只有 /login/oauth/authorize；其它 /login/oauth/* 说明前端 history 把非法 URL 写进了地址栏。
   // 不要删除这个路由，否则旧浏览器状态或 Casdoor SPA 回归会直接落到 404，前端 index-html.ts 也没有机会脱壳。
-  return NextResponse.redirect(new URL('/user/account', request.url));
+  // Coolify / Traefik 场景下 request.url 可能是容器监听地址 0.0.0.0:PORT；
+  // 这里必须复用 auth-kit 的公共 origin 推导，避免异常 fallback 再把用户带到容器地址。
+  const origin = getRequestOrigin(request, authKitConfig.appUrl);
+  return NextResponse.redirect(new URL('/user/account', origin), 307);
 }
 `;
 }

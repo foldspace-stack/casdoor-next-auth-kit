@@ -25,7 +25,9 @@ test('generated auth route templates keep login and signup GET handlers', () => 
 test('generated login oauth fallback redirects invalid oauth paths to account center', () => {
   const fallback = loginOauthFallbackRouteTemplate();
 
-  assert.match(fallback, /NextResponse\.redirect\(new URL\('\/user\/account', request\.url\)\)/);
+  assert.match(fallback, /getRequestOrigin\(request, authKitConfig\.appUrl\)/);
+  assert.match(fallback, /NextResponse\.redirect\(new URL\('\/user\/account', origin\), 307\)/);
+  assert.match(fallback, /0\.0\.0\.0:PORT/);
   assert.match(fallback, /\/login\/oauth\/undefined/);
   assert.match(fallback, /\/login\/oauth\/authorize/);
 });
