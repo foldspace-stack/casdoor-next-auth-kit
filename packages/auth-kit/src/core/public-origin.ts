@@ -1,5 +1,13 @@
 export const PUBLIC_ORIGIN_COOKIE_NAME = 'auth_origin';
 
+function isContainerOrigin(origin: string): boolean {
+  try {
+    return new URL(origin).hostname === '0.0.0.0';
+  } catch {
+    return true;
+  }
+}
+
 export function getRequestOrigin(request: Request, appUrl?: string): string {
   const referer = request.headers.get('referer');
   if (referer) {
@@ -69,9 +77,10 @@ export function getStoredPublicOrigin(request: Request): string | null {
         return null;
       }
       try {
-        return decodeURIComponent(value);
+        const decoded = decodeURIComponent(value);
+        return isContainerOrigin(decoded) ? null : decoded;
       } catch {
-        return value;
+        return isContainerOrigin(value) ? null : value;
       }
     }
   }

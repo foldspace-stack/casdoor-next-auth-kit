@@ -24,3 +24,13 @@ test('request origin falls back to APP_URL when request headers are unavailable'
   assert.equal(getCoreRequestOrigin(request, 'https://configured.example.com'), 'https://configured.example.com');
   assert.equal(getPublicRequestOrigin(request, 'https://configured.example.com'), 'https://configured.example.com');
 });
+
+test('public origin ignores container auth_origin cookies that point to 0.0.0.0', () => {
+  const request = new Request('http://internal.local/callback', {
+    headers: {
+      cookie: 'auth_origin=http%3A%2F%2F0.0.0.0%3A7273',
+    },
+  });
+
+  assert.equal(getPublicRequestOrigin(request, 'https://configured.example.com'), 'https://configured.example.com');
+});
