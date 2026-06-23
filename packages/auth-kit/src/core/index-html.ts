@@ -1,6 +1,18 @@
 import type { AuthIndexHtmlOptions } from '../types';
 import { buildPkceAuthorizeBootstrapScript } from './pkce-storage.ts';
 
+// 这个文件生成的是“同源 Casdoor 授权壳”的完整 HTML。
+//
+// 设计目标：
+// 1. 浏览器始终停留在宿主域名，例如 /login/oauth/authorize 或 /signup/oauth/authorize。
+// 2. Casdoor SPA 的静态资源从统一 CDN 加载，API 和跳转统一改写到宿主同源 /auth/* 代理。
+// 3. 注册完成、登录完成、result 页、footer 替换等行为都在这个壳里兜底处理。
+//
+// 维护注意：
+// - 这里返回的是字符串模板，内部脚本运行在浏览器里，不能直接访问 Node/Next runtime。
+// - 大多数逻辑是为了兼容 Casdoor SPA 自己的 history/fetch/XHR/form 行为，不要简化成普通跳转页。
+// - 修改后必须跑 packages/auth-kit 的测试；index-html.test.ts 里有多个防回归字符串断言。
+
 const DEFAULT_CASDOOR_STATIC_ORIGIN = 'https://casdoor-static.foldspace.cn';
 const DEFAULT_CASDOOR_ORIGIN =
   process.env.NEXT_PUBLIC_CASDOOR_SERVER_URL || process.env.CASDOOR_SERVER_URL || '';
@@ -26,11 +38,15 @@ function getPoweredByHtml(): string {
   return process.env.DEFAULT_CASDOOR_POWERED_BY_HTML || '';
 }
 
+// 这些值会写进 HTML 属性，必须转义，避免 appName/description 里的符号破坏页面结构。
+// 注意 footer HTML 不能走这个函数，因为 footer 是明确允许注入 HTML 片段的配置项。
 function escapeHtmlAttribute(value: string): string {
   return value.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 }
 
 export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string {
+  // options 来自 route handler，env 默认值来自包运行环境。
+  // 宿主没有传 icon/appName/description 时，允许通过 DEFAULT_CASDOOR_* 环境变量覆盖。
   const staticOrigin = options.staticOrigin || DEFAULT_CASDOOR_STATIC_ORIGIN;
   const casdoorOrigin = options.casdoorOrigin || DEFAULT_CASDOOR_ORIGIN;
   const apiProxyPrefix = options.apiProxyPrefix || '/auth/';
@@ -56,15 +72,23 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
     <title>${escapeHtmlAttribute(appName)}</title>
     <script>
       (function () {
+        // 当前脚本在宿主同源授权壳中执行。
+        // currentOrigin 是宿主 origin，casdoorOrigin 是真实 Casdoor origin，cdnOrigin 是 Casdoor 静态资源 origin。
+        // 后续所有网络和导航改写都围绕这三个 origin 展开。
         var cdnOrigin = ${JSON.stringify(staticOrigin)}
         var casdoorOrigin = ${JSON.stringify(casdoorOrigin)}
         var currentOrigin = window.location.origin
         var proxyPrefix = ${JSON.stringify(apiProxyPrefix)}
         var proxyPathPrefix = proxyPrefix.replace(/\/$/, '')
+        // Casdoor 前端会请求 get-application；这里强制把应用 id 绑定到宿主配置，
+        // 避免 SPA 用默认 built-in/app 或 URL 上残留参数导致登录页加载错误应用。
         var applicationId = ${JSON.stringify((options.organizationName || 'built-in') + '/' + (options.appName || '创小剧 AI'))}
 
+        // 通过全局变量暴露给后续 observer。不能只在初始 DOMContentLoaded 写一次，
+        // 因为 Casdoor SPA 会在渲染完成后替换 footer。
         window.DEFAULT_CASDOOR_POWERED_BY_HTML = ${JSON.stringify(poweredByHtml)}
 
+        // 浏览器会标准化 innerHTML；缓存标准化结果，避免每次 MutationObserver 回调都创建 template。
         var normalizedPoweredByHtml = null
 
         function getPoweredByHtmlValue() {
@@ -104,6 +128,8 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
             return
           }
 
+          // 这里必须写 raw HTML 配置，不能 textContent。
+          // DEFAULT_CASDOOR_POWERED_BY_HTML 明确支持 <a> 等 HTML 片段。
           footer.innerHTML = poweredByHtml
           // 写入标记用于区分“我们已经接管 footer”和 Casdoor SPA 后续重建/覆盖 footer。
           // observer 依赖这个标记避免把自身写入误判成外部改动。
@@ -111,6 +137,8 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
         }
 
         function applyPoweredByHtml() {
+          // 初始同步：如果 footer 已经在首屏 HTML 或同步渲染中出现，先写一次。
+          // SPA 异步替换由 watchPoweredByFooter() 继续兜底。
           if (!getPoweredByHtmlValue()) {
             return
           }
@@ -141,12 +169,18 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
           // Casdoor may render and later replace #footer through its SPA runtime.
           // Keep content writes scoped to #footer, while a light document observer
           // and a low-frequency poll only recover missed SPA replacements.
+          //
+          // 三层兜底的原因：
+          // 1. footerObserver 只盯当前 #footer，避免全局 observer 写入造成自触发死循环。
+          // 2. documentObserver 只负责发现 Casdoor 把整个 footer 节点替换掉。
+          // 3. footerPoll 是兜底，处理某些浏览器/框架绕过 observer 或 observer 丢事件的情况。
           var footerObserver = null
           var documentObserver = null
           var footerPoll = null
           var watchedFooter = null
 
           function syncPoweredByFooter() {
+            // 同步函数必须是幂等的，observer 和 poll 都会频繁调用它。
             if (!getPoweredByHtmlValue()) {
               return
             }
@@ -162,6 +196,7 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
             }
 
             if (window.MutationObserver && footer !== watchedFooter) {
+              // Casdoor SPA 可能重建 footer 节点；节点引用变化时必须重新挂 footerObserver。
               attachFooterObserver(footer)
               return
             }
@@ -171,6 +206,8 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
             }
 
             if (footerObserver) {
+              // 写入 footer 前临时断开当前 footer observer，
+              // 避免自己写入 innerHTML 后立即触发 observer 递归。
               footerObserver.disconnect()
             }
 
@@ -182,6 +219,8 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
           }
 
           function attachFooterObserver(footer) {
+            // 只监听 footer 内部变化，不监听整个 document 的 characterData。
+            // 这样既能恢复 Casdoor 改回 "Powered by Casdoor"，也不会拖慢整个登录页。
             if (!footer) {
               return
             }
@@ -213,6 +252,7 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
           }
 
           function startFooterPoll() {
+            // 低频 poll 只作为兜底，不能依赖高频轮询；500ms 已足够覆盖 SPA 异步重绘。
             if (footerPoll) {
               return
             }
@@ -235,18 +275,26 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
         }
 
         function isResultPath(pathname) {
+          // 注册成功后 Casdoor 常把页面带到 /result 或 /result/*。
+          // 这些路径不是宿主业务页面，必须离开授权壳。
           return pathname === '/result' || pathname.indexOf('/result/') === 0
         }
 
         function isHomePath(pathname) {
+          // 注意：auth 壳里的 SPA 也可能 pushState 到 /。
+          // 地址栏是 / 不代表当前文档已经是宿主首页文档。
           return pathname === '/'
         }
 
         function isAuthEntryPath(pathname) {
+          // Casdoor SPA 可能前端路由到 /auth/login 或 /auth/signup。
+          // 这些路径有对应 Next route handler，必须通过完整文档请求重新进入后端逻辑。
           return pathname === '/auth/login' || pathname === '/auth/signup'
         }
 
         function navigateDocument(url) {
+          // 强制完整文档导航，不使用 Next/SPA 的前端路由。
+          // 双写 href + assign 是为了规避某些 SPA patch location 后吞掉第一次赋值。
           window.location.href = url
           window.setTimeout(function () {
             window.location.assign(url)
@@ -270,6 +318,7 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
         }
 
         function getCurrentDocumentUrl() {
+          // 当前 URL 会被重新加载，用于让 Next route handler 处理 /auth/login?redirect=...。
           return currentOrigin + window.location.pathname + window.location.search + window.location.hash
         }
 
@@ -278,6 +327,7 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
         }
 
         function getCurrentAuthEntryRedirectTarget() {
+          // 只接受同源相对路径。外链或 //evil.com 这类 open redirect 必须丢弃。
           try {
             var currentUrl = new URL(window.location.href)
             if (!isAuthEntryPath(currentUrl.pathname)) {
@@ -296,6 +346,8 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
         }
 
         async function hasActiveSession() {
+          // 在 auth 壳里检测当前宿主 NextAuth 会话。
+          // 如果用户已经登录但仍停留在 /auth/login，则跳到个人中心，避免重复登录。
           try {
             var sessionResponse = await fetch(currentOrigin + '/api/auth/session', {
               credentials: 'include',
@@ -314,6 +366,8 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
         }
 
         async function watchCurrentLocation() {
+          // 统一处理 Casdoor SPA 前端路由变化后的“脱壳”逻辑。
+          // 这个函数会在初始加载、pushState/replaceState、popstate 后执行。
           if (isResultPath(window.location.pathname)) {
             redirectToHomeRoute()
             return true
@@ -347,6 +401,8 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
         watchCurrentLocation()
 
         function toProxyUrl(input) {
+          // 把 Casdoor SPA 产生的 URL 全部收敛到宿主同源或指定静态 CDN。
+          // 这里是同源认证体验的核心：浏览器不直接访问 auth.heyaai.com 这类 Casdoor 域名。
           try {
             var url = typeof input === 'string' ? new URL(input, window.location.href) : input instanceof URL ? input : null
             if (!url) {
@@ -354,15 +410,18 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
             }
 
             if (url.origin === cdnOrigin && url.pathname.indexOf(proxyPrefix) === 0) {
+              // CDN 上的脚本有时会构造 /auth/* 请求；这些请求应回宿主同源代理。
               return currentOrigin + url.pathname + url.search + url.hash
             }
 
             if (url.origin === currentOrigin && url.pathname.indexOf('/static/') === 0) {
+              // Casdoor 静态资源保持从静态 CDN 取，避免宿主 Next 去处理大量 Casdoor asset。
               return cdnOrigin + url.pathname + url.search + url.hash
             }
 
             if (url.origin === currentOrigin && (url.pathname === '/auth' || url.pathname.indexOf('/auth/') === 0)) {
               if (url.pathname === '/auth/api/get-application') {
+                // 应用信息请求必须带宿主配置的 applicationId。
                 url.searchParams.set('id', applicationId)
               }
               return currentOrigin + proxyPathPrefix + url.pathname.slice('/auth'.length) + url.search + url.hash
@@ -372,10 +431,12 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
               (url.origin === currentOrigin || url.origin === casdoorOrigin) &&
               (url.pathname === '/result' || url.pathname.indexOf('/result/') === 0)
             ) {
+              // Casdoor result 页不是宿主页面。转换成首页 URL，实际跳转由 watchCurrentLocation 强刷处理。
               return currentOrigin + '/'
             }
 
             if (url.origin === casdoorOrigin) {
+              // 真实 Casdoor API/页面 URL 统一变成宿主 /auth/* 代理路径。
               return currentOrigin + proxyPathPrefix + url.pathname + url.search + url.hash
             }
           } catch (error) {
@@ -386,6 +447,8 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
         }
 
         function applyPatchedHistoryState(originalHistoryState, context, args) {
+          // 统一封装 history.pushState / replaceState 的 URL 参数处理。
+          // 不能在两个 patch 里直接改 arguments；不同浏览器对 arguments 可写性和 undefined URL 处理不一致。
           var nextArgs = Array.prototype.slice.call(args)
           if (nextArgs.length > 2) {
             if (typeof nextArgs[2] === 'undefined' || nextArgs[2] === null) {
@@ -402,6 +465,8 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
         }
 
         function rewriteElement(element) {
+          // Casdoor SPA 会动态插入 a/form/script/link/img。
+          // 静态 HTML 里的 URL 可以靠首屏模板控制，动态插入的节点必须在 DOM API 层重写。
           if (!element || element.nodeType !== Node.ELEMENT_NODE) {
             return
           }
@@ -452,6 +517,7 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
         }
 
         if (typeof window.fetch === 'function') {
+          // 拦截 fetch，保证 Casdoor 前端的数据请求也走同源代理。
           var originalFetch = window.fetch.bind(window)
           window.fetch = function (input, init) {
             return originalFetch(toProxyUrl(input), init)
@@ -459,6 +525,7 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
         }
 
         if (window.XMLHttpRequest && window.XMLHttpRequest.prototype) {
+          // Casdoor 旧代码或第三方依赖可能还用 XHR。
           var originalOpen = window.XMLHttpRequest.prototype.open
           window.XMLHttpRequest.prototype.open = function (method, url) {
             var rewrittenUrl = toProxyUrl(url)
@@ -467,6 +534,7 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
         }
 
         if (window.open) {
+          // 防止 Casdoor 用 window.open 打开外域或裸 /result 页。
           var originalOpenWindow = window.open.bind(window)
           window.open = function (url) {
             return originalOpenWindow(toProxyUrl(url), arguments[1], arguments[2])
@@ -474,6 +542,7 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
         }
 
         if (window.location && typeof window.location.assign === 'function') {
+          // location.assign/replace 是 Casdoor SPA 最常用的跳转方式之一。
           var originalAssign = window.location.assign.bind(window.location)
           window.location.assign = function (url) {
             return originalAssign(toProxyUrl(url))
@@ -488,6 +557,8 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
         }
 
         if (window.history && typeof window.history.replaceState === 'function') {
+          // 第一层 history patch：只负责 URL 参数重写和 undefined URL 修复。
+          // 后面会再包一层 watchCurrentLocation，用于监听前端路由变化后的脱壳逻辑。
           try {
             var originalHistoryReplaceState = window.history.replaceState.bind(window.history)
             window.history.replaceState = function () {
@@ -499,6 +570,7 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
         }
 
         if (window.history && typeof window.history.pushState === 'function') {
+          // 同上，pushState 也必须经过 applyPatchedHistoryState，避免 /login/oauth/undefined。
           try {
             var originalHistoryPushState = window.history.pushState.bind(window.history)
             window.history.pushState = function () {
@@ -510,6 +582,8 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
         }
 
         try {
+          // 尝试 patch Location.prototype.href，用于覆盖 window.location.href = ...
+          // 某些浏览器可能不允许重定义，因此必须 catch，失败时依赖 assign/replace/click/submit 兜底。
           var locationDescriptor = Object.getOwnPropertyDescriptor(Location.prototype, 'href')
           if (locationDescriptor && locationDescriptor.configurable && locationDescriptor.set) {
             Object.defineProperty(Location.prototype, 'href', {
@@ -528,6 +602,8 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
 ${buildPkceAuthorizeBootstrapScript(casdoorOrigin)}
 
         if (window.history && typeof window.history.pushState === 'function') {
+          // 第二层 history patch：在 URL 已被第一层 patch 处理后，监听 SPA 路由变化。
+          // 不能合并到第一层里，否则后续维护时容易漏掉 undefined URL 防护。
           var originalPushState = window.history.pushState.bind(window.history)
           window.history.pushState = function () {
             var result = originalPushState.apply(this, arguments)
@@ -537,6 +613,7 @@ ${buildPkceAuthorizeBootstrapScript(casdoorOrigin)}
         }
 
         if (window.history && typeof window.history.replaceState === 'function') {
+          // replaceState 也要触发 watchCurrentLocation，Casdoor 经常用 replaceState 切 result/auth 路由。
           var originalReplaceState = window.history.replaceState.bind(window.history)
           window.history.replaceState = function () {
             var result = originalReplaceState.apply(this, arguments)
@@ -548,6 +625,7 @@ ${buildPkceAuthorizeBootstrapScript(casdoorOrigin)}
         window.addEventListener('popstate', watchCurrentLocation)
 
         if (window.HTMLFormElement && window.HTMLFormElement.prototype) {
+          // 原生 form.submit() 不会触发 submit 事件，所以需要 patch prototype。
           var originalSubmit = window.HTMLFormElement.prototype.submit
           window.HTMLFormElement.prototype.submit = function () {
             if (this.action) {
@@ -558,6 +636,7 @@ ${buildPkceAuthorizeBootstrapScript(casdoorOrigin)}
         }
 
         document.addEventListener('click', function (event) {
+          // 捕获阶段拦截链接点击，先改写 URL，再交给完整文档导航。
           var target = event.target instanceof Element ? event.target.closest('a[href]') : null
           if (!target) {
             return
@@ -572,6 +651,7 @@ ${buildPkceAuthorizeBootstrapScript(casdoorOrigin)}
         }, true)
 
         document.addEventListener('submit', function (event) {
+          // 用户提交表单时也要确保 action 走同源代理。
           var form = event.target instanceof HTMLFormElement ? event.target : null
           if (!form || !form.action) {
             return
@@ -587,20 +667,24 @@ ${buildPkceAuthorizeBootstrapScript(casdoorOrigin)}
 
         var originalAppendChild = Node.prototype.appendChild
         Node.prototype.appendChild = function (node) {
+          // 动态 append 的节点在插入前改写，避免浏览器先请求外域资源。
           rewriteElement(node)
           return originalAppendChild.call(this, node)
         }
 
         var originalInsertBefore = Node.prototype.insertBefore
         Node.prototype.insertBefore = function (node, referenceNode) {
+          // React/AntD 等运行时常用 insertBefore 插入 script/link/img。
           rewriteElement(node)
           return originalInsertBefore.call(this, node, referenceNode)
         }
 
         if (document.body) {
+          // 首屏已经存在的 DOM 也要扫一遍，覆盖服务端 HTML 和同步脚本写入的元素。
           rewriteElement(document.body)
         }
 
+        // footer watcher 放在最后启动，确保基础 URL patch 已就绪。
         watchPoweredByFooter()
       })()
     </script>
