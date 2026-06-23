@@ -155,7 +155,7 @@ npx @foldspace-fe/casdoor-next-auth-kit@latest check
 - `packages/auth-kit/src/core/index-html.ts` 的默认图标地址支持 `DEFAULT_CASDOOR_ICON_HREF` 环境变量覆盖；宿主未显式传 `iconHref` 时，先读环境变量，再回退到内置 favicon
 - `packages/auth-kit/src/core/index-html.ts` 的默认 `appName` 和 `description` 也支持 `DEFAULT_CASDOOR_APP_NAME` 和 `DEFAULT_CASDOOR_DESCRIPTION` 环境变量覆盖；宿主未显式传对应参数时，先读环境变量，再回退到内置文案
 - `packages/auth-kit/src/core/index-html.ts` 的底部 `powered by` HTML 片段也支持 `DEFAULT_CASDOOR_POWERED_BY_HTML` 环境变量覆盖；宿主未显式传对应片段时，先读环境变量，再回退到空字符串。示例配置可以直接写成 `DEFAULT_CASDOOR_POWERED_BY_HTML="Powered by <a href='https://heyaai.com' target='_blank'>鹤芽</a>"`，页面里会通过 `footer.innerHTML = window.DEFAULT_CASDOOR_POWERED_BY_HTML` 渲染成实际链接
-- `packages/auth-kit/src/core/index-html.ts` 还会持续监听 `#footer` 的变化，若 `window.DEFAULT_CASDOOR_POWERED_BY_HTML` 存在，只要 footer 被改动就重新把内部恢复成该 HTML 片段。Casdoor SPA 可能会整体重建 footer，所以允许保留一个轻量 document observer 只用于发现 footer 替换；真正写入和 characterData 监听必须收窄到 footer 专属 observer，写入时临时断开再恢复，避免全局监听导致 authorize 页初始化卡死或自触发死循环
+- `packages/auth-kit/src/core/index-html.ts` 还会持续监听 `#footer` 的变化，若 `window.DEFAULT_CASDOOR_POWERED_BY_HTML` 存在，只要 footer 被改动就重新把内部恢复成该 HTML 片段。Casdoor SPA 可能会整体重建 footer，所以允许保留一个轻量 document observer 只用于发现 footer 替换；真正写入和 characterData 监听必须收窄到 footer 专属 observer，写入时临时断开再恢复，避免全局监听导致 authorize 页初始化卡死或自触发死循环。比较 footer 是否已生效时，必须先用 `template.innerHTML` 标准化 env 片段，并配合 `data-casdoor-powered-by-html="1"` 标记判断，不要直接拿 raw env 字符串和 `footer.innerHTML` 比较；浏览器会把单引号属性等 HTML 片段重排，raw 比较会导致 observer 反复误判和覆盖失效
 
 入口路由（login/signup）负责将用户引导至授权壳，授权壳在同源 iframe 或内嵌组件中渲染 Casdoor 界面，避免用户感知到离开宿主应用。
 

@@ -65,8 +65,53 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
 
         window.DEFAULT_CASDOOR_POWERED_BY_HTML = ${JSON.stringify(poweredByHtml)}
 
+        var normalizedPoweredByHtml = null
+
+        function getPoweredByHtmlValue() {
+          return window.DEFAULT_CASDOOR_POWERED_BY_HTML || ''
+        }
+
+        function getNormalizedPoweredByHtml() {
+          var poweredByHtml = getPoweredByHtmlValue()
+          if (!poweredByHtml) {
+            return ''
+          }
+
+          if (normalizedPoweredByHtml !== null) {
+            return normalizedPoweredByHtml
+          }
+
+          // 浏览器会把 env 中的 HTML 片段标准化，例如单引号属性会变成双引号。
+          // 比较时必须使用标准化结果，否则 observer 会把自己写入的内容误判为被改坏。
+          var template = document.createElement('template')
+          template.innerHTML = poweredByHtml
+          normalizedPoweredByHtml = template.innerHTML || poweredByHtml
+          return normalizedPoweredByHtml
+        }
+
+        function isPoweredByFooterCurrent(footer) {
+          // 不要改回 footer.innerHTML === window.DEFAULT_CASDOOR_POWERED_BY_HTML。
+          // 浏览器会标准化 HTML 属性和空白；必须用标准化后的片段加写入标记共同判断。
+          return (
+            footer.getAttribute('data-casdoor-powered-by-html') === '1' &&
+            footer.innerHTML === getNormalizedPoweredByHtml()
+          )
+        }
+
+        function writePoweredByFooter(footer) {
+          var poweredByHtml = getPoweredByHtmlValue()
+          if (!poweredByHtml || !footer) {
+            return
+          }
+
+          footer.innerHTML = poweredByHtml
+          // 写入标记用于区分“我们已经接管 footer”和 Casdoor SPA 后续重建/覆盖 footer。
+          // observer 依赖这个标记避免把自身写入误判成外部改动。
+          footer.setAttribute('data-casdoor-powered-by-html', '1')
+        }
+
         function applyPoweredByHtml() {
-          if (!window.DEFAULT_CASDOOR_POWERED_BY_HTML) {
+          if (!getPoweredByHtmlValue()) {
             return
           }
 
@@ -75,11 +120,11 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
             return
           }
 
-          if (footer.innerHTML === window.DEFAULT_CASDOOR_POWERED_BY_HTML) {
+          if (isPoweredByFooterCurrent(footer)) {
             return
           }
 
-          footer.innerHTML = window.DEFAULT_CASDOOR_POWERED_BY_HTML
+          writePoweredByFooter(footer)
         }
 
         if (document.readyState === 'loading') {
@@ -89,7 +134,7 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
         }
 
         function watchPoweredByFooter() {
-          if (!window.DEFAULT_CASDOOR_POWERED_BY_HTML) {
+          if (!getPoweredByHtmlValue()) {
             return
           }
 
@@ -102,7 +147,7 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
           var watchedFooter = null
 
           function syncPoweredByFooter() {
-            if (!window.DEFAULT_CASDOOR_POWERED_BY_HTML) {
+            if (!getPoweredByHtmlValue()) {
               return
             }
 
@@ -121,7 +166,7 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
               return
             }
 
-            if (footer.innerHTML === window.DEFAULT_CASDOOR_POWERED_BY_HTML) {
+            if (isPoweredByFooterCurrent(footer)) {
               return
             }
 
@@ -129,7 +174,7 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
               footerObserver.disconnect()
             }
 
-            footer.innerHTML = window.DEFAULT_CASDOOR_POWERED_BY_HTML
+            writePoweredByFooter(footer)
 
             if (footerObserver) {
               footerObserver.observe(footer, { childList: true, subtree: true, characterData: true })

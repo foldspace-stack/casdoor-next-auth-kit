@@ -19,9 +19,16 @@ test('createAuthIndexHtml reads DEFAULT_CASDOOR defaults when options are omitte
     assert.match(html, /\/casdoor_favicon\.ico/);
     assert.match(html, /Powered by Env Footer/);
     assert.match(html, /window\.DEFAULT_CASDOOR_POWERED_BY_HTML = "<span>Powered by Env Footer<\/span>"/);
+    assert.match(html, /function getNormalizedPoweredByHtml\(\)/);
+    assert.match(html, /document\.createElement\('template'\)/);
+    assert.match(html, /template\.innerHTML = poweredByHtml/);
+    assert.match(html, /data-casdoor-powered-by-html/);
     assert.match(html, /getElementById\('footer'\)/);
-    assert.match(html, /footer\.innerHTML === window\.DEFAULT_CASDOOR_POWERED_BY_HTML/);
-    assert.match(html, /footer\.innerHTML = window\.DEFAULT_CASDOOR_POWERED_BY_HTML/);
+    assert.match(html, /function isPoweredByFooterCurrent\(footer\)/);
+    assert.match(html, /footer\.innerHTML === getNormalizedPoweredByHtml\(\)/);
+    assert.match(html, /function writePoweredByFooter\(footer\)/);
+    assert.match(html, /footer\.innerHTML = poweredByHtml/);
+    assert.match(html, /footer\.setAttribute\('data-casdoor-powered-by-html', '1'\)/);
     assert.match(html, /function watchPoweredByFooter\(\)/);
     assert.match(html, /var watchedFooter = null/);
     assert.match(html, /var footerPoll = null/);
