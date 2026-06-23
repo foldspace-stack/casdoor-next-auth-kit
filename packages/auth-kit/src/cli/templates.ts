@@ -339,7 +339,9 @@ import { syncUserRecord } from '@/lib/user/record';
 
 export function createAuthKitConfig(): AuthKitConfig {
   return {
-    appUrl: process.env.APP_URL || '',
+    // APP_URL 是首选站点对外地址；如果宿主只配置了 NEXTAUTH_URL，也要能继续工作。
+    // 这里不要再退回到 request.url 这类运行时容器地址，否则 Coolify / Traefik 场景会跳到 0.0.0.0。
+    appUrl: process.env.APP_URL || process.env.NEXTAUTH_URL || '',
     nextauthSecret: process.env.NEXTAUTH_SECRET || 'dev-nextauth-secret',
     logoutRedirectPath: process.env.NEXT_PUBLIC_AUTH_LOGOUT_REDIRECT_PATH || '/',
     casdoor: {

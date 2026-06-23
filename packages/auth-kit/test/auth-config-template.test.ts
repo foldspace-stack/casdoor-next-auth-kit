@@ -12,6 +12,7 @@ test('generated auth-config wires admin sync and role persistence', () => {
   );
   assert.match(text, /import \{ syncUserRecord \} from '@\/lib\/user\/record';/);
   assert.match(text, /onUserSync: async \(profile, tokens\)/);
+  assert.match(text, /appUrl: process\.env\.APP_URL \|\| process\.env\.NEXTAUTH_URL \|\| ''/);
   assert.match(text, /const decodedAccessToken = accessToken \? decodeCasdoorAccessToken\(accessToken\) : null;/);
   assert.match(text, /role: isAdmin \? 'admin' : 'user'/);
   assert.match(text, /async syncAuthUser\(user\)/);
