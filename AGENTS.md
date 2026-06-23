@@ -79,6 +79,8 @@
 - 生成的 `auth-config.ts` 必须同时兼容 `npx ... init` 和 `npx ... update`，不要让第一次生成能过、更新时却因为保留块或导入变化而编译失败。
 - 登录入口是宿主 app root 下 `/(auth-kit)/auth/login` 和 `/(auth-kit)/auth/signup`，授权壳子是宿主 app root 下 `/(auth-kit)/login/oauth/authorize`。
 - `PKCE verifier` 只走浏览器 `sessionStorage` / `localStorage` 和 `/callback` 的回调桥接页，不再通过 cookie 传递，也不要再补 legacy cookie 读取兜底。
+- Coolify / Traefik / Docker Compose 部署下，`request.url` 可能是容器监听地址（例如 `https://0.0.0.0:7273/...`）。所有登录、回调、logout、异常 fallback 和支付回跳的公网跳转 origin 都必须走 `getRequestOrigin()` / `resolvePublicOrigin()`，优先使用 `referer`、`origin`、`x-forwarded-*`、`host`，再兜底 `APP_URL` / `NEXTAUTH_URL` / Coolify 环境变量；不要直接用 `new URL(path, request.url)` 拼公网跳转地址。
+- `/login/oauth/[...path]` 是受管异常 fallback，用于兜底 `/login/oauth/undefined` 等非法授权壳路径。这个路由已经验证过线上会在登录成功后被 Casdoor SPA 短暂命中，因此必须用 `getRequestOrigin(request, authKitConfig.appUrl)` 跳到 `/user/account`，不能改回 `new URL('/user/account', request.url)`，否则 Coolify 会再次跳到 `0.0.0.0:7273`。
 
 ## 对外约定
 
@@ -88,6 +90,7 @@
 - 生成的登录体验应保持在宿主站点内完成，Casdoor 页面只作为包内部代理的上游，不应直接暴露给最终用户。
 - `/auth/login`、`/auth/signup`、`/login/oauth/authorize` 和 `/signup/oauth/authorize` 进入时，服务端响应要先清理当前域里残留的认证 cookie（含 session、CSRF、callback-url、state、oauth_state、pkce_code_verifier、auth_origin、auth_redirect），再继续进入同源授权流程，避免本地残留状态干扰新的登录/注册。
 - `/callback` 的 GET 响应要返回一个很小的回调桥接页，由浏览器从 storage 里取出 `PKCE verifier` 后再 POST 回同一个 `/callback`；POST 才执行授权码交换，不要再从 cookie 里读取 verifier。
+- `/login/oauth/[...path]` 的异常 fallback 也是受管 route shell，发布包以后宿主必须重新执行 `update` 刷新生成文件；只更新运行时依赖但不刷新 `app/(auth-kit)/login/oauth/[...path]/route.ts`，线上仍会保留旧跳转逻辑。
 - 宿主工程推荐把 `NEXT_PUBLIC_CASDOOR_APP_NAME` 和 `NEXT_PUBLIC_CASDOOR_ORGANIZATION_NAME` 视作同一个站点命名空间来配置，例如 `qixiaoju / qixiaoju`。
 - 宿主工程通过 `@foldspace-fe/casdoor-next-auth-kit/react` 读取认证状态和动作。
 - 宿主工程只负责建表和持久化，数据库字段与同步需求由包定义。
@@ -106,6 +109,7 @@
 - 不要再把 Casdoor API 改回 `/api/casdoor/*` 或其他与主框架冲突的前缀，宿主统一使用 `/auth/api/*`。
 - 不要再恢复旧的 `/login`、`/signup`、`/logout` 兼容入口，宿主只保留 app root 下 `/(auth-kit)` 的新路由。
 - 不要再把 `NEXTAUTH_URL` 当成公共站点 origin 的来源，公共 origin 优先由请求头、`referer`、`origin`、`x-forwarded-*` 和当前请求 URL 识别，`APP_URL` 只做最后兜底；不要再把这条规则改回“每个域名单独配置 APP_URL / NEXTAUTH_URL”的旧方案。
+- 不要在受管 route shell、callback、logout、billing 回跳或异常 fallback 里用 `new URL('/some-path', request.url)` 生成公网跳转。`request.url` 在 Coolify 容器内可能是 `0.0.0.0:PORT`，必须先用套件公共 origin helper 解析出公网 origin。
 - 不要再把 billing 回调设计成依赖 `.env` 里的 handler 模块路径；默认生成的 `lib/billing/payment-success.ts` 和 `lib/billing/payment-finished.ts` 就是宿主侧接入点，`auth-config.ts` 负责直接导入并导出对应 handler。
 - 不要再把 `/auth/payment/success` 和 `/auth/payment/finished` 退回成页面文件，它们必须保持为固定回调路径，由默认生成的 billing handler 文件承接业务逻辑和跳转。
 - 不要再让 billing 回调缺省成“静默空操作”；如果没有宿主业务逻辑，至少要保留日志和默认回退，方便排查 Casdoor 回跳链路是否真的走到了宿主。

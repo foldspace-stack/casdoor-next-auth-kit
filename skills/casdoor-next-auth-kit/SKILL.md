@@ -149,11 +149,13 @@ npx @foldspace-fe/casdoor-next-auth-kit@latest check
 - `NEXT_PUBLIC_CASDOOR_SERVER_URL` / `CASDOOR_SERVER_URL` 必须配置成 Casdoor 的真实协议和域名。生产 Casdoor 是 HTTPS 时必须写 `https://...`，写成 `http://...` 会出现 `casdoor_session_id` 已转发但上游仍返回 `Please login first` 的问题。
 - `/auth/login`、`/auth/signup`、`/login/oauth/authorize` 和 `/signup/oauth/authorize` 进入时，服务端响应要在首跳里隐式清理当前域残留的认证 cookie（含 session、CSRF、callback-url、state、oauth_state、pkce_code_verifier、auth_origin、auth_redirect），再继续进入同源授权流程，避免本地残留状态干扰新的登录/注册；这里不需要额外显式提示页或手动清理步骤
 - `/auth/login`、`/auth/signup`、`/login/oauth/authorize`、`/signup/oauth/authorize` 和 `/logout` 这条链路里，origin 必须按请求头动态推导，不要再回退到 `request.url`、容器主机名或写死的单域名 `appUrl`；在 Coolify / Traefik / 多域名部署下，`request.url` 可能变成 `0.0.0.0:7273`，一旦写进 `authorize`、`redirect_uri` 或 logout target，就会把用户带出正确站点
+- 公共 origin 推导必须统一走 `getRequestOrigin()` / `resolvePublicOrigin()`，优先使用 `referer`、`origin`、`x-forwarded-*`、`host`，再兜底 `APP_URL` / `NEXTAUTH_URL` / Coolify 环境变量；这些 helper 会拒绝 `0.0.0.0` / 容器监听地址。不要在任何登录、回调、logout、异常 fallback 或支付回跳里直接用 `new URL(path, request.url)` 生成公网跳转
 - `/callback` 的 GET 首跳只负责返回回调桥接页，真正的 token exchange 放在 POST；PKCE verifier 只保存在浏览器 storage，不要再增加 cookie 读取的迁移兜底，因为 cookie 容量太大且这条链路已经废弃
 - `/signup/oauth/authorize` 的注册完成结果不应停留在 Casdoor 的 `/result/*` 页面，`packages/auth-kit/src/core/index-html.ts` 会在页面加载时和前端 `history` 变更时持续监控当前路径，只要落到 `/result/*` 就统一隐式跳回宿主首页 `/`，不要再改回 `/auth/login?redirect=%2F`。如果 Casdoor SPA 只用 `history.pushState` 把 auth 壳地址改成 `/`，地址栏虽然已经是首页但文档仍是 Casdoor SPA，此时必须调用完整文档导航并补 `window.location.reload()`，强制刷新到宿主首页
 - Casdoor 可能通过前端路由把同一个静态壳地址改成 `/auth/login?redirect=...` 或 `/auth/signup?redirect=...`，这时不会触发 Next.js route handler。`packages/auth-kit/src/core/index-html.ts` 必须在 `history.pushState` / `replaceState` / `popstate` 后继续 watch：若带有同源 `redirect` / `returnTo` 参数，不要直接跳目标路径，而要强制重载当前 auth entry URL，让宿主 Next route handler 执行后端跳转；若已有宿主 NextAuth 会话则用完整文档导航进入 `/user/account`。
 - `packages/auth-kit/src/core/index-html.ts` patch `history.pushState` / `history.replaceState` 时，不能把显式传入的 `undefined` / `null` 第三个参数继续转发给原生 history。浏览器会把 `undefined` 当成字符串 URL，导致 `/login/oauth/undefined`。没有真实 URL 时必须按两参数调用原生 history；只有第三个参数是有效 URL 时才允许调用 `toProxyUrl()`
 - `/login/oauth/authorize` 是唯一合法的登录授权壳路径。若线上旧状态或 Casdoor SPA 回归导致用户落到 `/login/oauth/undefined` 或其它 `/login/oauth/*` 非 authorize 路径，必须通过 `packages/auth-kit/src/core/index-html.ts` 的前端 watch 和受管 `login/oauth/[...path]/route.ts` 双兜底跳到 `/user/account`；不要删除这个 fallback，否则异常路径会直接卡在 404 或空白授权壳。
+- `login/oauth/[...path]/route.ts` 这个异常 fallback 不能用 `request.url` 拼 `/user/account`。线上已验证 Casdoor SPA 在登录成功后可能短暂命中 `/login/oauth/undefined`，如果 fallback 使用 `new URL('/user/account', request.url)`，Coolify 会把 `Location` 写成 `https://0.0.0.0:7273/user/account`。模板必须导入 `getRequestOrigin` 和 `authKitConfig`，通过 `getRequestOrigin(request, authKitConfig.appUrl)` 得到公网 origin 后再 307 到 `/user/account`
 - `packages/auth-kit/src/core/index-html.ts` 的默认图标地址支持 `DEFAULT_CASDOOR_ICON_HREF` 环境变量覆盖；宿主未显式传 `iconHref` 时，先读环境变量，再回退到内置 favicon
 - `packages/auth-kit/src/core/index-html.ts` 的默认 `appName` 和 `description` 也支持 `DEFAULT_CASDOOR_APP_NAME` 和 `DEFAULT_CASDOOR_DESCRIPTION` 环境变量覆盖；宿主未显式传对应参数时，先读环境变量，再回退到内置文案
 - `packages/auth-kit/src/core/index-html.ts` 的底部 `powered by` HTML 片段也支持 `DEFAULT_CASDOOR_POWERED_BY_HTML` 环境变量覆盖；宿主未显式传对应片段时，先读环境变量，再回退到空字符串。示例配置可以直接写成 `DEFAULT_CASDOOR_POWERED_BY_HTML="Powered by <a href='https://heyaai.com' target='_blank'>鹤芽</a>"`，页面里会通过 `footer.innerHTML = window.DEFAULT_CASDOOR_POWERED_BY_HTML` 渲染成实际链接
@@ -421,6 +423,8 @@ NEXTAUTH_URL=
 
 - 登录页能打开，但提交后 403
 - `redirect_uri` 变成了 `http://.../callback`
+- 登录成功后跳到 `https://0.0.0.0:7273/user/account`
+- 登录成功后先访问 `/login/oauth/undefined`，再被 307 到容器地址
 - 本地正常，线上失败
 - 反向代理后回调地址不对
 - 多域名部署下某个域名没有单独配置 `APP_URL` / `NEXTAUTH_URL`
@@ -474,6 +478,7 @@ NEXTAUTH_URL=
    - 成功时应输出 `All managed files are present.`
 3. 核对受管文件是否已经刷新
    - 宿主 app root 下的 `/(auth-kit)/...`
+   - 特别检查 `/(auth-kit)/login/oauth/[...path]/route.ts` 是否已从旧的 `new URL('/user/account', request.url)` 更新为 `getRequestOrigin(request, authKitConfig.appUrl)`，否则线上登录成功后仍可能跳到 `0.0.0.0:7273`
    - `prisma/auth-kit.prisma`
    - `.env`、`.env.local`、`.env.production`、`.env.example`
    - `.agents/skills/casdoor-next-auth-kit/SKILL.md`

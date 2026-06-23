@@ -61,6 +61,9 @@ export function getRequestOrigin(request: Request, appUrl?: string): string {
   const configured = normalizeOrigin(appUrl);
   if (configured) return configured;
 
+  // Runtime config can lag behind generated auth-config.ts in deployed images.
+  // Keep these env fallbacks here as a final safety net for Coolify multi-domain
+  // deployments, but still reject 0.0.0.0 through normalizeOrigin().
   const envConfigured =
     normalizeFirstEnvOrigin(process.env.APP_URL) ||
     normalizeFirstEnvOrigin(process.env.NEXTAUTH_URL) ||
