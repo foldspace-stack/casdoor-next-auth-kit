@@ -385,6 +385,22 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
           return input
         }
 
+        function applyPatchedHistoryState(originalHistoryState, context, args) {
+          var nextArgs = Array.prototype.slice.call(args)
+          if (nextArgs.length > 2) {
+            if (typeof nextArgs[2] === 'undefined' || nextArgs[2] === null) {
+              // 原生 history.pushState/replaceState 如果显式收到 undefined，
+              // 会把它当成字符串 URL，导致 /login/oauth/undefined。
+              // 没有真实 URL 时必须按“两参数调用”转发，保持当前地址不变。
+              nextArgs = nextArgs.slice(0, 2)
+            } else {
+              nextArgs[2] = toProxyUrl(nextArgs[2])
+            }
+          }
+
+          return originalHistoryState.apply(context, nextArgs)
+        }
+
         function rewriteElement(element) {
           if (!element || element.nodeType !== Node.ELEMENT_NODE) {
             return
@@ -475,10 +491,7 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
           try {
             var originalHistoryReplaceState = window.history.replaceState.bind(window.history)
             window.history.replaceState = function () {
-              if (arguments.length > 2) {
-                arguments[2] = toProxyUrl(arguments[2])
-              }
-              return originalHistoryReplaceState.apply(this, arguments)
+              return applyPatchedHistoryState(originalHistoryReplaceState, this, arguments)
             }
           } catch (error) {
             console.warn('[casdoor-next-auth-kit] history.replaceState patch failed', error)
@@ -489,10 +502,7 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
           try {
             var originalHistoryPushState = window.history.pushState.bind(window.history)
             window.history.pushState = function () {
-              if (arguments.length > 2) {
-                arguments[2] = toProxyUrl(arguments[2])
-              }
-              return originalHistoryPushState.apply(this, arguments)
+              return applyPatchedHistoryState(originalHistoryPushState, this, arguments)
             }
           } catch (error) {
             console.warn('[casdoor-next-auth-kit] history.pushState patch failed', error)

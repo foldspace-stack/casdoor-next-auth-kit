@@ -109,6 +109,19 @@ test('createAuthIndexHtml reloads SPA auth entry routes through Next route handl
   assert.match(html, /navigateDocument\(currentOrigin \+ '\/user\/account'\)/);
 });
 
+test('createAuthIndexHtml does not pass undefined history URLs to native history APIs', () => {
+  const html = createAuthIndexHtml();
+
+  assert.match(html, /function applyPatchedHistoryState\(originalHistoryState, context, args\)/);
+  assert.match(html, /Array\.prototype\.slice\.call\(args\)/);
+  assert.match(html, /typeof nextArgs\[2\] === 'undefined' \|\| nextArgs\[2\] === null/);
+  assert.match(html, /导致 \/login\/oauth\/undefined/);
+  assert.match(html, /nextArgs = nextArgs\.slice\(0, 2\)/);
+  assert.match(html, /nextArgs\[2\] = toProxyUrl\(nextArgs\[2\]\)/);
+  assert.match(html, /applyPatchedHistoryState\(originalHistoryReplaceState, this, arguments\)/);
+  assert.match(html, /applyPatchedHistoryState\(originalHistoryPushState, this, arguments\)/);
+});
+
 test('createAuthIndexHtml injects browser pkce bootstrap logic for authorize pages', () => {
   const html = createAuthIndexHtml();
 
