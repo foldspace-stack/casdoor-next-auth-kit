@@ -238,6 +238,10 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
           return pathname === '/result' || pathname.indexOf('/result/') === 0
         }
 
+        function isHomePath(pathname) {
+          return pathname === '/'
+        }
+
         function isAuthEntryPath(pathname) {
           return pathname === '/auth/login' || pathname === '/auth/signup'
         }
@@ -249,12 +253,28 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
           }, 100)
         }
 
+        function reloadHomeDocument() {
+          var homeUrl = currentOrigin + '/'
+
+          // Casdoor 注册成功后可能只用 history.pushState 把 auth 壳前端路由改成 /。
+          // 这时地址栏已经是首页，但文档仍是 Casdoor SPA，必须强制刷新才能进入宿主首页。
+          window.location.href = homeUrl
+          window.setTimeout(function () {
+            if (window.location.pathname === '/') {
+              window.location.reload()
+              return
+            }
+
+            window.location.assign(homeUrl)
+          }, 100)
+        }
+
         function getCurrentDocumentUrl() {
           return currentOrigin + window.location.pathname + window.location.search + window.location.hash
         }
 
         function redirectToHomeRoute() {
-          navigateDocument(currentOrigin + '/')
+          reloadHomeDocument()
         }
 
         function getCurrentAuthEntryRedirectTarget() {
@@ -296,6 +316,13 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
         async function watchCurrentLocation() {
           if (isResultPath(window.location.pathname)) {
             redirectToHomeRoute()
+            return true
+          }
+
+          if (isHomePath(window.location.pathname)) {
+            // 如果这个脚本还在运行，说明当前仍是 auth 壳文档，不是真正的宿主首页文档。
+            // 因此检测到 SPA 前端路由落到 / 时，要强制 reload 一次。
+            reloadHomeDocument()
             return true
           }
 
