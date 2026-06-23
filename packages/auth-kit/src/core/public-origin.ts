@@ -1,3 +1,5 @@
+import { getRequestOrigin as getCoreRequestOrigin } from './origin.ts';
+
 export const PUBLIC_ORIGIN_COOKIE_NAME = 'auth_origin';
 
 function isContainerOrigin(origin: string): boolean {
@@ -9,39 +11,7 @@ function isContainerOrigin(origin: string): boolean {
 }
 
 export function getRequestOrigin(request: Request, appUrl?: string): string {
-  const referer = request.headers.get('referer');
-  if (referer) {
-    try {
-      return new URL(referer).origin;
-    } catch {
-      // ignore
-    }
-  }
-
-  const origin = request.headers.get('origin');
-  if (origin) {
-    try {
-      return new URL(origin).origin;
-    } catch {
-      // ignore
-    }
-  }
-
-  const forwardedProto = request.headers.get('x-forwarded-proto')?.split(',')[0]?.trim();
-  const forwardedHost = request.headers.get('x-forwarded-host')?.split(',')[0]?.trim();
-  if (forwardedProto && forwardedHost) {
-    return `${forwardedProto}://${forwardedHost}`;
-  }
-
-  if (appUrl) {
-    try {
-      return new URL(appUrl).origin;
-    } catch {
-      // ignore and fall back to request url
-    }
-  }
-
-  return new URL(request.url).origin;
+  return getCoreRequestOrigin(request, appUrl);
 }
 
 export function setPublicOriginCookie(response: { cookies: { set: (...args: any[]) => void } }, origin: string, secure: boolean) {

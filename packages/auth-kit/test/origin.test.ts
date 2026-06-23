@@ -25,6 +25,30 @@ test('request origin falls back to APP_URL when request headers are unavailable'
   assert.equal(getPublicRequestOrigin(request, 'https://configured.example.com'), 'https://configured.example.com');
 });
 
+test('request origin uses public Host header instead of container request url', () => {
+  const request = new Request('https://0.0.0.0:7273/callback', {
+    headers: {
+      host: 'www.chuangxiaoju.com',
+      'x-forwarded-proto': 'https',
+    },
+  });
+
+  assert.equal(getCoreRequestOrigin(request, 'https://configured.example.com'), 'https://www.chuangxiaoju.com');
+  assert.equal(getPublicRequestOrigin(request, 'https://configured.example.com'), 'https://www.chuangxiaoju.com');
+});
+
+test('request origin ignores container forwarded host and falls back to configured url', () => {
+  const request = new Request('https://0.0.0.0:7273/callback', {
+    headers: {
+      'x-forwarded-host': '0.0.0.0:7273',
+      'x-forwarded-proto': 'https',
+    },
+  });
+
+  assert.equal(getCoreRequestOrigin(request, 'https://www.chuangxiaoju.com'), 'https://www.chuangxiaoju.com');
+  assert.equal(getPublicRequestOrigin(request, 'https://www.chuangxiaoju.com'), 'https://www.chuangxiaoju.com');
+});
+
 test('public origin ignores container auth_origin cookies that point to 0.0.0.0', () => {
   const request = new Request('http://internal.local/callback', {
     headers: {
