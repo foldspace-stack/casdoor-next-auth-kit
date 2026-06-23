@@ -41,6 +41,7 @@ test('resolves app when the project uses app', () => {
 test('builds managed route targets under the chosen app root', () => {
   const targets = buildManagedRouteTargets('src/app');
   assert.equal(targets.authConfig, path.join('src/app', '(auth-kit)', 'auth-config.ts'));
+  assert.equal(targets.loginOauthFallbackRoute, path.join('src/app', '(auth-kit)', 'login/oauth/[...path]/route.ts'));
   assert.equal(targets.callbackErrorButton, path.join('src/app', '(auth-kit)', 'callback/error/clear-domain-cookies-button.tsx'));
 });
 
@@ -63,6 +64,7 @@ test('initProject writes managed files under src/app when src/app exists', async
 
     assert.ok(fs.existsSync(path.join(dir, 'src/app/(auth-kit)/auth-config.ts')));
     assert.ok(!fs.existsSync(path.join(dir, 'app/(auth-kit)/auth-config.ts')));
+    assert.ok(fs.existsSync(path.join(dir, 'src/app/(auth-kit)/login/oauth/[...path]/route.ts')));
     assert.ok(fs.existsSync(path.join(dir, 'lib/billing/payment-success.ts')));
     assert.ok(fs.existsSync(path.join(dir, 'lib/billing/payment-finished.ts')));
     assert.ok(fs.existsSync(path.join(dir, 'lib/billing/order-redirect.ts')));
@@ -79,6 +81,7 @@ test('initProject writes managed files under app when app exists', async () => {
 
     assert.ok(fs.existsSync(path.join(dir, 'app/(auth-kit)/auth-config.ts')));
     assert.ok(!fs.existsSync(path.join(dir, 'src/app/(auth-kit)/auth-config.ts')));
+    assert.ok(fs.existsSync(path.join(dir, 'app/(auth-kit)/login/oauth/[...path]/route.ts')));
     assert.ok(fs.existsSync(path.join(dir, 'lib/billing/payment-success.ts')));
     assert.ok(fs.existsSync(path.join(dir, 'lib/billing/payment-finished.ts')));
     assert.ok(fs.existsSync(path.join(dir, 'lib/billing/order-redirect.ts')));

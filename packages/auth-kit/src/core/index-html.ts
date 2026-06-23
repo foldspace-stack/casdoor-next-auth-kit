@@ -12,6 +12,16 @@ import { buildPkceAuthorizeBootstrapScript } from './pkce-storage.ts';
 // - 这里返回的是字符串模板，内部脚本运行在浏览器里，不能直接访问 Node/Next runtime。
 // - 大多数逻辑是为了兼容 Casdoor SPA 自己的 history/fetch/XHR/form 行为，不要简化成普通跳转页。
 // - 修改后必须跑 packages/auth-kit 的测试；index-html.test.ts 里有多个防回归字符串断言。
+//
+// 不要随意改动的核心约束：
+// - 不要把认证流程改回跳转到 Casdoor 外域。用户必须始终停留在宿主同域。
+// - 不要删除 /result/*、/auth/login?redirect=...、/auth/signup?redirect=... 的前端路由 watch。
+//   Casdoor 注册/登录完成后的跳转经常是 SPA history 变更，不会触发 Next route handler。
+// - 不要把首页跳转改成普通 pushState。auth 壳文档跳到 / 后必须强制刷新，否则地址栏是首页但页面仍是 Casdoor SPA。
+// - 不要删除 /login/oauth/* 非 authorize 路径兜底。历史回归里曾出现 /login/oauth/undefined，需要直接脱壳到个人中心。
+// - 不要把 footer 替换改成一次性 DOMContentLoaded 写入。Casdoor SPA 会异步重建 footer。
+// - 不要把 URL 重写逻辑分散到 route handler。这里必须兜底 fetch/XHR/form/click/history/location/DOM 动态插入。
+// - 不要把 history patch 合并或删掉 undefined URL 防护，否则浏览器会生成 /login/oauth/undefined。
 
 const DEFAULT_CASDOOR_STATIC_ORIGIN = 'https://casdoor-static.foldspace.cn';
 const DEFAULT_CASDOOR_ORIGIN =
@@ -75,6 +85,9 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
         // 当前脚本在宿主同源授权壳中执行。
         // currentOrigin 是宿主 origin，casdoorOrigin 是真实 Casdoor origin，cdnOrigin 是 Casdoor 静态资源 origin。
         // 后续所有网络和导航改写都围绕这三个 origin 展开。
+        //
+        // 不要把 currentOrigin 改成 NEXTAUTH_URL / APP_URL / 固定域名。
+        // Coolify、Traefik、多域名部署下，运行时真实访问域名必须从 window.location.origin 得到。
         var cdnOrigin = ${JSON.stringify(staticOrigin)}
         var casdoorOrigin = ${JSON.stringify(casdoorOrigin)}
         var currentOrigin = window.location.origin
@@ -86,6 +99,8 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
 
         // 通过全局变量暴露给后续 observer。不能只在初始 DOMContentLoaded 写一次，
         // 因为 Casdoor SPA 会在渲染完成后替换 footer。
+        // 这个变量由 DEFAULT_CASDOOR_POWERED_BY_HTML 环境变量生成，允许宿主自定义品牌 footer。
+        // 不要把它改回硬编码 "Powered by Casdoor"，也不要把 HTML 片段转成纯文本。
         window.DEFAULT_CASDOOR_POWERED_BY_HTML = ${JSON.stringify(poweredByHtml)}
 
         // 浏览器会标准化 innerHTML；缓存标准化结果，避免每次 MutationObserver 回调都创建 template。
@@ -174,6 +189,11 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
           // 1. footerObserver 只盯当前 #footer，避免全局 observer 写入造成自触发死循环。
           // 2. documentObserver 只负责发现 Casdoor 把整个 footer 节点替换掉。
           // 3. footerPoll 是兜底，处理某些浏览器/框架绕过 observer 或 observer 丢事件的情况。
+          //
+          // 这块不要“简化”为单个 document MutationObserver：
+          // - 全局 observer 监听 characterData/subtree 会显著放大回调次数。
+          // - 写入 innerHTML 又会触发 observer，容易造成递归和登录页卡顿。
+          // - Casdoor footer 是 SPA 后渲染/后替换的，单次写入无法保证最终内容。
           var footerObserver = null
           var documentObserver = null
           var footerPoll = null
@@ -277,6 +297,9 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
         function isResultPath(pathname) {
           // 注册成功后 Casdoor 常把页面带到 /result 或 /result/*。
           // 这些路径不是宿主业务页面，必须离开授权壳。
+          //
+          // 不要删掉 /result/* 支持，也不要改回“登录入口加首页 redirect 参数”的旧方案。
+          // 注册成功后用户应该回到宿主首页，避免停在 Casdoor 结果页或重新进入登录入口。
           return pathname === '/result' || pathname.indexOf('/result/') === 0
         }
 
@@ -289,12 +312,27 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
         function isAuthEntryPath(pathname) {
           // Casdoor SPA 可能前端路由到 /auth/login 或 /auth/signup。
           // 这些路径有对应 Next route handler，必须通过完整文档请求重新进入后端逻辑。
+          //
+          // 重点：这是“前端路由变更”场景，不会自动命中服务端 route handler。
+          // 所以 watchCurrentLocation() 必须识别这些路径，并用 navigateDocument() 触发真实文档请求。
           return pathname === '/auth/login' || pathname === '/auth/signup'
+        }
+
+        function isBrokenLoginOauthPath(pathname) {
+          // 登录成功后如果某段 Casdoor SPA 或浏览器 history patch 仍把 undefined 当作 URL，
+          // 会落到 /login/oauth/undefined 这类非授权壳路径。它既不是 authorize 页，也不是业务页。
+          //
+          // 不要把这个兜底删掉：这是线上旧页面状态和浏览器前端路由的最后防线。
+          // 真正的授权壳只能是 /login/oauth/authorize；其它 /login/oauth/* 都应脱壳进入个人中心。
+          return pathname.indexOf('/login/oauth/') === 0 && pathname !== '/login/oauth/authorize'
         }
 
         function navigateDocument(url) {
           // 强制完整文档导航，不使用 Next/SPA 的前端路由。
           // 双写 href + assign 是为了规避某些 SPA patch location 后吞掉第一次赋值。
+          //
+          // 不要替换成 router.push、history.pushState 或只调用 assign。
+          // 当前页面是 Casdoor SPA，不是宿主 React 树，只有完整文档导航才能重新进入 Next route handler。
           window.location.href = url
           window.setTimeout(function () {
             window.location.assign(url)
@@ -306,6 +344,9 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
 
           // Casdoor 注册成功后可能只用 history.pushState 把 auth 壳前端路由改成 /。
           // 这时地址栏已经是首页，但文档仍是 Casdoor SPA，必须强制刷新才能进入宿主首页。
+          //
+          // 不要删掉 window.location.reload()。
+          // 没有 reload 时，用户会看到 URL 是 /，但页面内容仍停留在 Casdoor 注册结果或登录壳。
           window.location.href = homeUrl
           window.setTimeout(function () {
             if (window.location.pathname === '/') {
@@ -328,6 +369,9 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
 
         function getCurrentAuthEntryRedirectTarget() {
           // 只接受同源相对路径。外链或 //evil.com 这类 open redirect 必须丢弃。
+          //
+          // 不要放宽成允许绝对 URL。
+          // redirect/returnTo 来自 URL 查询参数，必须防 open redirect。
           try {
             var currentUrl = new URL(window.location.href)
             if (!isAuthEntryPath(currentUrl.pathname)) {
@@ -348,6 +392,9 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
         async function hasActiveSession() {
           // 在 auth 壳里检测当前宿主 NextAuth 会话。
           // 如果用户已经登录但仍停留在 /auth/login，则跳到个人中心，避免重复登录。
+          //
+          // 不要改成读取 Casdoor 页面里的全局状态。
+          // 宿主是否已登录以 NextAuth session 为准，Casdoor SPA 状态只能作为上游登录状态。
           try {
             var sessionResponse = await fetch(currentOrigin + '/api/auth/session', {
               credentials: 'include',
@@ -368,6 +415,13 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
         async function watchCurrentLocation() {
           // 统一处理 Casdoor SPA 前端路由变化后的“脱壳”逻辑。
           // 这个函数会在初始加载、pushState/replaceState、popstate 后执行。
+          //
+          // 这里的顺序不能随意调整：
+          // 1. /result/* 优先回首页，处理注册成功/支付结果等 Casdoor 结果页。
+          // 2. / 表示 auth 壳已经被 SPA 改成首页地址，但文档仍不是宿主首页，所以要强刷。
+          // 3. /auth/login?redirect=... 需要重新发文档请求，让 Next route handler 做后端跳转。
+          // 4. /login/oauth/* 非 authorize 路径是异常授权壳路径，直接脱壳到个人中心。
+          // 5. 已登录还在 /auth/login 或 /auth/signup 时，进入个人中心避免循环登录。
           if (isResultPath(window.location.pathname)) {
             redirectToHomeRoute()
             return true
@@ -380,10 +434,18 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
             return true
           }
 
+          if (isBrokenLoginOauthPath(window.location.pathname)) {
+            navigateDocument(currentOrigin + '/user/account')
+            return true
+          }
+
           var authEntryRedirectTarget = getCurrentAuthEntryRedirectTarget()
           if (authEntryRedirectTarget) {
             // Casdoor's SPA can push /auth/login?redirect=... without a document request.
             // Reload the current URL so the Next route handler performs the redirect.
+            //
+            // 注意这里故意没有直接 navigateDocument(currentOrigin + authEntryRedirectTarget)。
+            // route handler 里还有清理 cookie、规范化 redirect、区分 login/signup 等后端逻辑，必须让它执行。
             navigateDocument(getCurrentDocumentUrl())
             return true
           }
@@ -403,6 +465,16 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
         function toProxyUrl(input) {
           // 把 Casdoor SPA 产生的 URL 全部收敛到宿主同源或指定静态 CDN。
           // 这里是同源认证体验的核心：浏览器不直接访问 auth.heyaai.com 这类 Casdoor 域名。
+          //
+          // 这个函数是所有 patch 的公共入口，修改时必须同时考虑：
+          // - fetch/XHR 的 API 请求
+          // - a/form 的用户点击和提交
+          // - script/link/img 的静态资源
+          // - location.assign/replace/href 的跳转
+          // - history.pushState/replaceState 的前端路由
+          //
+          // 不要在某个分支里直接返回 casdoorOrigin URL。
+          // 一旦浏览器直接访问 Casdoor 域名，就会丢失宿主同源会话、触发跨域 cookie 问题，并破坏站内体验。
           try {
             var url = typeof input === 'string' ? new URL(input, window.location.href) : input instanceof URL ? input : null
             if (!url) {
@@ -411,19 +483,26 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
 
             if (url.origin === cdnOrigin && url.pathname.indexOf(proxyPrefix) === 0) {
               // CDN 上的脚本有时会构造 /auth/* 请求；这些请求应回宿主同源代理。
+              // 不能让 CDN origin 承载 /auth/*，CDN 只负责静态资源，不具备宿主 cookie 和 Next route handler。
               return currentOrigin + url.pathname + url.search + url.hash
             }
 
             if (url.origin === currentOrigin && url.pathname.indexOf('/static/') === 0) {
               // Casdoor 静态资源保持从静态 CDN 取，避免宿主 Next 去处理大量 Casdoor asset。
+              // 不要把 /static/* 改成 /auth/static/*。
+              // Casdoor 打包产物里的相对静态资源很多，走 CDN 可以减少宿主服务压力和路由误判。
               return cdnOrigin + url.pathname + url.search + url.hash
             }
 
             if (url.origin === currentOrigin && (url.pathname === '/auth' || url.pathname.indexOf('/auth/') === 0)) {
               if (url.pathname === '/auth/api/get-application') {
                 // 应用信息请求必须带宿主配置的 applicationId。
+                // 不要删除这个 set('id', applicationId)。
+                // Casdoor SPA 默认可能请求 built-in/app，生产环境会显示错应用或登录配置。
                 url.searchParams.set('id', applicationId)
               }
+              // /auth/api/* 在浏览器里保持同源，服务端 route handler 再转成 Casdoor /api/*。
+              // 不要让前端直接请求 /api/* 或真实 Casdoor /api/*。
               return currentOrigin + proxyPathPrefix + url.pathname.slice('/auth'.length) + url.search + url.hash
             }
 
@@ -432,11 +511,15 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
               (url.pathname === '/result' || url.pathname.indexOf('/result/') === 0)
             ) {
               // Casdoor result 页不是宿主页面。转换成首页 URL，实际跳转由 watchCurrentLocation 强刷处理。
+              // 注意这里只返回首页 URL，不在 toProxyUrl 里直接 reload。
+              // toProxyUrl 可能被 fetch/XHR/form/history 共用，副作用统一放在 watchCurrentLocation 更安全。
               return currentOrigin + '/'
             }
 
             if (url.origin === casdoorOrigin) {
               // 真实 Casdoor API/页面 URL 统一变成宿主 /auth/* 代理路径。
+              // 这是“永远不跳出站外”的关键分支。
+              // 不要按路径白名单放行登录、注册或 get-account 等 Casdoor URL 到外域。
               return currentOrigin + proxyPathPrefix + url.pathname + url.search + url.hash
             }
           } catch (error) {
@@ -449,6 +532,14 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
         function applyPatchedHistoryState(originalHistoryState, context, args) {
           // 统一封装 history.pushState / replaceState 的 URL 参数处理。
           // 不能在两个 patch 里直接改 arguments；不同浏览器对 arguments 可写性和 undefined URL 处理不一致。
+          //
+          // 这个函数解决两个问题：
+          // 1. history 的第三个参数如果是真实 URL，要经过 toProxyUrl，防止 SPA 跳到外域或裸 /result。
+          // 2. history 的第三个参数如果是 undefined/null，不能原样转发给原生 history。
+          //
+          // 第二点非常重要：部分浏览器会把显式 undefined 当作字符串 URL，
+          // 最终产生 /login/oauth/undefined 或 /signup/oauth/undefined。
+          // 因此没有 URL 时必须降级成两参数调用。
           var nextArgs = Array.prototype.slice.call(args)
           if (nextArgs.length > 2) {
             if (typeof nextArgs[2] === 'undefined' || nextArgs[2] === null) {
@@ -559,6 +650,10 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
         if (window.history && typeof window.history.replaceState === 'function') {
           // 第一层 history patch：只负责 URL 参数重写和 undefined URL 修复。
           // 后面会再包一层 watchCurrentLocation，用于监听前端路由变化后的脱壳逻辑。
+          //
+          // 不要把第一层和第二层 patch 合并。
+          // 第一层保证原生 history 收到安全参数；第二层保证路由变化后执行 watch。
+          // 合并后很容易在后续维护中漏掉 undefined 防护或 watch 防护之一。
           try {
             var originalHistoryReplaceState = window.history.replaceState.bind(window.history)
             window.history.replaceState = function () {
@@ -571,6 +666,7 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
 
         if (window.history && typeof window.history.pushState === 'function') {
           // 同上，pushState 也必须经过 applyPatchedHistoryState，避免 /login/oauth/undefined。
+          // 不要用 arrow function 重写这里；需要保留调用时的 this 和 arguments 语义。
           try {
             var originalHistoryPushState = window.history.pushState.bind(window.history)
             window.history.pushState = function () {
@@ -604,6 +700,9 @@ ${buildPkceAuthorizeBootstrapScript(casdoorOrigin)}
         if (window.history && typeof window.history.pushState === 'function') {
           // 第二层 history patch：在 URL 已被第一层 patch 处理后，监听 SPA 路由变化。
           // 不能合并到第一层里，否则后续维护时容易漏掉 undefined URL 防护。
+          //
+          // Casdoor 登录/注册完成后经常不刷新页面，只 pushState 到 /result/*、/ 或 /auth/login?redirect=...
+          // 没有这一层 watch，服务端路由不会执行，用户会卡在 auth 壳。
           var originalPushState = window.history.pushState.bind(window.history)
           window.history.pushState = function () {
             var result = originalPushState.apply(this, arguments)
@@ -614,6 +713,7 @@ ${buildPkceAuthorizeBootstrapScript(casdoorOrigin)}
 
         if (window.history && typeof window.history.replaceState === 'function') {
           // replaceState 也要触发 watchCurrentLocation，Casdoor 经常用 replaceState 切 result/auth 路由。
+          // 这里同样不能省略，注册成功和结果页跳转不一定使用 pushState。
           var originalReplaceState = window.history.replaceState.bind(window.history)
           window.history.replaceState = function () {
             var result = originalReplaceState.apply(this, arguments)

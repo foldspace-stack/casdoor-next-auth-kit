@@ -99,12 +99,16 @@ test('createAuthIndexHtml reloads SPA auth entry routes through Next route handl
   assert.match(html, /function isAuthEntryPath\(pathname\)/);
   assert.match(html, /pathname === '\/auth\/login'/);
   assert.match(html, /pathname === '\/auth\/signup'/);
+  assert.match(html, /function isBrokenLoginOauthPath\(pathname\)/);
+  assert.match(html, /pathname\.indexOf\('\/login\/oauth\/'\) === 0/);
+  assert.match(html, /pathname !== '\/login\/oauth\/authorize'/);
   assert.match(html, /function getCurrentAuthEntryRedirectTarget\(\)/);
   assert.match(html, /function getCurrentDocumentUrl\(\)/);
   assert.match(html, /currentUrl\.searchParams\.get\('redirect'\)/);
   assert.match(html, /currentUrl\.searchParams\.get\('returnTo'\)/);
   assert.match(html, /Casdoor's SPA can push \/auth\/login\?redirect=\.\.\. without a document request/);
   assert.match(html, /Next route handler performs the redirect/);
+  assert.match(html, /isBrokenLoginOauthPath\(window\.location\.pathname\)/);
   assert.match(html, /navigateDocument\(getCurrentDocumentUrl\(\)\)/);
   assert.match(html, /navigateDocument\(currentOrigin \+ '\/user\/account'\)/);
 });

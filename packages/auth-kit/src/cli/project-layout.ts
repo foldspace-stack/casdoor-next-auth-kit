@@ -83,6 +83,7 @@ export function buildManagedRouteTargets(appDir: ManagedAppDir) {
     authLoginRoute: buildManagedRoutePath(appDir, 'auth/login/route.ts'),
     authSignupRoute: buildManagedRoutePath(appDir, 'auth/signup/route.ts'),
     authorizeRoute: buildManagedRoutePath(appDir, 'login/oauth/authorize/route.ts'),
+    loginOauthFallbackRoute: buildManagedRoutePath(appDir, 'login/oauth/[...path]/route.ts'),
     signupAuthorizeRoute: buildManagedRoutePath(appDir, 'signup/oauth/authorize/route.ts'),
     apiRoute: buildManagedRoutePath(appDir, 'auth/api/[...path]/route.ts'),
     nextAuthRoute: buildManagedRoutePath(appDir, 'api/auth/[...nextauth]/route.ts'),

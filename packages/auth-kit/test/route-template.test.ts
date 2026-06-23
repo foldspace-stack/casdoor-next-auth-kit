@@ -6,6 +6,7 @@ import {
   authSignupRouteTemplate,
   authorizeRouteTemplate,
   callbackRouteTemplate,
+  loginOauthFallbackRouteTemplate,
   signupAuthorizeRouteTemplate,
 } from '../src/cli/templates.ts';
 
@@ -19,6 +20,14 @@ test('generated auth route templates keep login and signup GET handlers', () => 
   assert.match(signup, /export const GET = signupHandler;/);
   assert.match(authorize, /export const GET = authorizeHandler;/);
   assert.match(signupAuthorize, /export const GET = authorizeHandler;/);
+});
+
+test('generated login oauth fallback redirects invalid oauth paths to account center', () => {
+  const fallback = loginOauthFallbackRouteTemplate();
+
+  assert.match(fallback, /NextResponse\.redirect\(new URL\('\/user\/account', request\.url\)\)/);
+  assert.match(fallback, /\/login\/oauth\/undefined/);
+  assert.match(fallback, /\/login\/oauth\/authorize/);
 });
 
 test('generated callback route template exposes both GET and POST handlers', () => {

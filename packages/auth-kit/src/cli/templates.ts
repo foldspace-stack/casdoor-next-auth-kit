@@ -29,6 +29,20 @@ export const GET = authorizeHandler;
 `;
 }
 
+export function loginOauthFallbackRouteTemplate() {
+  return `import { NextResponse } from 'next/server';
+
+export const dynamic = 'force-dynamic';
+
+export function GET(request: Request) {
+  // 兜底处理 /login/oauth/undefined 等异常授权壳路径。
+  // 真正的登录授权壳只有 /login/oauth/authorize；其它 /login/oauth/* 说明前端 history 把非法 URL 写进了地址栏。
+  // 不要删除这个路由，否则旧浏览器状态或 Casdoor SPA 回归会直接落到 404，前端 index-html.ts 也没有机会脱壳。
+  return NextResponse.redirect(new URL('/user/account', request.url));
+}
+`;
+}
+
 export function signupAuthorizeRouteTemplate() {
   return `import { authorizeHandler } from '../../../auth-config';
 
