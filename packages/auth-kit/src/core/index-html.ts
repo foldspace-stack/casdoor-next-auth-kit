@@ -30,17 +30,6 @@ function escapeHtmlAttribute(value: string): string {
   return value.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 }
 
-function escapeJavaScriptSingleQuotedString(value: string): string {
-  return value
-    .replaceAll('\\', '\\\\')
-    .replaceAll("'", "\\'")
-    .replaceAll('\r', '\\r')
-    .replaceAll('\n', '\\n')
-    .replaceAll('\u2028', '\\u2028')
-    .replaceAll('\u2029', '\\u2029')
-    .replaceAll('</script>', '<\\/script>');
-}
-
 export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string {
   const staticOrigin = options.staticOrigin || DEFAULT_CASDOOR_STATIC_ORIGIN;
   const casdoorOrigin = options.casdoorOrigin || DEFAULT_CASDOOR_ORIGIN;
@@ -74,7 +63,7 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
         var proxyPathPrefix = proxyPrefix.replace(/\/$/, '')
         var applicationId = ${JSON.stringify((options.organizationName || 'built-in') + '/' + (options.appName || '创小剧 AI'))}
 
-        window.DEFAULT_CASDOOR_POWERED_BY_HTML = '${escapeJavaScriptSingleQuotedString(poweredByHtml)}'
+        window.DEFAULT_CASDOOR_POWERED_BY_HTML = ${JSON.stringify(poweredByHtml)}
 
         function applyPoweredByHtml() {
           if (!window.DEFAULT_CASDOOR_POWERED_BY_HTML) {
@@ -100,15 +89,16 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
         }
 
         function watchPoweredByFooter() {
-          if (!window.MutationObserver) {
+          if (!window.DEFAULT_CASDOOR_POWERED_BY_HTML) {
             return
           }
 
           // Casdoor may render and later replace #footer through its SPA runtime.
           // Keep content writes scoped to #footer, while a light document observer
-          // only detects footer replacement.
+          // and a low-frequency poll only recover missed SPA replacements.
           var footerObserver = null
           var documentObserver = null
+          var footerPoll = null
           var watchedFooter = null
 
           function syncPoweredByFooter() {
@@ -126,7 +116,7 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
               return
             }
 
-            if (footer !== watchedFooter) {
+            if (window.MutationObserver && footer !== watchedFooter) {
               attachFooterObserver(footer)
               return
             }
@@ -166,18 +156,37 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
           function findAndWatchFooter() {
             var footer = document.getElementById('footer')
             if (footer) {
-              attachFooterObserver(footer)
+              if (window.MutationObserver) {
+                attachFooterObserver(footer)
+              } else {
+                syncPoweredByFooter()
+              }
               return true
             }
 
             return false
           }
 
-          documentObserver = new MutationObserver(function () {
-            syncPoweredByFooter()
-          })
-          documentObserver.observe(document.documentElement, { childList: true, subtree: true })
+          function startFooterPoll() {
+            if (footerPoll) {
+              return
+            }
+
+            footerPoll = window.setInterval(function () {
+              syncPoweredByFooter()
+            }, 500)
+          }
+
+          if (window.MutationObserver) {
+            documentObserver = new MutationObserver(function () {
+              syncPoweredByFooter()
+            })
+            documentObserver.observe(document.documentElement, { childList: true, subtree: true })
+          }
+
           findAndWatchFooter()
+          syncPoweredByFooter()
+          startFooterPoll()
         }
 
         function isResultPath(pathname) {
@@ -188,12 +197,19 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
           return pathname === '/auth/login' || pathname === '/auth/signup'
         }
 
-        function redirectToHome() {
-          var homeUrl = currentOrigin + '/'
-          window.location.replace(homeUrl)
+        function navigateDocument(url) {
+          window.location.href = url
           window.setTimeout(function () {
-            window.location.href = homeUrl
+            window.location.assign(url)
           }, 100)
+        }
+
+        function getCurrentDocumentUrl() {
+          return currentOrigin + window.location.pathname + window.location.search + window.location.hash
+        }
+
+        function redirectToHomeRoute() {
+          navigateDocument(currentOrigin + '/')
         }
 
         function getCurrentAuthEntryRedirectTarget() {
@@ -234,21 +250,21 @@ export function createAuthIndexHtml(options: AuthIndexHtmlOptions = {}): string 
 
         async function watchCurrentLocation() {
           if (isResultPath(window.location.pathname)) {
-            redirectToHome()
+            redirectToHomeRoute()
             return true
           }
 
           var authEntryRedirectTarget = getCurrentAuthEntryRedirectTarget()
           if (authEntryRedirectTarget) {
             // Casdoor's SPA can push /auth/login?redirect=... without a document request.
-            // Handle that frontend route here; the Next route handler will not run.
-            window.location.replace(currentOrigin + authEntryRedirectTarget)
+            // Reload the current URL so the Next route handler performs the redirect.
+            navigateDocument(getCurrentDocumentUrl())
             return true
           }
 
           if (isAuthEntryPath(window.location.pathname)) {
             if (await hasActiveSession()) {
-              window.location.replace(currentOrigin + '/user/account')
+              navigateDocument(currentOrigin + '/user/account')
               return true
             }
           }

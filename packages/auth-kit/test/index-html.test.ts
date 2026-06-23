@@ -18,16 +18,19 @@ test('createAuthIndexHtml reads DEFAULT_CASDOOR defaults when options are omitte
     assert.match(html, /Env Demo Description/);
     assert.match(html, /\/casdoor_favicon\.ico/);
     assert.match(html, /Powered by Env Footer/);
-    assert.match(html, /window\.DEFAULT_CASDOOR_POWERED_BY_HTML = '<span>Powered by Env Footer<\/span>'/);
+    assert.match(html, /window\.DEFAULT_CASDOOR_POWERED_BY_HTML = "<span>Powered by Env Footer<\/span>"/);
     assert.match(html, /getElementById\('footer'\)/);
     assert.match(html, /footer\.innerHTML === window\.DEFAULT_CASDOOR_POWERED_BY_HTML/);
     assert.match(html, /footer\.innerHTML = window\.DEFAULT_CASDOOR_POWERED_BY_HTML/);
     assert.match(html, /function watchPoweredByFooter\(\)/);
     assert.match(html, /var watchedFooter = null/);
-    assert.match(html, /footer !== watchedFooter/);
+    assert.match(html, /var footerPoll = null/);
+    assert.match(html, /window\.MutationObserver && footer !== watchedFooter/);
     assert.match(html, /watchedFooter = footer/);
     assert.match(html, /footerObserver\.observe\(footer, \{ childList: true, subtree: true, characterData: true \}\)/);
     assert.match(html, /documentObserver\.observe\(document\.documentElement, \{ childList: true, subtree: true \}\)/);
+    assert.match(html, /window\.setInterval\(function \(\) \{/);
+    assert.match(html, /}, 500\)/);
     assert.doesNotMatch(html, /documentObserver\.disconnect\(\)/);
     assert.doesNotMatch(html, /https:\/\/cdn\.casbin\.org\/img\/favicon\.png/);
   } finally {
@@ -66,27 +69,30 @@ test('createAuthIndexHtml rewrites result urls back to home', () => {
   assert.match(html, /window\.history\.replaceState/);
   assert.match(html, /pathname === '\/result'/);
   assert.match(html, /pathname\.indexOf\('\/result\/'\) === 0/);
-  assert.match(html, /function redirectToHome\(\)/);
-  assert.match(html, /var homeUrl = currentOrigin \+ '\/'/);
-  assert.match(html, /window\.location\.replace\(homeUrl\)/);
+  assert.match(html, /function navigateDocument\(url\)/);
+  assert.match(html, /window\.location\.href = url/);
   assert.match(html, /window\.setTimeout\(function \(\) \{/);
-  assert.match(html, /window\.location\.href = homeUrl/);
+  assert.match(html, /window\.location\.assign\(url\)/);
+  assert.match(html, /function redirectToHomeRoute\(\)/);
+  assert.match(html, /navigateDocument\(currentOrigin \+ '\/'\)/);
   assert.match(html, /return currentOrigin \+ '\/'/);
   assert.doesNotMatch(html, /\/auth\/login\?redirect=%2F/);
 });
 
-test('createAuthIndexHtml handles SPA auth entry redirects without relying on Next route handlers', () => {
+test('createAuthIndexHtml reloads SPA auth entry routes through Next route handlers', () => {
   const html = createAuthIndexHtml();
 
   assert.match(html, /function isAuthEntryPath\(pathname\)/);
   assert.match(html, /pathname === '\/auth\/login'/);
   assert.match(html, /pathname === '\/auth\/signup'/);
   assert.match(html, /function getCurrentAuthEntryRedirectTarget\(\)/);
+  assert.match(html, /function getCurrentDocumentUrl\(\)/);
   assert.match(html, /currentUrl\.searchParams\.get\('redirect'\)/);
   assert.match(html, /currentUrl\.searchParams\.get\('returnTo'\)/);
   assert.match(html, /Casdoor's SPA can push \/auth\/login\?redirect=\.\.\. without a document request/);
-  assert.match(html, /window\.location\.replace\(currentOrigin \+ authEntryRedirectTarget\)/);
-  assert.match(html, /window\.location\.replace\(currentOrigin \+ '\/user\/account'\)/);
+  assert.match(html, /Next route handler performs the redirect/);
+  assert.match(html, /navigateDocument\(getCurrentDocumentUrl\(\)\)/);
+  assert.match(html, /navigateDocument\(currentOrigin \+ '\/user\/account'\)/);
 });
 
 test('createAuthIndexHtml injects browser pkce bootstrap logic for authorize pages', () => {
