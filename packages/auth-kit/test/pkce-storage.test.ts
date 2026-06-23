@@ -32,5 +32,7 @@ test('callback bridge script posts verifier back to the callback endpoint', () =
   assert.match(script, /method: 'POST'/);
   assert.match(script, /verifier/);
   assert.match(script, /response\.json\(\)/);
-  assert.match(script, /window\.location\.replace\(\(payload && payload\.redirectUrl\)/);
+  assert.match(script, /function normalizeCallbackRedirectUrl/);
+  assert.match(script, /url\.hostname === '0\.0\.0\.0'/);
+  assert.match(script, /window\.location\.replace\(normalizeCallbackRedirectUrl/);
 });

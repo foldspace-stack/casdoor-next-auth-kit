@@ -115,6 +115,26 @@ export function buildCallbackBridgeScript(): string {
             return url.toString()
           }
 
+          function normalizeCallbackRedirectUrl(target) {
+            if (!target) {
+              return '/'
+            }
+
+            try {
+              var url = new URL(target, window.location.origin)
+              // Coolify / Traefik deployments can leak the container listen origin
+              // into callback JSON through stale cookies or internal request URLs.
+              // The browser is already on the correct public host here, so only
+              // rewrite the invalid container origin and preserve the intended path.
+              if (url.hostname === '0.0.0.0') {
+                return window.location.origin + url.pathname + url.search + url.hash
+              }
+              return url.toString()
+            } catch (error) {
+              return target
+            }
+          }
+
           async function getStorageKey(state) {
             var digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(state))
             var digestBytes = new Uint8Array(digest)
@@ -201,7 +221,7 @@ export function buildCallbackBridgeScript(): string {
               return
             }
 
-            window.location.replace((payload && payload.redirectUrl) || response.url || '/')
+            window.location.replace(normalizeCallbackRedirectUrl((payload && payload.redirectUrl) || response.url || '/'))
           }
 
           postVerifier().catch(function (error) {
