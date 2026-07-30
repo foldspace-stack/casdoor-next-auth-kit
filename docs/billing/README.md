@@ -10,7 +10,7 @@
 - 套件只提供 headless hooks、Casdoor 适配器、回调 handler 和标准响应类型
 - 如果宿主已经有自己的会员计划 rows，可以先用 `buildBillingSubscriptionCatalog()` 把计划数组转成 subscription catalog，再交给 `BillingProvider` 和 `useSubscribePlan`
 - CLI 生成受管路由时会自动识别宿主使用的是 `app` 还是 `src/app`，并把这些受管文件写到对应的 `(auth-kit)` 目录下
-- 跟随 app root 变化的只有受管 route shells 和 `auth-config.ts`；`lib/billing/*`、`prisma/auth-kit.prisma` 和 `.env*` 仍然固定生成在宿主项目根目录
+- 跟随 app root 变化的主要是受管 route shells 和 `auth-config.ts`；billing 处理器、`user-record.ts` 和 `prisma/auth-kit.prisma` 也会落在同一个 `(auth-kit)` 子树里，便于整目录复制
 
 ### 订阅定价模板
 
@@ -93,7 +93,7 @@ const billingCatalog = {
 2. `npx @foldspace-fe/casdoor-next-auth-kit@latest update` 会补齐受管文件并保持可编译
 3. `pnpm build` 后宿主可以直接 `next build`
 
-如果会影响生成文件，优先把宿主 app root 下的 `/(auth-kit)/auth-config.ts`、`lib/billing/order-redirect.ts`、`lib/billing/payment-success.ts` 和 `lib/billing/payment-finished.ts` 一起对齐，再改文档。
+如果会影响生成文件，优先把宿主 app root 下的 `/(auth-kit)/auth-config.ts`、`/(auth-kit)/billing/order-redirect.ts`、`/(auth-kit)/billing/payment-success.ts` 和 `/(auth-kit)/billing/payment-finished.ts` 一起对齐，再改文档。
 
 ## 覆盖范围
 
@@ -215,7 +215,7 @@ runtime 也可以从 `runtimeConfig.items` 推导 `availablePlans` 和 `availabl
 
 ## 回调约定
 
-- 套件默认生成 `lib/billing/order-redirect.ts`、`lib/billing/payment-success.ts` 和 `lib/billing/payment-finished.ts`
+- 套件默认生成 `/(auth-kit)/billing/order-redirect.ts`、`/(auth-kit)/billing/payment-success.ts` 和 `/(auth-kit)/billing/payment-finished.ts`
 - 宿主 app root 下的 `/(auth-kit)/auth-config.ts` 会直接导入这两个默认文件，并暴露为 `paymentSuccessHandler` / `paymentFinishedHandler`
-- `payment-success.ts` 和 `payment-finished.ts` 都会直接导入 `lib/billing/order-redirect.ts`，用来保证 update 后回跳归一化 helper 仍然存在
+- `payment-success.ts` 和 `payment-finished.ts` 都会直接导入 `/(auth-kit)/billing/order-redirect.ts`，用来保证 update 后回跳归一化 helper 仍然存在
 - 两个回调都能接收 `paymentId`、`orderId`、query 参数和 body，由宿主自己在默认生成文件里完成落库、Webhook 钩子和最终跳转

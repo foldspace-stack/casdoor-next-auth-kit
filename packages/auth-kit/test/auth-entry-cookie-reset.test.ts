@@ -6,7 +6,7 @@ import {
   createAuthorizeEntryResponse,
   createLoginEntryResponse,
   createSignupEntryResponse,
-} from '../src/casdoor/entry.ts';
+} from '../dist/casdoor/index.js';
 import { encodeSessionToken } from '../src/core/session-token.ts';
 
 const authConfig = {
@@ -64,9 +64,10 @@ test('login entry clears stale auth cookies before redirecting', async () => {
 
   const response = await createLoginEntryResponse(request, authConfig as any);
   const cookies = getResponseCookies(response);
+  const html = await response.text();
 
-  assert.equal(response.status, 307);
-  assert.match(response.headers.get('location') ?? '', /\/login\/oauth\/authorize/);
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get('content-type') ?? '', /text\/html/);
   assert.equal(hasCookieDelete(cookies, 'next-auth.session-token'), true);
   assert.equal(hasCookieDelete(cookies, '__Secure-next-auth.session-token'), true);
   assert.equal(hasCookieDelete(cookies, '__Host-next-auth.session-token'), true);
@@ -78,6 +79,9 @@ test('login entry clears stale auth cookies before redirecting', async () => {
   assert.equal(hasCookieSet(cookies, 'auth_origin'), true);
   assert.equal(hasCookieSet(cookies, 'auth_redirect'), true);
   assert.equal(hasCookieSet(cookies, 'pkce_code_verifier.'), false);
+  assert.match(html, /继续登录/);
+  assert.match(html, /去注册/);
+  assert.match(html, /\/login\/oauth\/authorize/);
 });
 
 test('login entry persists redirect query into auth_redirect cookie', async () => {
@@ -87,10 +91,12 @@ test('login entry persists redirect query into auth_redirect cookie', async () =
 
   const response = await createLoginEntryResponse(request, authConfig as any);
   const cookies = getResponseCookies(response);
+  const html = await response.text();
 
-  assert.equal(response.status, 307);
+  assert.equal(response.status, 200);
   assert.equal(hasCookieSet(cookies, 'auth_redirect'), true);
   assert.ok(cookies.some((cookie) => cookie.name === 'auth_redirect' && cookie.value === '/user/account'));
+  assert.match(html, /登录后会回到 \/user\/account/);
 });
 
 test('login entry returns directly to redirect target when session cookie already exists', async () => {
@@ -132,9 +138,12 @@ test('login entry keeps redirects on the current request origin even with an ext
   });
 
   const response = await createLoginEntryResponse(request, authConfig as any);
+  const html = await response.text();
 
-  assert.equal(response.status, 307);
-  assert.match(response.headers.get('location') ?? '', new RegExp(`^${casdoorOrigin}/login/oauth/authorize`));
+  assert.equal(response.status, 200);
+  assert.match(html, new RegExp(`http://localhost:5177/login/oauth/authorize`));
+  assert.match(html, /继续登录/);
+  assert.equal(casdoorOrigin, 'http://casdoor.local');
 });
 
 test('signup entry clears stale auth cookies before redirecting', async () => {
@@ -144,9 +153,10 @@ test('signup entry clears stale auth cookies before redirecting', async () => {
 
   const response = await createSignupEntryResponse(request, authConfig as any);
   const cookies = getResponseCookies(response);
+  const html = await response.text();
 
-  assert.equal(response.status, 307);
-  assert.match(response.headers.get('location') ?? '', /\/signup\/oauth\/authorize/);
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get('content-type') ?? '', /text\/html/);
   assert.equal(hasCookieDelete(cookies, 'next-auth.session-token'), true);
   assert.equal(hasCookieDelete(cookies, '__Secure-next-auth.session-token'), true);
   assert.equal(hasCookieDelete(cookies, '__Host-next-auth.session-token'), true);
@@ -158,15 +168,19 @@ test('signup entry clears stale auth cookies before redirecting', async () => {
   assert.equal(hasCookieSet(cookies, 'auth_origin'), true);
   assert.equal(hasCookieSet(cookies, 'auth_redirect'), true);
   assert.equal(hasCookieSet(cookies, 'pkce_code_verifier.'), false);
+  assert.match(html, /继续注册/);
+  assert.match(html, /返回登录/);
+  assert.match(html, /\/signup\/oauth\/authorize/);
 });
 
-test('authorize entry clears stale auth cookies before returning html', async () => {
-  const request = new NextRequest('http://localhost:5177/login/oauth/authorize', {
+test('authorize entry clears stale auth cookies before returning the local bootstrap page', async () => {
+  const request = new NextRequest('http://localhost:5177/login/oauth/authorize?state=test-state&kind=login', {
     headers: { cookie: staleCookieHeader },
   });
 
   const response = await createAuthorizeEntryResponse(request, authConfig as any);
   const cookies = getResponseCookies(response);
+  const html = await response.text();
 
   assert.equal(response.status, 200);
   assert.match(response.headers.get('content-type') ?? '', /text\/html/);
@@ -178,5 +192,28 @@ test('authorize entry clears stale auth cookies before returning html', async ()
   assert.equal(hasCookieDelete(cookies, 'next-auth.state'), true);
   assert.equal(hasCookieDelete(cookies, 'pkce_code_verifier.old-digest'), true);
   assert.equal(hasCookieSet(cookies, 'auth_origin'), true);
-  assert.match(response.headers.get('content-security-policy') ?? '', /sandbox allow-forms allow-scripts allow-same-origin/);
+  assert.equal(hasCookieSet(cookies, 'oauth_state'), true);
+  assert.match(html, /JavaScript is required to continue sign in/);
+  assert.match(html, /code_challenge_method/);
+});
+
+test('authorize entry redirects to Casdoor when the code challenge is already present', async () => {
+  const request = new NextRequest(
+    'http://localhost:5177/signup/oauth/authorize?state=test-state&kind=signup&code_challenge=test-challenge',
+    {
+      headers: { cookie: staleCookieHeader },
+    },
+  );
+
+  const response = await createAuthorizeEntryResponse(request, authConfig as any);
+  const cookies = getResponseCookies(response);
+  const location = response.headers.get('location') ?? '';
+
+  assert.equal(response.status, 307);
+  assert.match(location, /^http:\/\/casdoor\.local\/login\/oauth\/authorize/);
+  assert.match(location, /code_challenge=test-challenge/);
+  assert.match(location, /state=test-state/);
+  assert.match(location, /action=signup/);
+  assert.equal(hasCookieDelete(cookies, 'next-auth.session-token'), true);
+  assert.equal(hasCookieSet(cookies, 'oauth_state'), true);
 });

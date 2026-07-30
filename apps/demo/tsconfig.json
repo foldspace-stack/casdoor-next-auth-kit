@@ -1,10 +1,17 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "baseUrl": ".",
     "jsx": "preserve",
     "plugins": [{ "name": "next" }],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@foldspace-fe/casdoor-next-auth-kit": ["../../packages/auth-kit/dist/index"],
+      "@foldspace-fe/casdoor-next-auth-kit/auth": ["../../packages/auth-kit/dist/auth/index"],
+      "@foldspace-fe/casdoor-next-auth-kit/billing": ["../../packages/auth-kit/dist/billing/index"],
+      "@foldspace-fe/casdoor-next-auth-kit/casdoor": ["../../packages/auth-kit/dist/casdoor/index"],
+      "@foldspace-fe/casdoor-next-auth-kit/next": ["../../packages/auth-kit/dist/next/index"],
+      "@foldspace-fe/casdoor-next-auth-kit/react": ["../../packages/auth-kit/dist/react/index"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],

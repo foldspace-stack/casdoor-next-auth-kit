@@ -11,14 +11,17 @@ metadata:
 
 本项目的核心价值，是把 Casdoor 原本依赖三方页面和分散接入的能力，整合到宿主工程内部统一管理，保持登录、购买、回跳和状态展示的一致体验，同时把安全边界和可控性留在宿主自己手里。
 
+当前源码实现已经进一步收拢到 `packages/auth-kit/src/runtime`，`src/auth`、`src/billing`、`src/casdoor`、`src/cli`、`src/next` 和 `src/react` 只保留对外入口壳，方便把实现层作为一个内聚目录整体复制到宿主工程内。
+
 ### 修改前必读
 
 在改下面这些内容之前，先确认当前行为、生成结果和文档说明都已对齐：
 
-- `packages/auth-kit/src/cli/templates.ts`
-- `packages/auth-kit/src/cli/operations.ts`
-- `packages/auth-kit/src/billing/*`
-- `packages/auth-kit/src/core/env.ts`
+- `packages/auth-kit/src/runtime/cli/templates.ts`
+- `packages/auth-kit/src/runtime/cli/operations.ts`
+- `packages/auth-kit/src/runtime/billing/*`
+- `packages/auth-kit/src/runtime/env.ts`
+- `packages/auth-kit/src/runtime/callback.ts`
 - `docs/billing/*`
 - `skills/casdoor-next-auth-kit/SKILL.md`
 
@@ -43,7 +46,7 @@ metadata:
 - 移除从 `NEXT_PUBLIC_CASDOOR_SERVER_URL` / `CASDOOR_SERVER_URL` 推导 Casdoor origin 的逻辑
 - 从 skill 文档里删除同域 `/auth/api/*`、最小 Casdoor cookie、服务端 accessToken 补齐、HTTPS Casdoor URL 和 Casdoor 原站 checkout 请求形态的说明
 
-维护 `packages/auth-kit/src/casdoor/proxy.ts`、`packages/auth-kit/src/casdoor/proxy-headers.ts` 或支付相关文档时，必须运行：
+维护 `packages/auth-kit/src/runtime/proxy.ts`、`packages/auth-kit/src/runtime/proxy-headers.ts` 或支付相关文档时，必须运行：
 
 ```bash
 pnpm --dir packages/auth-kit test
@@ -80,8 +83,8 @@ npx @foldspace-fe/casdoor-next-auth-kit@latest check    # 检查：验证宿主�
 
 注意区分生成位置：
 
-- 受管 route shells、`auth-config.ts`、callback 错误页等会跟随宿主 app root，写到 `app/(auth-kit)` 或 `src/app/(auth-kit)`
-- `lib/billing/*`、`prisma/auth-kit.prisma` 和 `.env*` 会根据宿主项目布局分开处理：`.env*` 始终在项目根目录，而 `lib/billing/*` 和 `prisma/auth-kit.prisma` 会在 `app` 项目下保留根目录位置，在 `src/app` 项目下自动生成到 `src/lib/billing/*` 和 `src/prisma/auth-kit.prisma`
+- 受管 route shells、`auth-config.ts`、`billing/*`、`user-record.ts`、`prisma/auth-kit.prisma` 和 callback 错误页等会跟随宿主 app root，写到 `app/(auth-kit)` 或 `src/app/(auth-kit)`
+- `.env*` 仍然在项目根目录；其余生成物都内聚在 `app/(auth-kit)` 或 `src/app/(auth-kit)` 子树里，方便宿主直接复制整个文件夹
 
 ### 宿主项目里的用法
 
@@ -93,7 +96,7 @@ npx @foldspace-fe/casdoor-next-auth-kit@latest update
 npx @foldspace-fe/casdoor-next-auth-kit@latest check
 ```
 
-- `init` 适合第一次接入宿主项目，缺少受管路由壳、`.env*`、`prisma/auth-kit.prisma`、`lib/billing/*` 或 skill 副本时使用；其中 `lib/billing/*` 和 `prisma/auth-kit.prisma` 会在 `src/app` 项目下自动落到 `src/` 下
+- `init` 适合第一次接入宿主项目，缺少受管路由壳、`.env*`、`/(auth-kit)/billing/*`、`/(auth-kit)/user-record.ts`、`/(auth-kit)/prisma/auth-kit.prisma` 或 skill 副本时使用
 - `update` 适合本仓库源码变更后，或宿主项目安装到新版本后使用
 - `check` 不会改文件，只做一致性校验，适合在 CI 或手动排查时执行
 
@@ -109,6 +112,10 @@ npx @foldspace-fe/casdoor-next-auth-kit@latest check
 - `useAuthRole` — 获取当前用户的角色信息，用于权限判断
 - `role` 是一等认证字段，Casdoor profile、callback、JWT/session、`useAuthUser`、`useAuthRole` 和生成的 `auth-config.ts` 会一起维护它；`isAdmin` 仍然保留兼容推导，但不要只依赖它
 - 生成的 `auth-config.ts` 需要在 `onUserSync` 里同时看 Casdoor profile 和 access token，优先用 `decodeCasdoorAccessToken(accessToken)` 兜底补齐 `email`、`sub` 和 `isAdmin`，再把最终用户对象交给 `syncUserRecord(user)` 落库
+- `@foldspace-fe/casdoor-next-auth-kit/auth` — 可组合的认证 UI 模块，包含 `AuthDocument`、`LoginView`、`SignupView`、`AccountView` 和 `AuthAccountDashboard`，适合宿主直接渲染自己的登录、注册、账户中心和 SaaS 订阅 / 积分页
+- `buildAuthThemeStyle` / `AuthThemeTokens` — 为上面这些 UI 提供类似 shadcn 的 CSS 变量 token，宿主可以通过 `theme` 覆盖 `--background`、`--foreground`、`--primary`、`--accent`、`--radius`、`--shadow`、`--font-family` 和 `--page-backdrop`，实现外部全局主题覆盖
+- 宿主可以把 `AuthProvider`、`BillingProvider`、`AuthAccountDashboard`、`useAuthUser`、`useBillingSubscriptions`、`useBillingOrders`、`useBillingCredits` 和 `useBillingPurchaseStatus` 组合成完全本地的 SaaS 账户中心，页面跳转保持在 Next.js 路由里，Casdoor 只作为后端会话和 billing 数据适配层
+- 登录 / 注册页会优先通过同域 `/auth/api/get-application` 和需要时的 `/auth/api/get-account` 拉取数据，再在宿主域内渲染组件页面；不要再把这两个入口当成旧的纯 HTML shell
 - `useAuthActions` — 提供登录、注册、注销等认证操作方法
 - Casdoor 登录 / 注册入口处理器 — 处理用户进入认证流程的初始交互
 - callback / logout / nextauth 路由处理器 — 处理 OAuth 回调、注销和 NextAuth 路由请求
@@ -135,31 +142,25 @@ npx @foldspace-fe/casdoor-next-auth-kit@latest check
 
 - `/auth/login` — 宿主项目的登录入口路由，用户点击登录后进入此页面
 - `/auth/signup` — 宿主项目的注册入口路由，用户点击注册后进入此页面
-- `/login/oauth/authorize` — 同源登录授权壳，宿主项目渲染 Casdoor 的登录表单界面
-- `/signup/oauth/authorize` — 同源注册授权壳，宿主项目渲染 Casdoor 的注册表单界面
+- `/login/oauth/authorize` — 本地登录授权入口，先返回一个很小的 PKCE bootstrap 页面，再 307 到 Casdoor 的 authorize 地址；实现只保留最小 bootstrap，不再依赖旧的 Casdoor HTML 壳
+- `/signup/oauth/authorize` — 本地注册授权入口，行为与登录入口共用同一套 bootstrap 和跳转逻辑
 - `/callback` — OAuth 回调路由，GET 时返回一个很小的回调桥接页，浏览器从 `sessionStorage` / `localStorage` 里取出 `PKCE verifier` 后再 POST 回同一个 `/callback`；POST 才处理 Casdoor 认证成功后的授权码交换，不再读取 legacy cookie verifier
 - `/callback/error` — 回调错误提示页，默认以视口居中、小尺寸卡片呈现错误信息，包含明显的错误状态视觉锚点，并提供“清空当前域 Cookie”按钮，帮助用户清理残留认证 cookie 后重新登录
 - `/logout` — 注销路由，优先用 `Clear-Site-Data: "cookies"` 清空当前域 cookie，再补一轮 `Set-Cookie` 删除兜底，并跳转到首页或 `AuthKitConfig.logoutRedirectPath`；如果目标路径和当前页相同，则按刷新处理
 - `/auth/api/*` — Casdoor API 代理，所有个人操作的 API 请求通过此路径转发
-- billing 的购买页、二维码扫描区和支付状态面板都由宿主工程自己控制，套件只提供 headless hooks、Casdoor 购买适配器、支付回调 handler 和纯数据模型；`packages/auth-kit/src/core/index-html.ts` 不参与 billing 页面生成
+- `/auth/login`、`/auth/signup`、`/user/account` 这类宿主页面可以直接使用 `AuthAccountDashboard` 或 `LoginView` / `SignupView` 组合出自己的体验；宿主只需要把同域 Casdoor API loader 和业务跳转交给套件，不需要再自己拼旧的 HTML 登录页
+- billing 的购买页、二维码扫描区和支付状态面板都由宿主工程自己控制，套件只提供 headless hooks、Casdoor 购买适配器、支付回调 handler 和纯数据模型
 - 支付相关请求必须保持“浏览器只访问宿主同域 `/auth/api/*`，服务端代理再转到 Casdoor `/api/*`”的模型。不要让前端直接请求 `NEXT_PUBLIC_CASDOOR_SERVER_URL` 下的 `/api/buy-product`、`/api/get-product`、`/api/get-payment` 或 `notify-payment`，否则会重新引入跨域登录态、外域跳转和 cookie 体积问题。
 - `/auth/api/buy-product`、`/auth/api/get-product`、`/auth/api/get-payment`、`/auth/api/notify-payment/*` 转发时只能携带 Casdoor 最小会话 cookie：`casdoor_session_id` 和必要时的 `casdoor_access_token`。不要把 `next-auth.session-token`、`__Secure-next-auth.session-token` 或它们的分片 cookie 转给 Casdoor；这些 JWT 分片会让请求头持续膨胀，而且不是 Casdoor 原站支付接口需要的凭证。
 - 服务端发起支付 checkout 或个人资料转发时，不能假设浏览器一定持有 `casdoor_access_token` cookie。可以从当前 NextAuth 会话中取 Casdoor `accessToken`，补 `Authorization: Bearer ...`，并在最小 cookie 白名单内补一个 `casdoor_access_token`；这不等于转发 NextAuth cookie，仍然禁止把 `next-auth.session-token` 分片传给 Casdoor。
 - 支付相关代理会把上游 `origin` 统一改成 Casdoor origin，并按原站页面语义生成 `referer`：商品购买和商品查询使用 `/products/{owner}/{product}/buy`，支付查询使用 `/payments/{owner}/{payment}/result`，支付通知使用 `/qrcode/{owner}/{payment}`。不要改回宿主页面 referer，也不要简单改成 Casdoor 根路径。
 - `NEXT_PUBLIC_CASDOOR_SERVER_URL` / `CASDOOR_SERVER_URL` 必须配置成 Casdoor 的真实协议和域名。生产 Casdoor 是 HTTPS 时必须写 `https://...`，写成 `http://...` 会出现 `casdoor_session_id` 已转发但上游仍返回 `Please login first` 的问题。
-- `/auth/login`、`/auth/signup`、`/login/oauth/authorize` 和 `/signup/oauth/authorize` 进入时，服务端响应要在首跳里隐式清理当前域残留的认证 cookie（含 session、CSRF、callback-url、state、oauth_state、pkce_code_verifier、auth_origin、auth_redirect），再继续进入同源授权流程，避免本地残留状态干扰新的登录/注册；这里不需要额外显式提示页或手动清理步骤
+- `/auth/login`、`/auth/signup`、`/login/oauth/authorize` 和 `/signup/oauth/authorize` 进入时，服务端响应要在首跳里隐式清理当前域残留的认证 cookie（含 session、CSRF、callback-url、state、oauth_state、pkce_code_verifier、auth_origin、auth_redirect），再继续进入授权流程；authorize 入口不再依赖旧的 Casdoor HTML 壳，也不需要宿主改 proxy
 - `/auth/login`、`/auth/signup`、`/login/oauth/authorize`、`/signup/oauth/authorize` 和 `/logout` 这条链路里，origin 必须按请求头动态推导，不要再回退到 `request.url`、容器主机名或写死的单域名 `appUrl`；在 Coolify / Traefik / 多域名部署下，`request.url` 可能变成 `0.0.0.0:7273`，一旦写进 `authorize`、`redirect_uri` 或 logout target，就会把用户带出正确站点
 - 公共 origin 推导必须统一走 `getRequestOrigin()` / `resolvePublicOrigin()`，优先使用 `referer`、`origin`、`x-forwarded-*`、`host`，再兜底 `APP_URL` / `NEXTAUTH_URL` / Coolify 环境变量；这些 helper 会拒绝 `0.0.0.0` / 容器监听地址。不要在任何登录、回调、logout、异常 fallback 或支付回跳里直接用 `new URL(path, request.url)` 生成公网跳转
 - `/callback` 的 GET 首跳只负责返回回调桥接页，真正的 token exchange 放在 POST；PKCE verifier 只保存在浏览器 storage，不要再增加 cookie 读取的迁移兜底，因为 cookie 容量太大且这条链路已经废弃
-- `/signup/oauth/authorize` 的注册完成结果不应停留在 Casdoor 的 `/result/*` 页面，`packages/auth-kit/src/core/index-html.ts` 会在页面加载时和前端 `history` 变更时持续监控当前路径，只要落到 `/result/*` 就统一隐式跳回宿主首页 `/`，不要再改回 `/auth/login?redirect=%2F`。如果 Casdoor SPA 只用 `history.pushState` 把 auth 壳地址改成 `/`，地址栏虽然已经是首页但文档仍是 Casdoor SPA，此时必须调用完整文档导航并补 `window.location.reload()`，强制刷新到宿主首页
-- Casdoor 可能通过前端路由把同一个静态壳地址改成 `/auth/login?redirect=...` 或 `/auth/signup?redirect=...`，这时不会触发 Next.js route handler。`packages/auth-kit/src/core/index-html.ts` 必须在 `history.pushState` / `replaceState` / `popstate` 后继续 watch：若带有同源 `redirect` / `returnTo` 参数，不要直接跳目标路径，而要强制重载当前 auth entry URL，让宿主 Next route handler 执行后端跳转；若已有宿主 NextAuth 会话则用完整文档导航进入 `/user/account`。
-- `packages/auth-kit/src/core/index-html.ts` patch `history.pushState` / `history.replaceState` 时，不能把显式传入的 `undefined` / `null` 第三个参数继续转发给原生 history。浏览器会把 `undefined` 当成字符串 URL，导致 `/login/oauth/undefined`。没有真实 URL 时必须按两参数调用原生 history；只有第三个参数是有效 URL 时才允许调用 `toProxyUrl()`
-- `/login/oauth/authorize` 是唯一合法的登录授权壳路径。若线上旧状态或 Casdoor SPA 回归导致用户落到 `/login/oauth/undefined` 或其它 `/login/oauth/*` 非 authorize 路径，必须通过 `packages/auth-kit/src/core/index-html.ts` 的前端 watch 和受管 `login/oauth/[...path]/route.ts` 双兜底跳到 `/user/account`；不要删除这个 fallback，否则异常路径会直接卡在 404 或空白授权壳。
-- `login/oauth/[...path]/route.ts` 这个异常 fallback 不能用 `request.url` 拼 `/user/account`。线上已验证 Casdoor SPA 在登录成功后可能短暂命中 `/login/oauth/undefined`，如果 fallback 使用 `new URL('/user/account', request.url)`，Coolify 会把 `Location` 写成 `https://0.0.0.0:7273/user/account`。模板必须导入 `getRequestOrigin` 和 `authKitConfig`，通过 `getRequestOrigin(request, authKitConfig.appUrl)` 得到公网 origin 后再 307 到 `/user/account`
-- `packages/auth-kit/src/core/index-html.ts` 的默认图标地址支持 `DEFAULT_CASDOOR_ICON_HREF` 环境变量覆盖；宿主未显式传 `iconHref` 时，先读环境变量，再回退到内置 favicon
-- `packages/auth-kit/src/core/index-html.ts` 的默认 `appName` 和 `description` 也支持 `DEFAULT_CASDOOR_APP_NAME` 和 `DEFAULT_CASDOOR_DESCRIPTION` 环境变量覆盖；宿主未显式传对应参数时，先读环境变量，再回退到内置文案
-- `packages/auth-kit/src/core/index-html.ts` 的底部 `powered by` HTML 片段也支持 `DEFAULT_CASDOOR_POWERED_BY_HTML` 环境变量覆盖；宿主未显式传对应片段时，先读环境变量，再回退到空字符串。示例配置可以直接写成 `DEFAULT_CASDOOR_POWERED_BY_HTML="Powered by <a href='https://heyaai.com' target='_blank'>鹤芽</a>"`，页面里会通过 `footer.innerHTML = window.DEFAULT_CASDOOR_POWERED_BY_HTML` 渲染成实际链接
-- `packages/auth-kit/src/core/index-html.ts` 还会持续监听 `#footer` 的变化，若 `window.DEFAULT_CASDOOR_POWERED_BY_HTML` 存在，只要 footer 被改动就重新把内部恢复成该 HTML 片段。Casdoor SPA 可能会整体重建 footer，所以允许保留一个轻量 document observer 只用于发现 footer 替换；真正写入和 characterData 监听必须收窄到 footer 专属 observer，写入时临时断开再恢复，避免全局监听导致 authorize 页初始化卡死或自触发死循环。比较 footer 是否已生效时，必须先用 `template.innerHTML` 标准化 env 片段，并配合 `data-casdoor-powered-by-html="1"` 标记判断，不要直接拿 raw env 字符串和 `footer.innerHTML` 比较；浏览器会把单引号属性等 HTML 片段重排，raw 比较会导致 observer 反复误判和覆盖失效
+- `/login/oauth/authorize` 和 `/signup/oauth/authorize` 的页面只负责 PKCE bootstrap 与跳转，不再承载 Casdoor SPA 的 `history`/footer 监听，也不需要 `DEFAULT_CASDOOR_*` 之类的壳页环境变量
+- `/login/oauth/[...path]` 这个异常 fallback 仍然保留，用于兜底 `/login/oauth/undefined` 等非法授权壳路径，直接 307 回 `/user/account`
 
 入口路由（login/signup）负责将用户引导至授权壳，授权壳在同源 iframe 或内嵌组件中渲染 Casdoor 界面，避免用户感知到离开宿主应用。
 
@@ -457,8 +458,8 @@ NEXTAUTH_URL=
 - 业务特有的数据表和写入逻辑应保留在宿主项目中，不应混入认证套件
 - 套件通过接口约定宿主项目必须提供哪些字段（如 Casdoor 用户 ID、用户名等），宿主项目自行决定存储方式
 - Casdoor `User.name` 是登录名/用户主键，宿主账号页保存“昵称”或展示名时只能写 `displayName`，不能把 `displayName` 回写到 `name`。`realName`、`jobTitle`、`companyName`、`companyAddress`、`companyCode` 等不在 Casdoor 个人接口里的扩展字段应由宿主自己的 `users` 表或业务表保存，不要强塞进 Casdoor 标准用户对象。
-- 如果宿主使用 Drizzle，这里的 schema 输出应理解为 DDL / migration 片段，由宿主合并进自己的 Drizzle schema 或 SQL migration；Prisma 项目仍然使用 `prisma/auth-kit.prisma`
-- 默认生成的宿主 app root 下 `/(auth-kit)/auth-config.ts` 是自包含的，能够在没有宿主数据库、`@/lib/db` 或额外权限模块的情况下直接编译；billing 处理器会随宿主布局生成到 `lib/billing/payment-success.ts` 和 `lib/billing/payment-finished.ts`，或者在 `src/app` 项目下生成到 `src/lib/billing/payment-success.ts` 和 `src/lib/billing/payment-finished.ts`，`auth-config.ts` 会直接导入这两个默认文件。若宿主需要落库、角色同步或自定义管理员策略，可以再在对应 custom block 里接入自己的实现
+- 如果宿主使用 Drizzle，这里的 schema 输出应理解为 DDL / migration 片段，由宿主合并进自己的 Drizzle schema 或 SQL migration；Prisma 项目仍然使用 `/(auth-kit)/prisma/auth-kit.prisma`
+- 默认生成的宿主 app root 下 `/(auth-kit)/auth-config.ts` 是自包含的，能够在没有宿主数据库、`@/lib/db` 或额外权限模块的情况下直接编译；billing 处理器会随宿主布局生成到 `/(auth-kit)/billing/payment-success.ts` 和 `/(auth-kit)/billing/payment-finished.ts`，`auth-config.ts` 会直接导入这两个默认文件。若宿主需要落库、角色同步或自定义管理员策略，可以再在对应 custom block 里接入自己的实现
 
 ## Skill 分发流程
 
@@ -479,7 +480,7 @@ NEXTAUTH_URL=
 3. 核对受管文件是否已经刷新
    - 宿主 app root 下的 `/(auth-kit)/...`
    - 特别检查 `/(auth-kit)/login/oauth/[...path]/route.ts` 是否已从旧的 `new URL('/user/account', request.url)` 更新为 `getRequestOrigin(request, authKitConfig.appUrl)`，否则线上登录成功后仍可能跳到 `0.0.0.0:7273`
-   - `prisma/auth-kit.prisma`
+   - `/(auth-kit)/prisma/auth-kit.prisma`
    - `.env`、`.env.local`、`.env.production`、`.env.example`
    - `.agents/skills/casdoor-next-auth-kit/SKILL.md`
    - 其中 `NEXT_PUBLIC_BILLING_PURCHASABLE_IDS` 的默认示例值会写成 `membership-monthly,credits-50`
@@ -510,9 +511,9 @@ Billing headless 能力的方案、接口草案和设计图已经放在仓库文
 
 Reusable Casdoor 协议 helper 也已经独立出来：
 
-- `packages/auth-kit/src/billing/casdoor-payment-session.ts` — 商品 checkout、二维码会话、`get-payment`、`notify-payment`、支付状态归一化
-- `packages/auth-kit/src/billing/casdoor-plan-product.ts` — `get-pricing`、`get-plan`、plan 到 product 的解析
-- `packages/auth-kit/src/billing/casdoor-helpers.ts` — 商品 ID 归一化和 provider 选择
+- `packages/auth-kit/src/runtime/billing/casdoor-payment-session.ts` — 商品 checkout、二维码会话、`get-payment`、`notify-payment`、支付状态归一化
+- `packages/auth-kit/src/runtime/billing/casdoor-plan-product.ts` — `get-pricing`、`get-plan`、plan 到 product 的解析
+- `packages/auth-kit/src/runtime/billing/casdoor-helpers.ts` — 商品 ID 归一化和 provider 选择
 
 Billing 的宿主接入方式是：
 
@@ -543,15 +544,15 @@ Billing 支付成功后，Casdoor 会回跳到宿主站内的两个固定回调�
 
 这两个路径都不是页面，都是宿主自己的回调壳。套件会默认生成宿主侧处理器文件：
 
-- `lib/billing/payment-success.ts`
-- `lib/billing/payment-finished.ts`
+- `/(auth-kit)/billing/payment-success.ts`
+- `/(auth-kit)/billing/payment-finished.ts`
 
 宿主 app root 下的 `/(auth-kit)/auth-config.ts` 会直接导入这两个默认文件，并把它们暴露为：
 
 - `paymentSuccessHandler`
 - `paymentFinishedHandler`
 
-宿主可以直接改这两个默认生成文件里的 custom block 来完成订单补全、Webhook 钩子、积分发放和最终跳转，而不需要额外手工创建 `@/lib/billing/*`；在 `src/app` 项目里，这两个文件会落到 `src/lib/billing/*`。
+宿主可以直接改这两个默认生成文件里的 custom block 来完成订单补全、Webhook 钩子、积分发放和最终跳转，而不需要额外手工创建根目录 billing 文件。
 
 默认回调上下文会同时带上 `paymentOwner`、`paymentName`、`paymentId`、`orderId`、`redirectTo`、`status` 和完整 query 参数，宿主在 custom block 里可以直接做订单系统对接和后置处理。
 
@@ -561,9 +562,9 @@ Billing 支付成功后，Casdoor 会回跳到宿主站内的两个固定回调�
 
 宿主 app root 下的 `/(auth-kit)/auth-config.ts` 必须显式导出 `authKitConfig`、`adapter`、`persistence`、`paymentSuccessHandler` 和 `paymentFinishedHandler`，route 文件必须能直接从这个文件拿到所需配置和 handler，不要只保留局部变量让 route 间接取值。
 
-`lib/billing/order-redirect.ts` 是 billing 回跳归一化的共享 helper，`lib/billing/payment-success.ts` 和 `lib/billing/payment-finished.ts` 都会直接导入它；`npx ... update` 后如果这些 import 不见了，说明模板或生成结果已经不一致。
+`/(auth-kit)/billing/order-redirect.ts` 是 billing 回跳归一化的共享 helper，`/(auth-kit)/billing/payment-success.ts` 和 `/(auth-kit)/billing/payment-finished.ts` 都会直接导入它；`npx ... update` 后如果这些 import 不见了，说明模板或生成结果已经不一致。
 
-billing 默认就是受管内容，CLI 必须同时生成 `lib/billing/payment-success.ts` 和 `lib/billing/payment-finished.ts`，在 `src/app` 项目里则分别生成到 `src/lib/billing/payment-success.ts` 和 `src/lib/billing/payment-finished.ts`；`auth-config.ts` 直接导入这两个默认文件，不要要求宿主手工创建 `@/lib/billing/*`。
+billing 默认就是受管内容，CLI 必须同时生成 `/(auth-kit)/billing/payment-success.ts`、`/(auth-kit)/billing/payment-finished.ts` 和 `/(auth-kit)/billing/order-redirect.ts`；`auth-config.ts` 直接导入这些默认文件，不要要求宿主手工创建根目录 `lib/billing/*`。
 
 如果默认处理器没有写入业务逻辑，路由仍会打印日志并回退到默认落点：
 
@@ -581,4 +582,4 @@ billing 默认就是受管内容，CLI 必须同时生成 `lib/billing/payment-s
 - Billing 相关接入优先导入 `@foldspace-fe/casdoor-next-auth-kit/react` 和 `@foldspace-fe/casdoor-next-auth-kit/billing`
 - Billing 的可购买列表优先由宿主配置注入，必要时再由 runtimeConfig 派生，而不是在页面里硬编码
 - Billing 只应基于 `references/swagger.json` 的个人相关端点和宿主编排实现，不要把管理侧 API 当成运行时依赖
-- 生成的宿主 app root 下 `/(auth-kit)/auth-config.ts` 默认是可编译的自包含实现；它只会依赖套件默认生成的 `lib/billing/payment-success.ts` 和 `lib/billing/payment-finished.ts`，或者在 `src/app` 项目下依赖对应的 `src/lib/billing/*` 文件。如需接入宿主自己的数据库、角色判断或用户同步，可以在文件内的 custom block 里替换对应实现，而不是改动受管路由壳
+- 生成的宿主 app root 下 `/(auth-kit)/auth-config.ts` 默认是可编译的自包含实现；它只会依赖同目录下生成的 `billing/*` 和 `user-record.ts` 文件。如需接入宿主自己的数据库、角色判断或用户同步，可以在文件内替换对应实现，而不是改动受管路由壳

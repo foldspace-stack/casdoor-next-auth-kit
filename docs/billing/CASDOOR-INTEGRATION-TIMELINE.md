@@ -19,10 +19,10 @@
 - 支付成功后的 `Success URL` 统一落到宿主的 `/auth/payment/success`
 - 购买成功后的 `Return URL` 统一落到宿主的 `/auth/payment/finished`
 - 购买页、二维码扫描区和支付状态面板都由宿主工程自己渲染，套件只提供 headless hooks 和回调 handler
-- 只有受管 route shells 和宿主 app root 下的 `/(auth-kit)/auth-config.ts` 会跟随 `app` / `src/app` 自动切换；`lib/billing/*`、`prisma/auth-kit.prisma` 和 `.env*` 仍然固定生成在宿主项目根目录
-- 套件默认生成 `lib/billing/order-redirect.ts`、`lib/billing/payment-success.ts` 和 `lib/billing/payment-finished.ts`
+- 受管 route shells、`/(auth-kit)/auth-config.ts`、`/(auth-kit)/billing/*`、`/(auth-kit)/user-record.ts` 和 `/(auth-kit)/prisma/auth-kit.prisma` 会跟随 `app` / `src/app` 自动切换；`.env*` 仍然固定生成在宿主项目根目录
+- 套件默认生成 `/(auth-kit)/billing/order-redirect.ts`、`/(auth-kit)/billing/payment-success.ts` 和 `/(auth-kit)/billing/payment-finished.ts`
 - 宿主 app root 下的 `/(auth-kit)/auth-config.ts` 会直接导入这两个默认文件，并把它们暴露为 `paymentSuccessHandler` / `paymentFinishedHandler`
-- 两个 handler 都会直接导入 `lib/billing/order-redirect.ts`，让 update 每次都能把回跳归一化 helper 重新生成回来
+- 两个 handler 都会直接导入 `/(auth-kit)/billing/order-redirect.ts`，让 update 每次都能把回跳归一化 helper 重新生成回来
 - 宿主函数自己解析 `paymentOwner`、`paymentName`、`paymentId`、`orderId` 和其它 query 参数，再做落库、Webhook 钩子和二次跳转
 - 商品购买适配器会先按 `owner/name` 拉取商品详情，再取可用组织名并调用 `buy-product` 兼容接口；宿主只需要配置允许购买的少量 product id
 - 订阅 catalog 条目和商品 catalog 条目可以共存于同一个 runtimeConfig，但语义上要继续分开：订阅条目走 pricing / plan / subscription，商品条目走 product / order / payment，宿主 UI 可以并排展示但不要合并为同一个购买对象
@@ -37,9 +37,9 @@ sequenceDiagram
   participant Casdoor as Casdoor Billing API
   participant Success as /auth/payment/success
   participant Finished as /auth/payment/finished
-  participant Redirect as lib/billing/order-redirect.ts
-  participant SuccessHandler as lib/billing/payment-success.ts
-  participant FinishedHandler as lib/billing/payment-finished.ts
+  participant Redirect as /(auth-kit)/billing/order-redirect.ts
+  participant SuccessHandler as /(auth-kit)/billing/payment-success.ts
+  participant FinishedHandler as /(auth-kit)/billing/payment-finished.ts
   participant DB as 宿主数据库 / Webhook 钩子
 
   Admin->>Catalog: 定义 BillingCatalogConfig
@@ -85,4 +85,4 @@ Casdoor 侧实际需要的是：
 - `priceId`
 - `metadata`
 
-宿主后端负责把 `BillingCatalogConfig` 翻译成 Casdoor 可执行的购买参数，并在成功回跳和完成回调时分别通过默认生成的 `lib/billing/payment-success.ts`、`lib/billing/payment-finished.ts` 接管后续业务；共享的 `lib/billing/order-redirect.ts` 负责把回跳目标归一化成安全的相对路径。
+宿主后端负责把 `BillingCatalogConfig` 翻译成 Casdoor 可执行的购买参数，并在成功回跳和完成回调时分别通过默认生成的 `/(auth-kit)/billing/payment-success.ts`、`/(auth-kit)/billing/payment-finished.ts` 接管后续业务；共享的 `/(auth-kit)/billing/order-redirect.ts` 负责把回跳目标归一化成安全的相对路径。

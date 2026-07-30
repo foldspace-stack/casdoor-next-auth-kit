@@ -98,17 +98,6 @@ export interface AuthRuntimeContext {
   persistence?: AuthPersistenceAdapter;
 }
 
-export interface AuthIndexHtmlOptions {
-  appName?: string;
-  organizationName?: string;
-  description?: string;
-  staticOrigin?: string;
-  casdoorOrigin?: string;
-  apiProxyPrefix?: string;
-  iconHref?: string;
-  manifestHref?: string;
-}
-
 export type ManagedEnvFile = '.env' | '.env.local' | '.env.production' | '.env.example';
 
 export interface ManagedEnvVariableDefinition {

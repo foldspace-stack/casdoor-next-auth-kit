@@ -10,6 +10,7 @@ CLI 负责管理宿主生成文件，并保持 skill 源同步。
 - `npx @foldspace-fe/casdoor-next-auth-kit@latest --version`
 
 `npx` 会通过 package 的 `bin` 入口执行 `casdoor-next-auth-kit` 这个 CLI，所以可以直接使用 `@latest` 的写法。
+`init` / `update` 只会把受管文件落到宿主项目自己的 `app/(auth-kit)` 或 `src/app/(auth-kit)` 子目录，以及根目录的 `.env*`；billing 处理器、`user-record.ts` 和 `prisma/auth-kit.prisma` 也会内聚在同一个 `(auth-kit)` 子树里，不需要宿主额外改 `next.config`、proxy 或其他全局路由配置。
 
 ## 发布流程
 
@@ -22,12 +23,19 @@ CLI 负责管理宿主生成文件，并保持 skill 源同步。
 
 ## 受管文件
 
-- `app/auth/index-html.ts`
+- `app/(auth-kit)/auth-config.ts`
+- `app/(auth-kit)/login/oauth/authorize/route.ts`
+- `app/(auth-kit)/login/oauth/[...path]/route.ts`
+- `app/(auth-kit)/signup/oauth/authorize/route.ts`
+- `app/(auth-kit)/callback/route.ts`
+- `app/(auth-kit)/callback/error/page.tsx`
+- `app/(auth-kit)/callback/error/clear-domain-cookies-button.tsx`
+- `app/(auth-kit)/logout/route.ts`
 - `.env`
 - `.env.local`
 - `.env.production`
 - `.env.example`
-- `prisma/auth-kit.prisma`
+- `app/(auth-kit)/prisma/auth-kit.prisma`
 
 ## 参考
 

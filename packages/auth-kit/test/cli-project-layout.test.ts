@@ -7,9 +7,10 @@ import test from 'node:test';
 import {
   buildDeprecatedManagedRouteTargets,
   buildManagedRouteTargets,
+  initProject,
   resolveManagedAppDir,
-} from '../src/cli/project-layout.ts';
-import { initProject, updateProject } from '../src/cli/operations.ts';
+  updateProject,
+} from '../src/runtime/install';
 
 async function withTempDir(run: (dir: string) => void | Promise<void>) {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'casdoor-next-auth-kit-'));
@@ -65,10 +66,11 @@ test('initProject writes managed files under src/app when src/app exists', async
     assert.ok(fs.existsSync(path.join(dir, 'src/app/(auth-kit)/auth-config.ts')));
     assert.ok(!fs.existsSync(path.join(dir, 'app/(auth-kit)/auth-config.ts')));
     assert.ok(fs.existsSync(path.join(dir, 'src/app/(auth-kit)/login/oauth/[...path]/route.ts')));
-    assert.ok(fs.existsSync(path.join(dir, 'lib/billing/payment-success.ts')));
-    assert.ok(fs.existsSync(path.join(dir, 'lib/billing/payment-finished.ts')));
-    assert.ok(fs.existsSync(path.join(dir, 'lib/billing/order-redirect.ts')));
-    assert.ok(fs.existsSync(path.join(dir, 'prisma/auth-kit.prisma')));
+    assert.ok(fs.existsSync(path.join(dir, 'src/app/(auth-kit)/billing/payment-success.ts')));
+    assert.ok(fs.existsSync(path.join(dir, 'src/app/(auth-kit)/billing/payment-finished.ts')));
+    assert.ok(fs.existsSync(path.join(dir, 'src/app/(auth-kit)/billing/order-redirect.ts')));
+    assert.ok(fs.existsSync(path.join(dir, 'src/app/(auth-kit)/user-record.ts')));
+    assert.ok(fs.existsSync(path.join(dir, 'src/app/(auth-kit)/prisma/auth-kit.prisma')));
   });
 });
 
@@ -82,10 +84,11 @@ test('initProject writes managed files under app when app exists', async () => {
     assert.ok(fs.existsSync(path.join(dir, 'app/(auth-kit)/auth-config.ts')));
     assert.ok(!fs.existsSync(path.join(dir, 'src/app/(auth-kit)/auth-config.ts')));
     assert.ok(fs.existsSync(path.join(dir, 'app/(auth-kit)/login/oauth/[...path]/route.ts')));
-    assert.ok(fs.existsSync(path.join(dir, 'lib/billing/payment-success.ts')));
-    assert.ok(fs.existsSync(path.join(dir, 'lib/billing/payment-finished.ts')));
-    assert.ok(fs.existsSync(path.join(dir, 'lib/billing/order-redirect.ts')));
-    assert.ok(fs.existsSync(path.join(dir, 'prisma/auth-kit.prisma')));
+    assert.ok(fs.existsSync(path.join(dir, 'app/(auth-kit)/billing/payment-success.ts')));
+    assert.ok(fs.existsSync(path.join(dir, 'app/(auth-kit)/billing/payment-finished.ts')));
+    assert.ok(fs.existsSync(path.join(dir, 'app/(auth-kit)/billing/order-redirect.ts')));
+    assert.ok(fs.existsSync(path.join(dir, 'app/(auth-kit)/user-record.ts')));
+    assert.ok(fs.existsSync(path.join(dir, 'app/(auth-kit)/prisma/auth-kit.prisma')));
   });
 });
 
@@ -100,10 +103,11 @@ test('updateProject removes stale src/app files when app is the active root', as
 
     assert.ok(fs.existsSync(path.join(dir, 'app/(auth-kit)/auth-config.ts')));
     assert.ok(!fs.existsSync(path.join(dir, 'src/app/(auth-kit)/auth-config.ts')));
-    assert.ok(fs.existsSync(path.join(dir, 'lib/billing/payment-success.ts')));
-    assert.ok(fs.existsSync(path.join(dir, 'lib/billing/payment-finished.ts')));
-    assert.ok(fs.existsSync(path.join(dir, 'lib/billing/order-redirect.ts')));
-    assert.ok(fs.existsSync(path.join(dir, 'prisma/auth-kit.prisma')));
+    assert.ok(fs.existsSync(path.join(dir, 'app/(auth-kit)/billing/payment-success.ts')));
+    assert.ok(fs.existsSync(path.join(dir, 'app/(auth-kit)/billing/payment-finished.ts')));
+    assert.ok(fs.existsSync(path.join(dir, 'app/(auth-kit)/billing/order-redirect.ts')));
+    assert.ok(fs.existsSync(path.join(dir, 'app/(auth-kit)/user-record.ts')));
+    assert.ok(fs.existsSync(path.join(dir, 'app/(auth-kit)/prisma/auth-kit.prisma')));
   });
 });
 
@@ -118,9 +122,10 @@ test('updateProject removes stale app files when src/app is the active root', as
 
     assert.ok(fs.existsSync(path.join(dir, 'src/app/(auth-kit)/auth-config.ts')));
     assert.ok(!fs.existsSync(path.join(dir, 'app/(auth-kit)/auth-config.ts')));
-    assert.ok(fs.existsSync(path.join(dir, 'lib/billing/payment-success.ts')));
-    assert.ok(fs.existsSync(path.join(dir, 'lib/billing/payment-finished.ts')));
-    assert.ok(fs.existsSync(path.join(dir, 'lib/billing/order-redirect.ts')));
-    assert.ok(fs.existsSync(path.join(dir, 'prisma/auth-kit.prisma')));
+    assert.ok(fs.existsSync(path.join(dir, 'src/app/(auth-kit)/billing/payment-success.ts')));
+    assert.ok(fs.existsSync(path.join(dir, 'src/app/(auth-kit)/billing/payment-finished.ts')));
+    assert.ok(fs.existsSync(path.join(dir, 'src/app/(auth-kit)/billing/order-redirect.ts')));
+    assert.ok(fs.existsSync(path.join(dir, 'src/app/(auth-kit)/user-record.ts')));
+    assert.ok(fs.existsSync(path.join(dir, 'src/app/(auth-kit)/prisma/auth-kit.prisma')));
   });
 });

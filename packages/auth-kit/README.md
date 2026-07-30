@@ -12,6 +12,8 @@
 - SaaS 订阅、虚拟商品、积分商品的 headless billing runtime
 - 生成和校验宿主受管文件的 CLI
 
+安装后，CLI 会把受管文件放进宿主项目自己的 `app/(auth-kit)` 或 `src/app/(auth-kit)` 子目录，以及根目录的 `.env*`、`lib/billing/*` 和 `prisma/auth-kit.prisma`，不需要额外改 `next.config`、proxy 或其他全局配置。
+
 ## 安装
 
 ```bash
