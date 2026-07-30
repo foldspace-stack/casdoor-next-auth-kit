@@ -1,11 +1,11 @@
 import {
   chooseCasdoorProviderName,
   normalizeCasdoorProductId,
-} from './casdoor-helpers';
+} from './casdoor-helpers.ts';
 export {
   chooseCasdoorProviderName,
   normalizeCasdoorProductId,
-} from './casdoor-helpers';
+} from './casdoor-helpers.ts';
 import type {
   BillingActionExecutionResult,
   BillingCasdoorBuyProductRequest,
@@ -13,7 +13,7 @@ import type {
   BillingCasdoorErrorPayload,
   BillingCasdoorProductDetail,
   BillingPurchaseRequest,
-} from '../shared/types';
+} from '../shared/types.ts';
 
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;

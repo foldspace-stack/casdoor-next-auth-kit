@@ -1,6 +1,6 @@
-import { customBegin, customEnd } from './fs';
-import { buildAuthPrismaSchemaTemplate } from './schema-template';
-import { AUTH_KIT_ENV_FILES, buildManagedEnvTemplate } from './env';
+import { customBegin, customEnd } from './fs.ts';
+import { buildAuthPrismaSchemaTemplate } from './schema-template.ts';
+import { AUTH_KIT_ENV_FILES, buildManagedEnvTemplate } from './env.ts';
 
 export function authLoginRouteTemplate() {
   return `import { loginHandler } from '../../auth-config';

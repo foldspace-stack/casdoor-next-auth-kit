@@ -1,1 +1,1 @@
-export * from '../runtime/billing/runtime';
+export * from '../runtime/billing/runtime.ts';

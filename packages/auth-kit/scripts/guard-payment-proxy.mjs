@@ -14,8 +14,8 @@ function assertRule(condition, message) {
   }
 }
 
-const proxySource = read('src/casdoor/proxy.ts');
-const proxyHeadersSource = read('src/casdoor/proxy-headers.ts');
+const proxySource = read('src/runtime/casdoor/proxy.ts');
+const proxyHeadersSource = read('src/runtime/casdoor/proxy-headers.ts');
 const skillSource = read('../../skills/casdoor-next-auth-kit/SKILL.md');
 
 assertRule(

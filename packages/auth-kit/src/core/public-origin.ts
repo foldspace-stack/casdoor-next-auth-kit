@@ -1,1 +1,1 @@
-export * from '../runtime/shared/core';
+export * from '../runtime/shared/core.ts';

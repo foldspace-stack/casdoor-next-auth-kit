@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server.js';
-import type { AuthKitConfig } from '../shared/types';
-import { clearAuthEntryCookies, clearAuthRedirectCookie, clearPublicOriginCookie, getRequestOrigin, isSecureRequest } from '../shared/core';
+import type { AuthKitConfig } from '../shared/types.ts';
+import { clearAuthEntryCookies, clearAuthRedirectCookie, clearPublicOriginCookie, getRequestOrigin, isSecureRequest } from '../shared/core.ts';
 
 function resolveLogoutTargetUrl(request: NextRequest, config: AuthKitConfig): URL {
   // 退出跳转同样不能依赖 request.url；优先复用登录阶段写入的 auth_origin，

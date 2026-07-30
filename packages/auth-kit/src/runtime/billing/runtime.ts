@@ -18,7 +18,7 @@ import type {
   BillingRuntimeConfig,
   BillingSubscriptionState,
   BillingSubscriptionHistoryItem,
-} from '../shared/types';
+} from '../shared/types.ts';
 
 function normalizeCasdoorProductId(id: string): { owner: string; name: string } {
   const [owner, ...rest] = id.split('/');

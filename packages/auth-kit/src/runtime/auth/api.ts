@@ -1,13 +1,13 @@
 import type { NextRequest } from 'next/server.js';
-import type { AuthKitConfig } from '../shared/types';
+import type { AuthKitConfig } from '../shared/types.ts';
 import type {
   BillingCasdoorAccountDetail,
   BillingCasdoorAccountResponse,
   BillingCasdoorApplicationDetail,
   BillingCasdoorApplicationResponse,
-} from '../shared/types';
-import { getRequestOrigin } from '../shared/core';
-import { normalizeAuthKitConfig } from '../shared/config';
+} from '../shared/types.ts';
+import { getRequestOrigin } from '../shared/core.ts';
+import { normalizeAuthKitConfig } from '../shared/config.ts';
 
 interface CasdoorDataEnvelope<T> {
   data?: T;

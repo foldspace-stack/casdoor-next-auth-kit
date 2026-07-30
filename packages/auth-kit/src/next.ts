@@ -1,1 +1,1 @@
-export * from './runtime/auth/server';
+export * from './runtime/auth/server.ts';

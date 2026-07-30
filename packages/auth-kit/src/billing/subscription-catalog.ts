@@ -1,1 +1,1 @@
-export * from '../runtime/billing/subscription-catalog';
+export * from '../runtime/billing/subscription-catalog.ts';

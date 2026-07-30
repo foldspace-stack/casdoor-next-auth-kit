@@ -1,8 +1,8 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
-import { buildAuthJumpHref, buildAuthUserSummary, type AuthSummaryRole } from '../shared/core';
-import type { AuthSession } from './options';
+import { buildAuthJumpHref, buildAuthUserSummary, type AuthSummaryRole } from '../shared/core.ts';
+import type { AuthSession } from './options.ts';
 
 export type AuthRole = AuthSummaryRole;
 

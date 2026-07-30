@@ -1,4 +1,4 @@
-export * from '../../types';
+export * from '../../types.ts';
 
 export type BillingItemKind = 'subscription' | 'product';
 export type BillingInterval = 'month' | 'year';

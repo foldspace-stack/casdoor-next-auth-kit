@@ -3,7 +3,7 @@ import {
   buildCasdoorRequestHeaders,
   readCasdoorJsonResponse,
   type BillingFetch,
-} from './casdoor-payment-session';
+} from './casdoor-payment-session.ts';
 import type {
   BillingCasdoorApiResponse,
   BillingCasdoorPlanDetail,
@@ -11,7 +11,7 @@ import type {
   BillingCasdoorPlanProductResolution,
   BillingCasdoorPricingDetail,
   BillingCasdoorPricingLookupInput,
-} from '../shared/types';
+} from '../shared/types.ts';
 
 interface FetchableRequest {
   fetcher?: BillingFetch;

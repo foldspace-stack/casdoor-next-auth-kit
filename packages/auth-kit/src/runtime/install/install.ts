@@ -2,9 +2,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import packageJson from '../../../package.json';
-import { AUTH_KIT_ENV_FILES, getMissingManagedEnvKeys } from './env';
-import { exists, preserveCustomBlock, read, removePath, writeGeneratedFile, writeTextFile } from './fs';
+import packageJson from '../../../package.json' with { type: 'json' };
+import { AUTH_KIT_ENV_FILES, getMissingManagedEnvKeys } from './env.ts';
+import { exists, preserveCustomBlock, read, removePath, writeGeneratedFile, writeTextFile } from './fs.ts';
 import {
   apiProxyRouteTemplate,
   authConfigTemplate,
@@ -27,7 +27,7 @@ import {
   prismaSchemaTemplate,
   signupAuthorizeRouteTemplate,
   userRecordTemplate,
-} from './templates';
+} from './templates.ts';
 
 export type ManagedAppDir = 'app' | 'src/app';
 

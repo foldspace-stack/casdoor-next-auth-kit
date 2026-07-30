@@ -1,1 +1,1 @@
-export * from '../runtime/casdoor/proxy-headers';
+export * from '../runtime/casdoor/proxy-headers.ts';

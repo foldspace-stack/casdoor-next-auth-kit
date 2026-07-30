@@ -1,5 +1,5 @@
-import type { BillingPaymentSuccessHandler, BillingPaymentSuccessRouteOptions } from '../shared/types';
-import { createBillingPaymentRouteResponse } from './payment-route';
+import type { BillingPaymentSuccessHandler, BillingPaymentSuccessRouteOptions } from '../shared/types.ts';
+import { createBillingPaymentRouteResponse } from './payment-route.ts';
 
 export async function createBillingPaymentSuccessResponse(
   request: Request,

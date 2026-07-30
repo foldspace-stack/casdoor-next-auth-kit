@@ -1,1 +1,1 @@
-export * from '../runtime/install/templates';
+export * from '../runtime/install/templates.ts';

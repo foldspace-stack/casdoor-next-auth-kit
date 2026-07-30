@@ -1,1 +1,1 @@
-export * from '../runtime/auth/callback';
+export * from '../runtime/auth/callback.ts';

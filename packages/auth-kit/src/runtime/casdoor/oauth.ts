@@ -1,5 +1,5 @@
-import type { AuthKitConfig, CasdoorUserInfo, OAuthTokens } from '../shared/types';
-import { getCasdoorTokenUrl, getCasdoorUserInfoUrl } from '../shared/config';
+import type { AuthKitConfig, CasdoorUserInfo, OAuthTokens } from '../shared/types.ts';
+import { getCasdoorTokenUrl, getCasdoorUserInfoUrl } from '../shared/config.ts';
 import { Buffer } from 'node:buffer';
 
 function decodeJwtPayload(token: string): Record<string, unknown> | null {

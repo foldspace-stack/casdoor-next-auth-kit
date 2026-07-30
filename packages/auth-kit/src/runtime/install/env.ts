@@ -1,4 +1,4 @@
-import type { ManagedEnvFile, ManagedEnvVariableDefinition } from '../shared/types';
+import type { ManagedEnvFile, ManagedEnvVariableDefinition } from '../shared/types.ts';
 
 export const AUTH_KIT_ENV_FILES: ManagedEnvFile[] = ['.env', '.env.local', '.env.production', '.env.example'];
 

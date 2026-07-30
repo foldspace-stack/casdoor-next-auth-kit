@@ -1,7 +1,7 @@
 import type { CSSProperties, HTMLAttributes, ReactNode } from 'react';
-import { buildAuthThemeStyle, mergeClassName, type AuthThemeTokens } from './theme';
-import type { AuthUser } from '../shared/types';
-import type { AuthUserSummary } from './hooks';
+import { buildAuthThemeStyle, mergeClassName, type AuthThemeTokens } from './theme.ts';
+import type { AuthUser } from '../shared/types.ts';
+import type { AuthUserSummary } from './hooks.ts';
 import type {
   BillingItem,
   BillingOrderHistoryItem,
@@ -12,7 +12,7 @@ import type {
   BillingCreditsState,
   BillingCasdoorAccountDetail,
   BillingCasdoorApplicationDetail,
-} from '../shared/types';
+} from '../shared/types.ts';
 
 type BoxProps = HTMLAttributes<HTMLDivElement> & { style?: CSSProperties };
 

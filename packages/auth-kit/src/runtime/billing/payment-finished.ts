@@ -1,5 +1,5 @@
-import type { BillingPaymentFinishedHandler, BillingPaymentFinishedRouteOptions } from '../shared/types';
-import { createBillingPaymentRouteResponse } from './payment-route';
+import type { BillingPaymentFinishedHandler, BillingPaymentFinishedRouteOptions } from '../shared/types.ts';
+import { createBillingPaymentRouteResponse } from './payment-route.ts';
 
 export async function createBillingPaymentFinishedResponse(
   request: Request,

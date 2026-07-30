@@ -1,4 +1,4 @@
-import type { AuthKitConfig } from './types';
+import type { AuthKitConfig } from './types.ts';
 
 export function normalizeAuthKitConfig(config: AuthKitConfig): AuthKitConfig {
   return {

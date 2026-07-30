@@ -1,3 +1,3 @@
-export * from './oauth';
-export * from './proxy';
-export * from './proxy-headers';
+export * from './oauth.ts';
+export * from './proxy.ts';
+export * from './proxy-headers.ts';

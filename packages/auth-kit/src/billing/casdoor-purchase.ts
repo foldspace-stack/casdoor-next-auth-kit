@@ -1,1 +1,1 @@
-export * from '../runtime/billing/casdoor-purchase';
+export * from '../runtime/billing/casdoor-purchase.ts';

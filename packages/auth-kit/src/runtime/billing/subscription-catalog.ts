@@ -3,7 +3,7 @@ import type {
   BillingDefaults,
   BillingInterval,
   BillingItem,
-} from '../shared/types';
+} from '../shared/types.ts';
 
 export interface BillingSubscriptionCatalogItemInput<TSource = unknown> {
   source: TSource;

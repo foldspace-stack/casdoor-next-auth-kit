@@ -1,4 +1,4 @@
-import type { PrismaSchemaFieldDefinition, PrismaSchemaModelDefinition } from '../shared/types';
+import type { PrismaSchemaFieldDefinition, PrismaSchemaModelDefinition } from '../shared/types.ts';
 
 export const AUTH_PRISMA_SCHEMA_MODELS: PrismaSchemaModelDefinition[] = [
   {

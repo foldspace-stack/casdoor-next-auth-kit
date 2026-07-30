@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
-import { resolvePublicOrigin } from '../shared/core';
-import { buildBillingPaymentCallbackContext } from './runtime';
+import { resolvePublicOrigin } from '../shared/core.ts';
+import { buildBillingPaymentCallbackContext } from './runtime.ts';
 import type {
   BillingPaymentRouteBaseOptions,
   BillingPaymentFinishedRouteOptions,
@@ -10,7 +10,7 @@ import type {
   BillingPaymentSuccessContext,
   BillingPaymentSuccessHandlerResult,
   BillingPaymentSuccessRouteOptions,
-} from '../shared/types';
+} from '../shared/types.ts';
 
 export interface BillingPaymentRouteOptions extends BillingPaymentRouteBaseOptions {
   routePath: string;

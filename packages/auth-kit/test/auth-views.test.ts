@@ -3,7 +3,7 @@ import test from 'node:test';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 
-import { AccountView, AuthDocument, LoginView, SignupView, buildAuthThemeStyle } from '../dist/auth/index.js';
+import { AccountView, AuthDocument, LoginView, SignupView, buildAuthThemeStyle } from '../dist/auth.js';
 
 test('auth theme exposes shadcn-compatible CSS variables', () => {
   const style = buildAuthThemeStyle({

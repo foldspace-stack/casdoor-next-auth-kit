@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server.js';
-import type { AuthBusinessAdapter, AuthKitConfig, AuthPersistenceAdapter, AuthUser } from '../shared/types';
-import { normalizeAuthKitConfig } from '../shared/config';
+import type { AuthBusinessAdapter, AuthKitConfig, AuthPersistenceAdapter, AuthUser } from '../shared/types.ts';
+import { normalizeAuthKitConfig } from '../shared/config.ts';
 import {
   buildAuthUserFromProfile,
   clearAuthRedirectCookie,
@@ -11,16 +11,16 @@ import {
   isGlobalAdminEmail,
   isSecureRequest,
   resolvePostLoginRedirect,
-} from '../shared/core';
+} from '../shared/core.ts';
 import {
   decodeCasdoorAccessToken,
   exchangeCasdoorOAuthToken,
   fetchCasdoorUserInfo,
-} from '../casdoor/oauth';
-import { getCasdoorConfig } from '../shared/config';
-import { buildCallbackBridgeScript } from './pkce-storage';
-import { getPkceCookieName, verifyState } from '../shared/oauth-state';
-import { encodeSessionToken } from '../shared/session-token';
+} from '../casdoor/oauth.ts';
+import { getCasdoorConfig } from '../shared/config.ts';
+import { buildCallbackBridgeScript } from './pkce-storage.ts';
+import { getPkceCookieName, verifyState } from '../shared/oauth-state.ts';
+import { encodeSessionToken } from '../shared/session-token.ts';
 
 export interface CallbackHandlerOptions {
   config: AuthKitConfig;

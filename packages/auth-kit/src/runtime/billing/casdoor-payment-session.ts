@@ -2,8 +2,8 @@ import {
   buildCasdoorBuyProductParams,
   buildCasdoorBuyProductRequest,
   normalizeCasdoorBuyProductResponse,
-} from './casdoor-purchase';
-import { normalizeCasdoorProductId } from './casdoor-helpers';
+} from './casdoor-purchase.ts';
+import { normalizeCasdoorProductId } from './casdoor-helpers.ts';
 import type {
   BillingCasdoorApiResponse,
   BillingCasdoorBuyProductResponse,
@@ -15,7 +15,7 @@ import type {
   BillingCasdoorProductDetail,
   BillingCasdoorProductResponse,
   BillingCasdoorRequestAuth,
-} from '../shared/types';
+} from '../shared/types.ts';
 
 export type BillingFetch = typeof fetch;
 

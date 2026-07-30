@@ -28,12 +28,12 @@ import {
   resolveBillingPurchasable,
   resolveBillingProductSnapshot,
   resolveBillingSubscriptionProduct,
-} from '../billing/runtime';
+} from '../billing/runtime.ts';
 import {
   buildCasdoorBuyProductRequest,
   normalizeCasdoorBuyProductResponse,
   normalizeCasdoorProductId,
-} from '../billing/casdoor-purchase';
+} from '../billing/casdoor-purchase.ts';
 import type {
   BillingActionExecutor,
   BillingActionKind,
@@ -69,7 +69,7 @@ import type {
   BillingSubscriptionContextValue,
   BillingSubscriptionHistoryItem,
   BillingSubscriptionState,
-} from '../shared/types';
+} from '../shared/types.ts';
 
 export interface BillingProviderProps {
   children: ReactNode;

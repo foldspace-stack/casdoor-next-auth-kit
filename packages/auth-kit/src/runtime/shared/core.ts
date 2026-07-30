@@ -1,5 +1,5 @@
 import type { NextRequest, NextResponse } from 'next/server.js';
-import type { AuthUser, AuthUserRole } from './types';
+import type { AuthUser, AuthUserRole } from './types.ts';
 
 const DEFAULT_ADMIN_EMAILS = ['admin@example.com'];
 

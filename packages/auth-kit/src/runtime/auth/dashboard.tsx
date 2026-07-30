@@ -1,11 +1,11 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useAuthUser } from './hooks';
-import { useBillingAvailablePlans, useBillingAvailableProducts, useBillingCredits, useBillingProductPurchaseOptions, useBillingSubscription, useBillingSubscriptionPurchaseOptions, usePurchaseProduct, useSubscribePlan } from './react';
-import type { BillingCasdoorPlanDetail, BillingItem, BillingProductState } from '../shared/types';
-import type { AuthThemeTokens } from './theme';
-import { AccountView } from './views';
+import { useAuthUser } from './hooks.ts';
+import { useBillingAvailablePlans, useBillingAvailableProducts, useBillingCredits, useBillingProductPurchaseOptions, useBillingSubscription, useBillingSubscriptionPurchaseOptions, usePurchaseProduct, useSubscribePlan } from './react.tsx';
+import type { BillingCasdoorPlanDetail, BillingItem, BillingProductState } from '../shared/types.ts';
+import type { AuthThemeTokens } from './theme.ts';
+import { AccountView } from './views.tsx';
 
 export interface AuthAccountDashboardProps {
   appName: string;

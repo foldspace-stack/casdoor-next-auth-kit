@@ -10,7 +10,7 @@ import {
   initProject,
   resolveManagedAppDir,
   updateProject,
-} from '../src/runtime/install';
+} from '../src/runtime/install/index.ts';
 
 async function withTempDir(run: (dir: string) => void | Promise<void>) {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'casdoor-next-auth-kit-'));

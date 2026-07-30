@@ -1,1 +1,1 @@
-export * from '../runtime/shared/oauth-state';
+export * from '../runtime/shared/oauth-state.ts';

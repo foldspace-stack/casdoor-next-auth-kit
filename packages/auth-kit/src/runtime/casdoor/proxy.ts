@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server.js';
-import type { AuthKitConfig } from '../shared/types';
-import { buildCasdoorProxyRequestHeaders } from './proxy-headers';
-import { decodeSessionToken } from '../shared/session-token';
+import type { AuthKitConfig } from '../shared/types.ts';
+import { buildCasdoorProxyRequestHeaders } from './proxy-headers.ts';
+import { decodeSessionToken } from '../shared/session-token.ts';
 
 const FOLLOW_REDIRECT_PATHS = new Map<string, Set<string>>([
   // 登录态初始化类接口需要跟随 Casdoor 内部跳转并把 Set-Cookie 带回宿主域。

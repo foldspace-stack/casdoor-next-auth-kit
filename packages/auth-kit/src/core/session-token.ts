@@ -1,1 +1,1 @@
-export * from '../runtime/shared/session-token';
+export * from '../runtime/shared/session-token.ts';

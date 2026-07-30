@@ -1,11 +1,11 @@
 import NextAuth from 'next-auth';
 import type { NextAuthOptions, Session } from 'next-auth';
 import type { JWT } from 'next-auth/jwt';
-import type { AuthBusinessAdapter, AuthKitConfig, AuthPersistenceAdapter, AuthUser, AuthUserRole } from '../shared/types';
-import { normalizeAuthKitConfig } from '../shared/config';
-import { decodeSessionToken, encodeSessionToken } from '../shared/session-token';
-import { buildAuthUserFromToken, isGlobalAdminEmail } from '../shared/core';
-import { decodeCasdoorAccessToken } from '../casdoor/oauth';
+import type { AuthBusinessAdapter, AuthKitConfig, AuthPersistenceAdapter, AuthUser, AuthUserRole } from '../shared/types.ts';
+import { normalizeAuthKitConfig } from '../shared/config.ts';
+import { decodeSessionToken, encodeSessionToken } from '../shared/session-token.ts';
+import { buildAuthUserFromToken, isGlobalAdminEmail } from '../shared/core.ts';
+import { decodeCasdoorAccessToken } from '../casdoor/oauth.ts';
 
 export interface NextAuthRouteOptions {
   config: AuthKitConfig;

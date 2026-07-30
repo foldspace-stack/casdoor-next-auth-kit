@@ -6,7 +6,7 @@ import {
   createAuthorizeEntryResponse,
   createLoginEntryResponse,
   createSignupEntryResponse,
-} from '../dist/casdoor/index.js';
+} from '../dist/casdoor.js';
 import { encodeSessionToken } from '../src/core/session-token.ts';
 
 const authConfig = {

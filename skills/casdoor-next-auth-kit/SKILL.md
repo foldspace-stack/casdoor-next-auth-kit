@@ -37,7 +37,7 @@ metadata:
 
 ### 支付代理防回归护栏
 
-`packages/auth-kit` 的 `pnpm test` 已接入 `scripts/guard-payment-proxy.mjs`。这个脚本会在单测前做静态规则检查，防止下面这些改动被悄悄改回去：
+`packages/auth-kit` 的 `pnpm test` 已接入 `scripts/guard-payment-proxy.mjs`。这个脚本会在单测前直接检查 `src/runtime/casdoor/proxy.ts` 和 `src/runtime/casdoor/proxy-headers.ts`，防止下面这些改动被悄悄改回去：
 
 - 重新引入 `RAW_COOKIE_FORWARD_PATHS` / `shouldForwardRawCookies`，让支付接口转发整段浏览器 cookie
 - 把 `next-auth.session-token`、`__Secure-next-auth.session-token` 或分片 cookie 加进 Casdoor 默认 cookie 白名单

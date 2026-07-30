@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-import packageJson from '../package.json';
-import { initProject, checkProject, updateProject } from './runtime/install';
+import packageJson from '../package.json' with { type: 'json' };
+import { initProject, checkProject, updateProject } from './runtime/install/index.ts';
 
 function printUsage() {
   console.log('Usage: npx @foldspace-fe/casdoor-next-auth-kit@latest <init|update|check>');

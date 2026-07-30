@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server.js';
 import { createElement } from 'react';
-import type { AuthKitConfig } from '../shared/types';
-import { normalizeAuthKitConfig } from '../shared/config';
+import type { AuthKitConfig } from '../shared/types.ts';
+import { normalizeAuthKitConfig } from '../shared/config.ts';
 import {
   buildAuthUserSummary,
   clearAuthEntryCookies,
@@ -11,13 +11,13 @@ import {
   normalizeOrigin,
   setAuthRedirectCookie,
   setPublicOriginCookie,
-} from '../shared/core';
-import { generateStateToken } from '../shared/oauth-state';
-import { decodeSessionToken } from '../shared/session-token';
-import { LoginView, SignupView } from './views';
-import { loadAuthPortalContext } from './api';
-import { buildPkceAuthorizeBootstrapScript } from './pkce-storage';
-import { getCasdoorAuthorizeUrl } from '../shared/config';
+} from '../shared/core.ts';
+import { generateStateToken } from '../shared/oauth-state.ts';
+import { decodeSessionToken } from '../shared/session-token.ts';
+import { LoginView, SignupView } from './views.tsx';
+import { loadAuthPortalContext } from './api.ts';
+import { buildPkceAuthorizeBootstrapScript } from './pkce-storage.ts';
+import { getCasdoorAuthorizeUrl } from '../shared/config.ts';
 
 function buildLocalAuthorizeUrl(
   origin: string,

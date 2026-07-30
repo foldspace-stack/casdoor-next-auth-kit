@@ -1,1 +1,1 @@
-export * from '../runtime/auth/pkce-storage';
+export * from '../runtime/auth/pkce-storage.ts';

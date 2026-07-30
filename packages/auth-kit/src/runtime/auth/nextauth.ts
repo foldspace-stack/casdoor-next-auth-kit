@@ -6,4 +6,4 @@ export {
   type AuthSessionUser,
   type AuthTokenPayload,
   type NextAuthRouteOptions,
-} from './options';
+} from './options.ts';
